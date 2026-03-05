@@ -1,0 +1,5 @@
+# Angular
+"frontend/dist/" 
+"frontend/.angular/" 
+"*.log" 
+".DS_Store" 

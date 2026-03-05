@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # Frontend
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - usuarios
+      - pedidos
+      - pagos
+
+  # Microservicios
+  usuarios:
+    build: ./backend/usuarios
+    ports:
+      - "3001:3001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+
+  pedidos:
+    build: ./backend/pedidos
+    ports:
+      - "3002:3002"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+
+  pagos:
+    build: ./backend/pagos
+    ports:
+      - "3003:3003"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+
+  # Base de datos simulada (MongoDB)
+  mongodb:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
