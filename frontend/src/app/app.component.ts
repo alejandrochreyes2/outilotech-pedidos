@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { AuthService } from './services/auth.service';
@@ -12,12 +12,11 @@ import { NgIf } from '@angular/common';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  darkMode = false;
-
-  constructor(public auth: AuthService) {}
+  public auth = inject(AuthService);
+  private _darkMode = false;
 
   toggleTheme() {
-    this.darkMode = !this.darkMode;
-    document.body.classList.toggle('dark-mode', this.darkMode);
+    this._darkMode = !this._darkMode;
+    document.body.classList.toggle('dark-mode', this._darkMode);
   }
 }

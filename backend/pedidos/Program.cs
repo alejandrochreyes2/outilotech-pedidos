@@ -1,22 +1,46 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using PedidosAPI.Repositories;
+using PedidosAPI.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers();
-builder.Services.AddHealthChecks(); // Para el endpoint /health
+// Repository
+builder.Services.AddSingleton<IPedidoRepository, PedidoRepository>();
+
+// JWT Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options => {
+        options.TokenValidationParameters = new TokenValidationParameters {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+    });
+
+builder.Services.AddAuthorization();
+builder.Services.AddHealthChecks();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-app.UseHttpsRedirection();
-app.MapControllers();
-app.MapHealthChecks("/health"); // Endpoint de health check
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapHealthChecks("/health");
 
-// Endpoint de status personalizado
-app.MapGet("/status", () => new
-{
-    service = "pedidos",
-    status = "OK",
-    timestamp = DateTime.UtcNow
-});
+// Endpoints
+app.MapGet("/api/pedidos", async (IPedidoRepository repo) => Results.Ok(await repo.GetAllAsync())).RequireAuthorization();
+app.MapPost("/api/pedidos", async (Pedido pedido, IPedidoRepository repo) => {
+    await repo.CreateAsync(pedido);
+    return Results.Created($"/api/pedidos/{pedido.Id}", pedido);
+}).RequireAuthorization();
 
+app.UseSwagger();
+app.UseSwaggerUI();
 app.Run();

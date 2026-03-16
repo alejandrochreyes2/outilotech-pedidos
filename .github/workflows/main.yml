@@ -1,0 +1,32 @@
+name: CI/CD Nivel Toyota
+
+on:
+  push:
+    branches: [ "main", "nivel-toyota-docs" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    - name: Restore dependencies
+      run: dotnet restore ./proyecto-pedidos.sln
+    - name: Build
+      run: dotnet build ./proyecto-pedidos.sln --no-restore
+    - name: Setup Node.js (Angular)
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: Install Angular CLI
+      run: npm install -g @angular/cli
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm install
+        ng build --configuration production

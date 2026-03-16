@@ -1,8 +1,72 @@
-# Angular
-"frontend/dist/" 
-"frontend/.angular/" 
-"*.log" 
-".DS_Store" 
-frontend/.angular/
-frontend/dist/
-frontend/tmp/
+# .NET
+[Bb]in/
+[Oo]bj/
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docuser
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+.npm/
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+!docker-compose.yml
+
+# IDEs
+.idea/
+*.swp
+*.bak
+
+# Additional .NET build artifacts
+*.exe
+*.dll
+*.pdb
+*.cache
+*.staticwebassets.endpoints.json
+*.deps.json
+*.runtimeconfig.json
+*.AssemblyInfo.cs
+*.FileListAbsolute.txt
+*.Up2Date
+*.nuget.dgspec.json
+*.nuget.g.props
+*.nuget.g.targets
+project.assets.json
+*.GeneratedMSBuildEditorConfig.editorconfig
+*.GlobalUsings.g.cs
+*.MvcApplicationPartsAssemblyInfo.cs
+*.assets.cache
+*.AssemblyReference.cache
+*.CoreCompileInputs.cache
+*.genruntimeconfig.cache
+apphost.exe
+ref/
+refint/
+staticwebassets.build.json
+project.nuget.cache
+*.dswa.cache.json
+*.build.endpoints.json
+*.build.json.cache
+*.references.upToDateCheck.txt
+*.removed.txt
+*.build.ex.cache
+
+# MongoDB data
+mongo-data/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Environment files
+.env*

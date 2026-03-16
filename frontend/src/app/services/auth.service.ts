@@ -1,39 +1,37 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { tap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private role: string | null = null;
+  private userRole = signal<string | null>(localStorage.getItem('role'));
+  private userToken = signal<string | null>(localStorage.getItem('token'));
 
-  constructor(private router: Router) {}
+  public isAuthenticated = computed(() => this.userToken() !== null);
+  public role = computed(() => this.userRole());
 
-  login(username: string, password: string): boolean {
-    if (username === 'admin' && password === 'admin') {
-      this.role = 'admin';
-      localStorage.setItem('role', 'admin');
-      return true;
-    } else if (username && password) {
-      this.role = 'user';
-      localStorage.setItem('role', 'user');
-      return true;
-    }
-    return false;
+  constructor(private http: HttpClient, private router: Router) {}
+
+  login(email: string, password: string) {
+    return this.http.post<any>('/api/usuarios/auth/login', { email, password }).pipe(
+      tap(res => {
+        this.userRole.set(res.Role);
+        this.userToken.set(res.Token);
+        localStorage.setItem('role', res.Role);
+        localStorage.setItem('token', res.Token);
+      })
+    );
   }
 
   logout() {
-    this.role = null;
-    localStorage.removeItem('role');
+    this.userRole.set(null);
+    this.userToken.set(null);
+    localStorage.clear();
     this.router.navigate(['/login']);
   }
 
-  getRole(): string | null {
-    if (!this.role) {
-      this.role = localStorage.getItem('role');
-    }
-    return this.role;
-  }
-
-  isAuthenticated(): boolean {
-    return this.getRole() !== null;
+  getToken() {
+    return this.userToken();
   }
 }
