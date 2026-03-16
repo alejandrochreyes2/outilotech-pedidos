@@ -1,8 +1,28 @@
-# Angular
-"frontend/dist/" 
-"frontend/.angular/" 
-"*.log" 
-".DS_Store" 
-frontend/.angular/
-frontend/dist/
-frontend/tmp/
+# .NET
+[Bb]in/
+[Oo]bj/
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docuser
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+.npm/
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+!docker-compose.yml
+
+# IDEs
+.idea/
+*.swp
+*.bak

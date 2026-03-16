@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Frontend
   frontend:
@@ -12,24 +10,25 @@ services:
       - pagos
 
   # Microservicios
+
   usuarios:
     build: ./backend/usuarios
     ports:
-      - "3001:3001"
+      - "5250:3001"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
 
   pedidos:
     build: ./backend/pedidos
     ports:
-      - "3002:3002"
+      - "5210:3002"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
 
   pagos:
     build: ./backend/pagos
     ports:
-      - "3003:3003"
+      - "5056:3003"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
 

@@ -1,0 +1,53 @@
+{
+  "info": {
+    "_postman_id": "b1e1b1e1-2026-4c4c-8e8e-20260315abcd",
+    "name": "Proyecto Pedidos - Microservicios",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Usuarios - Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "http://localhost:5250/health", "protocol": "http", "host": ["localhost"], "port": "5250", "path": ["health"] }
+      }
+    },
+    {
+      "name": "Usuarios - Login",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@admin.com\",\n  \"password\": \"admin\"\n}"
+        },
+        "url": { "raw": "http://localhost:5250/auth/login", "protocol": "http", "host": ["localhost"], "port": "5250", "path": ["auth", "login"] }
+      }
+    },
+    {
+      "name": "Usuarios - Status (protegido)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{jwt_token}}" } ],
+        "url": { "raw": "http://localhost:5250/status", "protocol": "http", "host": ["localhost"], "port": "5250", "path": ["status"] }
+      }
+    },
+    {
+      "name": "Pedidos - Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "http://localhost:5210/health", "protocol": "http", "host": ["localhost"], "port": "5210", "path": ["health"] }
+      }
+    },
+    {
+      "name": "Pagos - Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "http://localhost:5056/health", "protocol": "http", "host": ["localhost"], "port": "5056", "path": ["health"] }
+      }
+    }
+  ]
+}
