@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
@@ -9,12 +10,13 @@ using UsuariosAPI.Models;
 using UsuariosAPI.Data;
 using UsuariosAPI.Repositories;
 using UsuariosAPI.DTOs;
+using UsuariosAPI.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // DB Context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseInMemoryDatabase("UsuariosDB")); // Usando In-Memory por ahora para facilitar pruebas rápidas
+    options.UseInMemoryDatabase("UsuariosDB"));
 
 // Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -25,10 +27,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // AutoMapper
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
 // JWT Authentication
-builder.Services.AddAuthentication(options => {
+builder.Services.AddAuthentication(options =>
+{
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
@@ -51,38 +54,138 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Usuarios API", Version = "v1" });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Ingresa el token JWT. Ejemplo: Bearer {tu-token}"
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
-// Inicialización de Datos (Seed)
-using (var scope = app.Services.CreateScope())
+// Seed
+try
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.EnsureCreated();
+
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+    // Crear roles
+    var seedRoles = new[] { "Admin", "Vendedor", "User" };
+    foreach (var role in seedRoles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+            await roleManager.CreateAsync(new IdentityRole(role));
+    }
+
+    // Crear usuarios
+    var seedUsers = new[]
+    {
+        (Email: "admin@admin.com",      UserName: "admin",           FullName: "Administrador",    Password: "Admin@123",  Role: "Admin"),
+        (Email: "user@user.com",        UserName: "user",            FullName: "Usuario",          Password: "User@123",   Role: "User"),
+        (Email: "admin@toyota.com",     UserName: "toyota_admin",    FullName: "Admin Toyota",     Password: "Admin123!",  Role: "Admin"),
+        (Email: "vendedor@toyota.com",  UserName: "toyota_vendedor", FullName: "Vendedor Toyota",  Password: "Vend123!",   Role: "Vendedor"),
+    };
+
+    foreach (var (Email, UserName, FullName, Password, Role) in seedUsers)
+    {
+        if (await userManager.FindByEmailAsync(Email) == null)
+        {
+            var u = new ApplicationUser { UserName = UserName, Email = Email, FullName = FullName, EmailConfirmed = true };
+            var result = await userManager.CreateAsync(u, Password);
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(u, Role);
+                Console.WriteLine($"[SEED] {Email} → {Role}");
+            }
+            else
+            {
+                Console.WriteLine($"[SEED ERROR] {Email}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+        }
+    }
 }
+catch (Exception ex)
+{
+    Console.WriteLine($"[SEED ERROR] {ex.Message}");
+}
+
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
+
+// Middleware global de excepciones
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next(context);
+    }
+    catch (Exception ex)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Error no controlado: {Message}", ex.Message);
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error   = "Error interno del servidor",
+            detalle = app.Environment.IsDevelopment() ? ex.Message : "Contacte al administrador"
+        });
+    }
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseHttpsRedirection();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-// Endpoint de login real
-app.MapPost("/auth/login", async (UserLoginDto req, IUserRepository repo, IConfiguration config) =>
+// Login
+app.MapPost("/auth/login", async (UserLoginDto req, IUserRepository repo, UserManager<ApplicationUser> userManager, IConfiguration config) =>
 {
-    var user = await repo.GetByEmailAsync(req.Email);
-    if (user == null || !await repo.CheckPasswordAsync(user, req.Password))
-        return Results.Unauthorized();
+    var identifier = (req.Email ?? string.Empty).Trim();
+
+    ApplicationUser? user = null;
+    if (!string.IsNullOrWhiteSpace(identifier))
+    {
+        user = await userManager.FindByEmailAsync(identifier);
+        user ??= await userManager.FindByNameAsync(identifier);
+    }
+
+    if (user == null) return Results.Unauthorized();
+
+    if (!await repo.CheckPasswordAsync(user, req.Password)) return Results.Unauthorized();
+
+    var roles = await userManager.GetRolesAsync(user);
+    var userRole = roles.FirstOrDefault() ?? "User";
 
     var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
     var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-    
+
     var claims = new[]
     {
         new Claim(ClaimTypes.Name, user.FullName),
         new Claim(ClaimTypes.Email, user.Email!),
+        new Claim(ClaimTypes.Role, userRole),
         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
     };
 
@@ -94,15 +197,17 @@ app.MapPost("/auth/login", async (UserLoginDto req, IUserRepository repo, IConfi
         signingCredentials: creds
     );
 
+    Console.WriteLine($"[LOGIN] {user.Email} role={userRole}");
+
     return Results.Ok(new UserResponseDto(
         user.Email!,
         user.FullName,
-        "User",
+        userRole,
         new JwtSecurityTokenHandler().WriteToken(token)
     ));
 });
 
-// Endpoint de registro
+// Register
 app.MapPost("/auth/register", async (UserRegistrationDto req, IUserRepository repo) =>
 {
     var user = new ApplicationUser { UserName = req.Email, Email = req.Email, FullName = req.FullName };
@@ -112,4 +217,14 @@ app.MapPost("/auth/register", async (UserRegistrationDto req, IUserRepository re
 
 app.UseSwagger();
 app.UseSwaggerUI();
+
+Console.WriteLine("========================================");
+Console.WriteLine("Usuarios API - Puerto 3001");
+Console.WriteLine("  admin@admin.com     / Admin@123  → Admin");
+Console.WriteLine("  user@user.com       / User@123   → User");
+Console.WriteLine("  admin@toyota.com    / Admin123!  → Admin");
+Console.WriteLine("  vendedor@toyota.com / Vend123!   → Vendedor");
+Console.WriteLine("  Swagger: http://localhost:3001/swagger");
+Console.WriteLine("========================================");
+
 app.Run();

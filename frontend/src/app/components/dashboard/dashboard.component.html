@@ -1,0 +1,31 @@
+<div class="dashboard-container">
+
+  <div class="welcome-card">
+    <h1>Bienvenido, {{ auth.currentUser()?.name }}</h1>
+    <span class="role-badge role-{{ auth.currentUser()?.role?.toLowerCase() }}">
+      {{ auth.currentUser()?.role }}
+    </span>
+    <p class="email">{{ auth.currentUser()?.email }}</p>
+  </div>
+
+  @if (auth.isAdmin()) {
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>Total Pedidos</h3>
+        <span class="stat-number">{{ totalPedidos() }}</span>
+      </div>
+      <div class="stat-card">
+        <h3>Total Pagos</h3>
+        <span class="stat-number">{{ totalPagos() }}</span>
+      </div>
+    </div>
+  }
+
+  @if (!auth.isAdmin()) {
+    <div class="info-card">
+      <h3>Mis pedidos: {{ totalPedidos() }}</h3>
+      <p>Accede al menú lateral para gestionar tus pedidos.</p>
+    </div>
+  }
+
+</div>

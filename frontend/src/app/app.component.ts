@@ -16,6 +16,10 @@ export class AppComponent {
   public auth = inject(AuthService);
   private _darkMode = false;
 
+  get darkMode() {
+    return this._darkMode;
+  }
+
   toggleTheme() {
     this._darkMode = !this._darkMode;
     document.body.classList.toggle('dark-mode', this._darkMode);

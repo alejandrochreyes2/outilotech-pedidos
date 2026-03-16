@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using UsuariosAPI.Models;
 
 namespace UsuariosAPI.Repositories
@@ -20,7 +19,6 @@ namespace UsuariosAPI.Repositories
 
         public async Task<bool> CreateAsync(ApplicationUser user, string password)
         {
-            // Por defecto asignamos el rol 'User'
             var result = await _userManager.CreateAsync(user, password);
             if (result.Succeeded)
             {

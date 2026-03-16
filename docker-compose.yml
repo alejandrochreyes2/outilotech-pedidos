@@ -5,40 +5,75 @@ services:
     ports:
       - "80:80"
     depends_on:
+      - apigateway
+    networks:
+      - toyota-network
+
+  # Gateway (Único punto de entrada para el Frontend)
+  apigateway:
+    build: ./backend/ApiGateway
+    ports:
+      - "5000:5000"
+    depends_on:
       - usuarios
       - pedidos
       - pagos
+    networks:
+      - toyota-network
 
-  # Microservicios
-
+  # Microservicios (Internos)
   usuarios:
     build: ./backend/usuarios
     ports:
-      - "5250:3001"
+      - "3001:3001"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:3001
+      - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
+      - Jwt__Issuer=toyota-pedidos-api
+      - Jwt__Audience=toyota-pedidos-client
+    networks:
+      - toyota-network
 
   pedidos:
     build: ./backend/pedidos
     ports:
-      - "5210:3002"
+      - "3002:3002"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:3002
+      - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
+      - Jwt__Issuer=toyota-pedidos-api
+      - Jwt__Audience=toyota-pedidos-client
+    networks:
+      - toyota-network
 
   pagos:
     build: ./backend/pagos
     ports:
-      - "5056:3003"
+      - "3003:3003"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:3003
+      - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
+      - Jwt__Issuer=toyota-pedidos-api
+      - Jwt__Audience=toyota-pedidos-client
+    networks:
+      - toyota-network
 
-  # Base de datos simulada (MongoDB)
+  # Persistencia MongoDB
   mongodb:
     image: mongo:6
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    networks:
+      - toyota-network
+
+networks:
+  toyota-network:
+    driver: bridge
 
 volumes:
   mongo-data:

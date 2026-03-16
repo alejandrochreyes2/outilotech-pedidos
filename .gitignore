@@ -69,4 +69,7 @@ mongo-data/
 *.temp
 
 # Environment files
+.env
 .env*
+*.env.local
+appsettings.Production.json

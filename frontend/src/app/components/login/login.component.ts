@@ -13,15 +13,21 @@ import { Router } from '@angular/router';
 export class LoginComponent {
   username = '';
   password = '';
-  error = '';
+  error    = '';
+
+  get isLoading() { return this.auth.isLoading(); }
 
   constructor(private auth: AuthService, private router: Router) {}
 
   onSubmit() {
-    if (this.auth.login(this.username, this.password)) {
-      this.router.navigate(['/dashboard']);
-    } else {
-      this.error = 'Credenciales inválidas';
-    }
+    this.error = '';
+    this.auth.login(this.username, this.password).subscribe({
+      next: () => this.router.navigate(['/dashboard']),
+      error: (err) => {
+        this.error = err.status === 401
+          ? 'Credenciales incorrectas'
+          : 'Error de conexión o inesperado';
+      }
+    });
   }
 }

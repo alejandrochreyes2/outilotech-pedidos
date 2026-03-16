@@ -11,7 +11,7 @@ namespace UsuariosAPI.Data
         {
         }
 
-        protected override void OnModelCreating(ModelCreatingBuilder builder)
+        protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
             // Configuraciones adicionales si son necesarias
