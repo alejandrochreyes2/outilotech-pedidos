@@ -16,30 +16,47 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Login to Azure Container Registry
-        uses: azure/docker-login@v1
-        with:
-          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+      - name: Login to ACR
+        run: |
+          echo "${{ secrets.ACR_PASSWORD }}" | docker login \
+            ${{ secrets.ACR_LOGIN_SERVER }} \
+            --username ${{ secrets.ACR_USERNAME }} \
+            --password-stdin
 
-      - name: Build and push all images
+      - name: Build and push usuarios
         run: |
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/usuarios:latest ./backend/usuarios
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/pedidos:latest  ./backend/pedidos
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/pagos:latest    ./backend/pagos
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/gateway:latest  ./backend/ApiGateway
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest ./frontend
-
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/usuarios:latest
+
+      - name: Build and push pedidos
+        run: |
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/pedidos:latest ./backend/pedidos
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/pedidos:latest
+
+      - name: Build and push pagos
+        run: |
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/pagos:latest ./backend/pagos
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/pagos:latest
+
+      - name: Build and push gateway
+        run: |
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/gateway:latest ./backend/ApiGateway
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/gateway:latest
+
+      - name: Build and push frontend
+        run: |
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest ./frontend
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
 
       - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ secrets.AZURE_APP_NAME }}
-          images: |
-            ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+        run: |
+          az webapp config container set \
+            --name ${{ secrets.AZURE_APP_NAME }} \
+            --resource-group toyota-pedidos-rg \
+            --container-image-name ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest \
+            --container-registry-url https://${{ secrets.ACR_LOGIN_SERVER }} \
+            --container-registry-user ${{ secrets.ACR_USERNAME }} \
+            --container-registry-password "${{ secrets.ACR_PASSWORD }}"
+          az webapp restart \
+            --name ${{ secrets.AZURE_APP_NAME }} \
+            --resource-group toyota-pedidos-rg
