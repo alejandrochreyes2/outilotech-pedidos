@@ -13,7 +13,7 @@
     <div class="success">{{ success() }}</div>
   }
 
-  @if (!error()) {
+  @if (auth.isAdmin()) {
     <section class="form-section">
       <h3>Registrar pago</h3>
       <form [formGroup]="form" (ngSubmit)="registrarPago()">
@@ -36,7 +36,7 @@
       <table>
         <thead>
           <tr>
-            <th>#</th><th>Pedido</th><th>Monto</th><th>Estado</th><th>Fecha</th>
+            <th>#</th><th>Pedido ID</th><th>Monto</th><th>Estado</th><th>Fecha</th>
           </tr>
         </thead>
         <tbody>
@@ -54,5 +54,9 @@
         </tbody>
       </table>
     </section>
+  } @else {
+    <div class="info-card">
+      <p>Solo administradores pueden ver pagos.</p>
+    </div>
   }
 </div>

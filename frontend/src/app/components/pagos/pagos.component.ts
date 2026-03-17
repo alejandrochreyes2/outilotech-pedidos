@@ -2,6 +2,7 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/auth.service';
 
 export interface PagoResponse {
   id:       number;
@@ -20,6 +21,7 @@ export interface PagoResponse {
 export class PagosComponent implements OnInit {
   private http = inject(HttpClient);
   private fb   = inject(FormBuilder);
+  auth         = inject(AuthService);
 
   pagos     = signal<PagoResponse[]>([]);
   isLoading = signal(false);

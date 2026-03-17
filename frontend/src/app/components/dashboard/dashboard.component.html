@@ -19,6 +19,15 @@
         <span class="stat-number">{{ totalPagos() }}</span>
       </div>
     </div>
+
+    <div class="demo-section">
+      <button class="btn-demo" (click)="crearPedidoPrueba()" [disabled]="creandoPrueba()">
+        {{ creandoPrueba() ? 'Creando...' : '+ Crear pedido de prueba' }}
+      </button>
+      @if (mensajePrueba()) {
+        <p class="demo-msg">{{ mensajePrueba() }}</p>
+      }
+    </div>
   }
 
   @if (!auth.isAdmin()) {
