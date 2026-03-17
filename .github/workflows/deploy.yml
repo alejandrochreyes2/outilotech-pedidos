@@ -48,12 +48,59 @@ jobs:
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest ./frontend
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
 
-      - name: Deploy to Azure Web App
+      - name: Generate docker-compose with real values
+        run: |
+          cat > docker-compose.deploy.yml << 'EOF'
+          version: '3.8'
+          services:
+            frontend:
+              image: ACR_SERVER_PLACEHOLDER/frontend:latest
+              ports:
+                - "80:80"
+              depends_on:
+                - gateway
+            gateway:
+              image: ACR_SERVER_PLACEHOLDER/gateway:latest
+              environment:
+                - ASPNETCORE_ENVIRONMENT=Production
+                - ASPNETCORE_URLS=http://+:5000
+                - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
+                - Jwt__Issuer=toyota-pedidos-api
+                - Jwt__Audience=toyota-pedidos-client
+            usuarios:
+              image: ACR_SERVER_PLACEHOLDER/usuarios:latest
+              environment:
+                - ASPNETCORE_ENVIRONMENT=Production
+                - ASPNETCORE_URLS=http://+:3001
+                - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
+                - Jwt__Issuer=toyota-pedidos-api
+                - Jwt__Audience=toyota-pedidos-client
+            pedidos:
+              image: ACR_SERVER_PLACEHOLDER/pedidos:latest
+              environment:
+                - ASPNETCORE_ENVIRONMENT=Production
+                - ASPNETCORE_URLS=http://+:3002
+                - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
+                - Jwt__Issuer=toyota-pedidos-api
+                - Jwt__Audience=toyota-pedidos-client
+            pagos:
+              image: ACR_SERVER_PLACEHOLDER/pagos:latest
+              environment:
+                - ASPNETCORE_ENVIRONMENT=Production
+                - ASPNETCORE_URLS=http://+:3003
+                - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
+                - Jwt__Issuer=toyota-pedidos-api
+                - Jwt__Audience=toyota-pedidos-client
+          EOF
+          sed -i "s|ACR_SERVER_PLACEHOLDER|${{ secrets.ACR_LOGIN_SERVER }}|g" docker-compose.deploy.yml
+
+      - name: Deploy multi-container to Azure Web App
         run: |
           az webapp config container set \
             --name ${{ secrets.AZURE_APP_NAME }} \
             --resource-group toyota-pedidos-rg \
-            --container-image-name ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest \
+            --multicontainer-config-type compose \
+            --multicontainer-config-file docker-compose.deploy.yml \
             --container-registry-url https://${{ secrets.ACR_LOGIN_SERVER }} \
             --container-registry-user ${{ secrets.ACR_USERNAME }} \
             --container-registry-password "${{ secrets.ACR_PASSWORD }}"
