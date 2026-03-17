@@ -2,12 +2,6 @@ using PagosAPI.Models;
 
 namespace PagosAPI.Repositories
 {
-    public interface IPagoRepository
-    {
-        Task<IEnumerable<Pago>> GetAllAsync();
-        Task CreateAsync(Pago pago);
-    }
-
     public class PagoRepository : IPagoRepository
     {
         private static readonly List<Pago> _pagos = new();
