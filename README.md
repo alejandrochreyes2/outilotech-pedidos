@@ -2,116 +2,175 @@
 
 [![CI/CD Nivel Toyota](https://github.com/alejandrochreyes2/proyecto-pedidos/actions/workflows/main.yml/badge.svg)](https://github.com/alejandrochreyes2/proyecto-pedidos/actions)
 
-Este proyecto ha evolucionado de un MVP básico a una **Arquitectura Enterprise de alto nivel (Nivel Toyota)**. Implementa un ecosistema de microservicios robusto, seguro y escalable utilizando las últimas tecnologías de .NET y Angular.
+Este proyecto ha evolucionado de un MVP básico a una **Arquitectura Enterprise de alto nivel (Nivel Toyota)**. Implementa un ecosistema de microservicios robusto, seguro y escalable utilizando las últimas tecnologías de .NET y Angular, todo orquestado con Docker de grado profesional.
 
 ---
 
 ## 🏗️ Arquitectura del Sistema
 
-El sistema utiliza un patrón de **API Gateway** para centralizar la comunicación y ocultar la complejidad de la infraestructura interna.
+El sistema utiliza un patrón de **API Gateway** centralizado y contenedores optimizados.
 
 ### Componentes Principales:
-1.  **Frontend (Angular 21)**: Modernizado con **Signals** para gestión de estado reactiva y **Interceptores funcionales** para manejo de JWT.
-2.  **API Gateway (YARP)**: Punto de entrada único que enruta el tráfico hacia los microservicios correspondientes.
+1.  **Frontend (Angular 21)**: Modernizado con **Signals** y **Interceptores funcionales**. Se sirve vía Nginx en Docker.
+2.  **API Gateway (YARP)**: Punto de entrada único (:5000) que gestiona el tráfico hacia los microservicios.
 3.  **Microservicios (.NET 8)**:
-    *   **Usuarios**: Gestión de identidad con **ASP.NET Core Identity** y JWT.
-    *   **Pedidos**: Lógica de negocio de órdenes con **Repository Pattern**.
+    *   **Usuarios**: Gestión de identidad con **Identity** y JWT.
+    *   **Pedidos**: Lógica de negocio con **Repository Pattern**.
     *   **Pagos**: Procesamiento de transacciones.
-4.  **Base de Datos**: Persistencia real (configurada con EF Core e Identity).
-5.  **DevOps**: Automatización total con **GitHub Actions (CI/CD)**.
+4.  **Base de Datos**: **MongoDB** profesional con volúmenes persistentes.
+5.  **Red (Toyota-Network)**: Red interna privada para comunicación segura entre contenedores.
 
 ---
 
 ## 🛣️ Hoja de Ruta: La Evolución "Toyota"
 
-Se implementaron 4 fases críticas para alcanzar este estándar profesional:
-
-### Fase 1: Seguridad de Grado Industrial
-- **Autenticación Real**: Integración de `Microsoft.AspNetCore.Identity`.
-- **JWT Robusto**: Generación y validación de tokens con Claims y roles dinámicos.
-- **Roles en BD**: Control de acceso basado en roles persistidos.
+### Fase 1: Seguridad Industrial
+- Autenticación Real con Identity.
+- JWT con Roles y Claims.
 
 ### Fase 2: Arquitectura Limpia
-- **Repository Pattern**: Desacoplamiento de la lógica de datos mediante interfaces e implementaciones limpias.
-- **DTOs (Data Transfer Objects)**: Contratos claros de entrada y salida para las APIs.
-- **AutoMapper**: Mapeo automático de entidades a DTOs para evitar código repetitivo.
+- Repository Pattern e Inyección de Dependencias.
+- DTOs y AutoMapper.
 
-### Fase 3: Gateway Centralizado
-- **YARP (Yet Another Reverse Proxy)**: Implementación de un Gateway profesional para balanceo y enrutamiento.
-- **Single Entry Point**: El frontend solo conoce una URL, simplificando CORS y despliegue.
+### Fase 3: Gateway Hub
+- YARP como Proxy Inverso.
+- Centralización de CORS y Seguridad.
 
-### Fase 4: Modernización y Cloud
-- **Angular Signals**: Gestión de estado de última generación (adiós a los Subject/BehaviorSubject innecesarios).
-- **HTTP Interceptors**: Inyección automática de tokens de seguridad.
-- **CI/CD**: Pipeline automatizado para compilación y validación de calidad en cada commit.
+### Fase 4: Cloud & DevOps
+- **Docker Full Stack**: Orquestación total con `docker-compose`.
+- **CI/CD**: Sincronización automática con GitHub Actions.
 
 ---
 
-## 📊 Diagrama de Arquitectura Objetivo
+## 📊 Diagrama de Infraestructura Docker
 
 ```mermaid
 graph TD
-    User((Usuario)) --> Angular[Angular 21 + Signals]
-    Angular -->|JWT Interceptor| Gateway[API Gateway - YARP]
+    User((Usuario)) -->|"Puerto 80"| Frontend[Frontend Container]
+    User -->|"Puerto 5000"| Gateway[ApiGateway Container]
     
-    subgraph "Microservicios (Nivel Toyota)"
-        Gateway -->|/api/usuarios| MS_Users[Usuarios MS + Identity]
-        Gateway -->|/api/pedidos| MS_Orders[Pedidos MS + Repositories]
-        Gateway -->|/api/pagos| MS_Payments[Pagos MS + DTOs]
-    end
-    
-    MS_Users --> DB[(Base de Datos Usuarios)]
-    MS_Orders --> DB_Orders[(Base de Datos Pedidos)]
-    
-    subgraph "DevOps Cloud"
-        Git[GitHub Repository] --> Actions[GitHub Actions CI/CD]
-        Actions --> Azure[Azure App Service]
+    subgraph "Docker Toyota Network"
+        Gateway --> Usuarios[Usuarios MS]
+        Gateway --> Pedidos[Pedidos MS]
+        Gateway --> Pagos[Pagos MS]
+        
+        Usuarios --> Mongo[(MongoDB Persistente)]
+        Pedidos --> Mongo
+        Pagos --> Mongo
     end
 ```
 
 ---
 
-## 💻 Tecnologías Utilizadas
+## 🚀 Cómo Ejecutar el Ecosistema Completo
 
-| Capa | Tecnologías |
-|------|-------------|
-| **Frontend** | Angular 21, Signals, RxJS, TypeScript, CSS3 Puro |
-| **Backend** | .NET 8, ASP.NET Core Identity, Entity Framework Core |
-| **Gateway** | YARP Reverse Proxy |
-| **Patrones** | Repository Pattern, DTOs, Mapping Profiles, Dependency Injection |
-| **Seguridad** | JWT (JSON Web Tokens), OAuth2 Identity |
-| **DevOps** | Docker, Docker Compose, GitHub Actions |
-
----
-
-## 🚀 Cómo Ejecutar el Proyecto
-
-### Localmente con .NET CLI
-1. Ejecutar el **ApiGateway**: `dotnet run --project backend/ApiGateway`
-2. Ejecutar los microservicios: `Usuarios`, `Pedidos` y `Pagos`.
-3. Iniciar el Frontend: `cd frontend && npm start`
-
-### Con Docker Compose
+### Con Docker Compose (Recomendado)
+Desde la raíz del proyecto, ejecuta:
 ```bash
 docker-compose up --build
 ```
+Esto levantará los 6 servicios sincronizados: `frontend`, `apigateway`, `usuarios`, `pedidos`, `pagos` y `mongodb`.
+
+### Puertos Disponibles:
+- **Frontend**: [http://localhost](http://localhost)
+- **API Gateway**: [http://localhost:5000](http://localhost:5000)
+- **MongoDB**: [http://localhost:27017](http://localhost:27017)
 
 ---
 
 ## 📁 Estructura del Repositorio
 ```text
 proyecto-pedidos/
-├── .github/workflows/      # CI/CD Pipelines
+├── docker-compose.yml      # Orquestación Maestra
 ├── backend/
-│   ├── ApiGateway/         # Gateway YARP (Fase 3)
-│   ├── usuarios/           # Microservicio de Identidad (Fase 1)
-│   ├── pedidos/            # Microservicio de Negocio
-│   └── pagos/              # Microservicio de Procesamiento
-├── frontend/               # Angular 21 (Fase 4: Signals + Interceptors)
-├── arquitectura/           # Documentación técnica
-└── docker-compose.yml      # Orquestación de contenedores
+│   ├── ApiGateway/         # Punto de entrada (YARP)
+│   ├── usuarios/           # Identidad (.NET 8)
+│   ├── pedidos/            # Negocio (.NET 8)
+│   └── pagos/              # Transacciones (.NET 8)
+├── frontend/               # Angular 21 + Signals
+└── .github/workflows/      # CI/CD Automático
 ```
 
 ---
 
-Última actualización: Arquitectura Nivel Toyota finalizada. 🏁🚀
+Desarrollado con ❤️ para alcanzar el **Nivel Toyota** en arquitectura de software. 🏁🚀
+
+---
+
+## 🚀 Deploy en Azure
+
+### Prerequisitos
+- Cuenta de Azure activa
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) instalado
+- Docker instalado localmente
+
+### 1. Crear recursos en Azure
+
+```bash
+# Grupo de recursos
+az group create --name toyota-pedidos-rg --location eastus
+
+# Azure Container Registry (ACR)
+az acr create --name toyotapedidosacr --resource-group toyota-pedidos-rg --sku Basic
+
+# Habilitar admin en ACR (necesario para GitHub Actions)
+az acr update --name toyotapedidosacr --admin-enabled true
+
+# App Service Plan (Linux B1)
+az appservice plan create \
+  --name toyota-plan \
+  --resource-group toyota-pedidos-rg \
+  --sku B1 \
+  --is-linux
+
+# Web App con docker-compose.azure.yml
+az webapp create \
+  --name toyota-pedidos-app \
+  --resource-group toyota-pedidos-rg \
+  --plan toyota-plan \
+  --multicontainer-config-type compose \
+  --multicontainer-config-file docker-compose.azure.yml
+```
+
+### 2. Configurar secrets en GitHub
+
+En tu repositorio: **Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret | Cómo obtenerlo |
+|--------|---------------|
+| `ACR_LOGIN_SERVER` | `az acr show --name toyotapedidosacr --query loginServer -o tsv` |
+| `ACR_USERNAME` | `az acr credential show --name toyotapedidosacr --query username -o tsv` |
+| `ACR_PASSWORD` | `az acr credential show --name toyotapedidosacr --query passwords[0].value -o tsv` |
+| `AZURE_APP_NAME` | `toyota-pedidos-app` |
+| `AZURE_PUBLISH_PROFILE` | Descargar desde Azure Portal → Web App → **Get publish profile** |
+
+### 3. Activar el pipeline
+
+```bash
+git add .
+git commit -m "Deploy: Azure CI/CD pipeline"
+git push origin main
+```
+
+El workflow `.github/workflows/deploy.yml` se ejecutará automáticamente en cada push a `main`.
+
+### 4. Variables de entorno en Azure
+
+Copia `.env.example` a `.env`, rellena los valores reales y configúralos en Azure:
+
+```bash
+az webapp config appsettings set \
+  --name toyota-pedidos-app \
+  --resource-group toyota-pedidos-rg \
+  --settings JWT_KEY="ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!" \
+             JWT_ISSUER="toyota-pedidos-api" \
+             JWT_AUDIENCE="toyota-pedidos-client"
+```
+
+### URLs de producción
+
+Una vez desplegado:
+- **App**: `https://toyota-pedidos-app.azurewebsites.net`
+- **Gateway**: `https://toyota-pedidos-app.azurewebsites.net:5000`
+
+<!-- Docker Sync: 2026-03-15 23:05 -->

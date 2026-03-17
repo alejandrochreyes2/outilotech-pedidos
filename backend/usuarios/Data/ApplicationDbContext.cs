@@ -10,5 +10,11 @@ namespace UsuariosAPI.Data
             : base(options)
         {
         }
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+            // Configuraciones adicionales si son necesarias
+        }
     }
 }

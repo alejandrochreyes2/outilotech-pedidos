@@ -1,10 +1,20 @@
-<nav class="sidebar" *ngIf="auth.isAuthenticated()">
-  <div class="user-info">
-    <p>Bienvenido, {{ auth.role() }}</p>
-  </div>
-  <ul>
-    <li><a routerLink="/dashboard">Inicio (Signals)</a></li>
-    <li *ngIf="auth.role() === 'admin'"><a routerLink="/admin">Admin (Roles)</a></li>
-    <li><button (click)="auth.logout()">Cerrar sesión</button></li>
-  </ul>
-</nav>
+@if (auth.isAuthenticated()) {
+  <nav class="sidebar">
+    <div class="user-info">
+      <p class="user-name">{{ auth.currentUser()?.name }}</p>
+      <span class="role-badge role-{{ auth.role()?.toLowerCase() }}">{{ auth.role() }}</span>
+    </div>
+
+    <ul class="menu-list">
+      @for (item of menuItems; track item.label) {
+        <li>
+          <a [routerLink]="item.link" class="menu-link">
+            {{ item.icon }} {{ item.label }}
+          </a>
+        </li>
+      }
+    </ul>
+
+    <button class="logout-btn" (click)="logout()">⏻ Cerrar sesión</button>
+  </nav>
+}

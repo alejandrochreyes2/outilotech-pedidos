@@ -1,0 +1,62 @@
+<div class="pagos-container">
+  <h2>Pagos</h2>
+
+  @if (isLoading()) {
+    <p class="loading">Cargando...</p>
+  }
+
+  @if (error()) {
+    <div class="error">{{ error() }}</div>
+  }
+
+  @if (success()) {
+    <div class="success">{{ success() }}</div>
+  }
+
+  @if (auth.isAdmin()) {
+    <section class="form-section">
+      <h3>Registrar pago</h3>
+      <form [formGroup]="form" (ngSubmit)="registrarPago()">
+        <div class="form-group">
+          <label>ID del pedido</label>
+          <input formControlName="pedidoId" type="number" min="1">
+        </div>
+        <div class="form-group">
+          <label>Monto</label>
+          <input formControlName="monto" type="number" min="0.01" step="0.01">
+        </div>
+        <button type="submit" [disabled]="form.invalid || isLoading()">
+          {{ isLoading() ? 'Registrando...' : 'Registrar pago' }}
+        </button>
+      </form>
+    </section>
+
+    <section class="list-section">
+      <h3>Lista de pagos ({{ pagos().length }})</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Pedido ID</th><th>Monto</th><th>Estado</th><th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (pago of pagos(); track pago.id) {
+            <tr>
+              <td>{{ pago.id }}</td>
+              <td>{{ pago.pedidoId }}</td>
+              <td>$ {{ pago.monto | number:'1.2-2' }}</td>
+              <td>{{ pago.estado }}</td>
+              <td>{{ pago.fecha | date:'short' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5" class="empty">No hay pagos registrados</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  } @else {
+    <div class="info-card">
+      <p>Solo administradores pueden ver pagos.</p>
+    </div>
+  }
+</div>

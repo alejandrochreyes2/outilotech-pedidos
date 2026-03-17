@@ -17,24 +17,19 @@ namespace UsuariosAPI.Repositories
             return await _userManager.FindByEmailAsync(email);
         }
 
-        public async Task<IdentityResult> CreateAsync(ApplicationUser user, string password)
+        public async Task<bool> CreateAsync(ApplicationUser user, string password)
         {
             var result = await _userManager.CreateAsync(user, password);
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, "User");
             }
-            return result;
+            return result.Succeeded;
         }
 
         public async Task<bool> CheckPasswordAsync(ApplicationUser user, string password)
         {
             return await _userManager.CheckPasswordAsync(user, password);
-        }
-
-        public async Task<IList<string>> GetRolesAsync(ApplicationUser user)
-        {
-            return await _userManager.GetRolesAsync(user);
         }
     }
 }

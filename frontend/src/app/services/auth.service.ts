@@ -1,37 +1,63 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { tap, finalize } from 'rxjs';
+
+export interface CurrentUser {
+  email: string;
+  name: string;
+  role: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private userRole = signal<string | null>(localStorage.getItem('role'));
-  private userToken = signal<string | null>(localStorage.getItem('token'));
+  private _token    = signal<string | null>(localStorage.getItem('token'));
+  private _role     = signal<string | null>(localStorage.getItem('role'));
+  private _user     = signal<CurrentUser | null>(
+    JSON.parse(localStorage.getItem('currentUser') ?? 'null')
+  );
 
-  public isAuthenticated = computed(() => this.userToken() !== null);
-  public role = computed(() => this.userRole());
+  isLoading     = signal(false);
+  isAuthenticated = computed(() => this._token() !== null);
+  role          = computed(() => this._role());
+  currentUser   = computed(() => this._user());
+  isAdmin       = computed(() => this._role()?.toLowerCase() === 'admin');
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private router: Router, private http: HttpClient) {}
 
   login(email: string, password: string) {
+    this.isLoading.set(true);
     return this.http.post<any>('/api/usuarios/auth/login', { email, password }).pipe(
       tap(res => {
-        this.userRole.set(res.Role);
-        this.userToken.set(res.Token);
-        localStorage.setItem('role', res.Role);
-        localStorage.setItem('token', res.Token);
-      })
+        const role: string  = res?.role     ?? res?.Role     ?? 'User';
+        const token: string = res?.token    ?? res?.Token    ?? '';
+        const user: CurrentUser = {
+          email: res?.email    ?? res?.Email    ?? email,
+          name:  res?.fullName ?? res?.FullName ?? email,
+          role
+        };
+
+        this._token.set(token);
+        this._role.set(role);
+        this._user.set(user);
+
+        localStorage.setItem('token',       token);
+        localStorage.setItem('role',        role);
+        localStorage.setItem('currentUser', JSON.stringify(user));
+      }),
+      finalize(() => this.isLoading.set(false))
     );
   }
 
   logout() {
-    this.userRole.set(null);
-    this.userToken.set(null);
+    this._token.set(null);
+    this._role.set(null);
+    this._user.set(null);
     localStorage.clear();
     this.router.navigate(['/login']);
   }
 
-  getToken() {
-    return this.userToken();
+  getToken(): string | null {
+    return this._token();
   }
 }

@@ -1,98 +1,230 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
-using UsuariosAPI.Data;
-using UsuariosAPI.Models;
-using UsuariosAPI.Repositories;
-using UsuariosAPI.DTOs;
-using AutoMapper;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using UsuariosAPI.Models;
+using UsuariosAPI.Data;
+using UsuariosAPI.Repositories;
+using UsuariosAPI.DTOs;
+using UsuariosAPI.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DB Context (In-Memory for simplicity)
+// DB Context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseInMemoryDatabase("UsuariosDb"));
+    options.UseInMemoryDatabase("UsuariosDB"));
 
 // Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-// AutoMapper
-builder.Services.AddAutoMapper(typeof(Program));
-
-// Repository
+// Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
+
 // JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "ClaveSuperSecretaDe32CaracteresMinimo!";
-builder.Services.AddAuthentication(options => {
+builder.Services.AddAuthentication(options =>
+{
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(options => {
-    options.TokenValidationParameters = new TokenValidationParameters {
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "ProyectoPedidos",
-        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "UsuariosAPI",
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
     };
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Usuarios API", Version = "v1" });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Ingresa el token JWT. Ejemplo: Bearer {tu-token}"
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
-// Seed Roles
-using (var scope = app.Services.CreateScope()) {
+// Seed
+try
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.EnsureCreated();
+
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    if (!await roleManager.RoleExistsAsync("User")) await roleManager.CreateAsync(new IdentityRole("User"));
-    if (!await roleManager.RoleExistsAsync("Admin")) await roleManager.CreateAsync(new IdentityRole("Admin"));
+
+    // Crear roles
+    var seedRoles = new[] { "Admin", "Vendedor", "User" };
+    foreach (var role in seedRoles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+            await roleManager.CreateAsync(new IdentityRole(role));
+    }
+
+    // Crear usuarios
+    var seedUsers = new[]
+    {
+        (Email: "admin@admin.com",      UserName: "admin",           FullName: "Administrador",    Password: "Admin@123",  Role: "Admin"),
+        (Email: "user@user.com",        UserName: "user",            FullName: "Usuario",          Password: "User@123",   Role: "User"),
+        (Email: "admin@toyota.com",     UserName: "toyota_admin",    FullName: "Admin Toyota",     Password: "Admin123!",  Role: "Admin"),
+        (Email: "vendedor@toyota.com",  UserName: "toyota_vendedor", FullName: "Vendedor Toyota",  Password: "Vend123!",   Role: "Vendedor"),
+    };
+
+    foreach (var (Email, UserName, FullName, Password, Role) in seedUsers)
+    {
+        if (await userManager.FindByEmailAsync(Email) == null)
+        {
+            var u = new ApplicationUser { UserName = UserName, Email = Email, FullName = FullName, EmailConfirmed = true };
+            var result = await userManager.CreateAsync(u, Password);
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(u, Role);
+                Console.WriteLine($"[SEED] {Email} → {Role}");
+            }
+            else
+            {
+                Console.WriteLine($"[SEED ERROR] {Email}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+        }
+    }
 }
+catch (Exception ex)
+{
+    Console.WriteLine($"[SEED ERROR] {ex.Message}");
+}
+
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
+
+// Middleware global de excepciones
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next(context);
+    }
+    catch (Exception ex)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Error no controlado: {Message}", ex.Message);
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error   = "Error interno del servidor",
+            detalle = app.Environment.IsDevelopment() ? ex.Message : "Contacte al administrador"
+        });
+    }
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapControllers();
 app.MapHealthChecks("/health");
 
-// Auth Endpoints
-app.MapPost("/auth/register", async (UserRegistrationDto dto, IUserRepository repo, IMapper mapper) => {
-    var user = mapper.Map<ApplicationUser>(dto);
-    var result = await repo.CreateAsync(user, dto.Password);
-    return result.Succeeded ? Results.Ok(mapper.Map<UserResponseDto>(user) with { Role = "User" }) : Results.BadRequest(result.Errors);
+// Login
+app.MapPost("/auth/login", async (UserLoginDto req, IUserRepository repo, UserManager<ApplicationUser> userManager, IConfiguration config) =>
+{
+    var identifier = (req.Email ?? string.Empty).Trim();
+
+    ApplicationUser? user = null;
+    if (!string.IsNullOrWhiteSpace(identifier))
+    {
+        user = await userManager.FindByEmailAsync(identifier);
+        user ??= await userManager.FindByNameAsync(identifier);
+    }
+
+    if (user == null) return Results.Unauthorized();
+
+    if (!await repo.CheckPasswordAsync(user, req.Password)) return Results.Unauthorized();
+
+    var roles = await userManager.GetRolesAsync(user);
+    var userRole = roles.FirstOrDefault() ?? "User";
+
+    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
+    var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+    var claims = new[]
+    {
+        new Claim(ClaimTypes.Name, user.FullName),
+        new Claim(ClaimTypes.Email, user.Email!),
+        new Claim(ClaimTypes.Role, userRole),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+    };
+
+    var token = new JwtSecurityToken(
+        issuer: config["Jwt:Issuer"],
+        audience: config["Jwt:Audience"],
+        claims: claims,
+        expires: DateTime.UtcNow.AddHours(8),
+        signingCredentials: creds
+    );
+
+    Console.WriteLine($"[LOGIN] {user.Email} role={userRole}");
+
+    return Results.Ok(new UserResponseDto(
+        user.Email!,
+        user.FullName,
+        userRole,
+        new JwtSecurityTokenHandler().WriteToken(token)
+    ));
 });
 
-app.MapPost("/auth/login", async (UserLoginDto dto, IUserRepository repo, IConfiguration config) => {
-    var user = await repo.GetByEmailAsync(dto.Email);
-    if (user != null && await repo.CheckPasswordAsync(user, dto.Password)) {
-        var roles = await repo.GetRolesAsync(user);
-        var claims = new List<Claim> {
-            new Claim(ClaimTypes.Name, user.Email!),
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim("role", roles.FirstOrDefault() ?? "User")
-        };
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"] ?? "ClaveSuperSecretaDe32CaracteresMinimo!"));
-        var token = new JwtSecurityToken(
-            issuer: config["Jwt:Issuer"] ?? "ProyectoPedidos",
-            audience: config["Jwt:Audience"] ?? "UsuariosAPI",
-            claims: claims,
-            expires: DateTime.Now.AddHours(3),
-            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
-        );
-        return Results.Ok(new { Token = new JwtSecurityTokenHandler().WriteToken(token), Role = roles.FirstOrDefault() ?? "User" });
-    }
-    return Results.Unauthorized();
+// Register
+app.MapPost("/auth/register", async (UserRegistrationDto req, IUserRepository repo) =>
+{
+    var user = new ApplicationUser { UserName = req.Email, Email = req.Email, FullName = req.FullName };
+    var success = await repo.CreateAsync(user, req.Password);
+    return success ? Results.Ok(new { message = "Usuario creado" }) : Results.BadRequest("Error al crear usuario");
 });
 
 app.UseSwagger();
 app.UseSwaggerUI();
+
+Console.WriteLine("========================================");
+Console.WriteLine("Usuarios API - Puerto 3001");
+Console.WriteLine("  admin@admin.com     / Admin@123  → Admin");
+Console.WriteLine("  user@user.com       / User@123   → User");
+Console.WriteLine("  admin@toyota.com    / Admin123!  → Admin");
+Console.WriteLine("  vendedor@toyota.com / Vend123!   → Vendedor");
+Console.WriteLine("  Swagger: http://localhost:3001/swagger");
+Console.WriteLine("========================================");
+
 app.Run();

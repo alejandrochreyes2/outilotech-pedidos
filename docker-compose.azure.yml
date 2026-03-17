@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+
+  frontend:
+    image: ${ACR_SERVER}/frontend:latest
+    ports:
+      - "80:80"
+    environment:
+      - API_URL=https://${AZURE_APP_NAME}.azurewebsites.net
+    depends_on:
+      - gateway
+
+  gateway:
+    image: ${ACR_SERVER}/gateway:latest
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+    depends_on:
+      - usuarios
+      - pedidos
+      - pagos
+
+  usuarios:
+    image: ${ACR_SERVER}/usuarios:latest
+    ports:
+      - "3001:3001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:3001
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+
+  pedidos:
+    image: ${ACR_SERVER}/pedidos:latest
+    ports:
+      - "3002:3002"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:3002
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+
+  pagos:
+    image: ${ACR_SERVER}/pagos:latest
+    ports:
+      - "3003:3003"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:3003
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}

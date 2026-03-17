@@ -8,7 +8,9 @@ namespace UsuariosAPI.Mappings
     {
         public MappingProfile()
         {
-            CreateMap<ApplicationUser, UserResponseDto>();
+            CreateMap<ApplicationUser, UserResponseDto>()
+                .ForMember(dest => dest.Token, opt => opt.Ignore());
+            
             CreateMap<UserRegistrationDto, ApplicationUser>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Email));
         }

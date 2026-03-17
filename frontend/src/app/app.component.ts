@@ -12,8 +12,13 @@ import { NgIf } from '@angular/common';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
+  // Uso de Signals e Injectors (Angular 21 style)
   public auth = inject(AuthService);
   private _darkMode = false;
+
+  get darkMode() {
+    return this._darkMode;
+  }
 
   toggleTheme() {
     this._darkMode = !this._darkMode;
