@@ -1,0 +1,80 @@
+<app-navbar></app-navbar>
+
+<!-- Hero -->
+<section class="acerca-hero">
+  <div class="acerca-hero-overlay">
+    <h1>Acerca de Nosotros</h1>
+    <p>Más de 20 años conectando colombianos con su Toyota</p>
+  </div>
+</section>
+
+<!-- Quiénes somos -->
+<section class="acerca-section">
+  <div class="acerca-container">
+    <div class="acerca-intro">
+      <div class="acerca-intro-text">
+        <h2>¿Quiénes somos?</h2>
+        <p>Toyota Financial Services Colombia es la compañía de servicios financieros de Toyota Motor Corporation en Colombia. Llevamos más de 20 años brindando soluciones de financiamiento para que más colombianos puedan tener el Toyota de sus sueños.</p>
+        <p>Somos parte de la red global de Toyota Financial Services, presente en más de 40 países, y estamos comprometidos con ofrecer las mejores condiciones de financiamiento, con procesos ágiles, transparentes y digitales.</p>
+      </div>
+      <div class="acerca-intro-image">
+        <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600&q=80" alt="Toyota Financial Services" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Valores -->
+<section class="acerca-values">
+  <div class="acerca-container">
+    <h2 class="section-title">Nuestros Valores</h2>
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="value-icon">🏆</div>
+        <h3>Excelencia</h3>
+        <p>Comprometidos con la calidad en cada servicio que brindamos a nuestros clientes</p>
+      </div>
+      <div class="value-card">
+        <div class="value-icon">🤝</div>
+        <h3>Confianza</h3>
+        <p>Transparencia y honestidad en cada operación financiera</p>
+      </div>
+      <div class="value-card">
+        <div class="value-icon">🌱</div>
+        <h3>Sostenibilidad</h3>
+        <p>Comprometidos con el medio ambiente y el desarrollo de Colombia</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Timeline -->
+<section class="acerca-section acerca-timeline-section">
+  <div class="acerca-container">
+    <h2 class="section-title">Nuestra Historia</h2>
+    <div class="timeline">
+      @for (item of timeline; track item.year) {
+        <div class="timeline-item">
+          <div class="timeline-year">{{ item.year }}</div>
+          <div class="timeline-dot"></div>
+          <div class="timeline-text">{{ item.text }}</div>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section class="acerca-stats">
+  <div class="acerca-container">
+    <h2 class="section-title white">Cifras que nos respaldan</h2>
+    <div class="stats-row">
+      @for (s of stats; track s.label) {
+        <div class="stat-item">
+          <div class="stat-val">{{ s.value }}</div>
+          <div class="stat-lbl">{{ s.label }}</div>
+        </div>
+      }
+    </div>
+  </div>
+</section>

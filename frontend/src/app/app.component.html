@@ -1,9 +1,10 @@
-<div class="app-container" [class.dark]="darkMode">
-  <app-sidebar *ngIf="auth.isAuthenticated()"></app-sidebar>
-  <div class="main-content">
-    <div class="theme-toggle" (click)="toggleTheme()">
-      {{ darkMode ? '☀️' : '🌙' }}
+@if (auth.isAuthenticated()) {
+  <div class="app-container">
+    <app-sidebar></app-sidebar>
+    <div class="main-content">
+      <router-outlet></router-outlet>
     </div>
-    <router-outlet></router-outlet>
   </div>
-</div>
+} @else {
+  <router-outlet></router-outlet>
+}

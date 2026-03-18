@@ -1,17 +1,74 @@
-<div class="login-container">
-  <form (ngSubmit)="onSubmit()">
-    <h2>Iniciar sesión</h2>
-    <div class="form-group">
-      <label>Usuario o correo</label>
-      <input type="text" [(ngModel)]="username" name="username" required>
+<div class="login-page">
+
+  <!-- Columna izquierda: imagen -->
+  <div class="login-left">
+    <div class="login-left-overlay"></div>
+    <div class="login-left-content">
+      <span class="login-brand">TOYOTA</span>
+      <h2>Bienvenido al sistema de gestión</h2>
+      <p>Plataforma enterprise de pedidos y pagos</p>
     </div>
-    <div class="form-group">
-      <label>Contraseña</label>
-      <input type="password" [(ngModel)]="password" name="password" required>
+  </div>
+
+  <!-- Columna derecha: formulario -->
+  <div class="login-right">
+    <div class="login-form-box">
+
+      <div class="login-logo">
+        <span class="logo-text">TOYOTA</span>
+      </div>
+
+      <h1 class="login-title">Iniciar Sesión</h1>
+      <p class="login-subtitle">Ingresa tus credenciales corporativas</p>
+
+      <form (ngSubmit)="onSubmit()">
+        <div class="field-group">
+          <label>Correo electrónico</label>
+          <div class="input-wrapper">
+            <span class="input-icon">✉</span>
+            <input
+              class="form-control"
+              type="email"
+              [(ngModel)]="username"
+              name="username"
+              placeholder="usuario@toyota.com"
+              required>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Contraseña</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input
+              class="form-control"
+              [type]="showPwd ? 'text' : 'password'"
+              [(ngModel)]="password"
+              name="password"
+              placeholder="••••••••"
+              required>
+            <button type="button" class="toggle-pwd" (click)="showPwd = !showPwd">
+              {{ showPwd ? '🙈' : '👁' }}
+            </button>
+          </div>
+        </div>
+
+        @if (error) {
+          <div class="alert-error">{{ error }}</div>
+        }
+
+        <button class="btn-submit btn-toyota" type="submit" [disabled]="isLoading">
+          @if (isLoading) { <span class="spinner"></span> } Ingresar
+        </button>
+
+        <a class="forgot-link" href="#">¿Olvidaste tu contraseña?</a>
+      </form>
+
+      <div class="login-hints">
+        <p>Admin: admin&#64;toyota.com / Admin123!</p>
+        <p>Vendedor: vendedor&#64;toyota.com / Vend123!</p>
+      </div>
     </div>
-    @if (error) { <div class="error">{{ error }}</div> }
-    <button type="submit" [disabled]="isLoading">
-      {{ isLoading ? 'Ingresando...' : 'Ingresar' }}
-    </button>
-  </form>
+  </div>
+
 </div>

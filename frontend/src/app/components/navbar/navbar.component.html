@@ -1,0 +1,37 @@
+<header class="navbar">
+  <div class="navbar-inner">
+    <!-- Logo -->
+    <a routerLink="/home" class="navbar-logo">TOYOTA</a>
+
+    <!-- Desktop menu -->
+    <nav class="navbar-menu">
+      <a class="nav-link" routerLink="/acerca" routerLinkActive="active">Acerca de nosotros</a>
+      <a class="nav-link" routerLink="/concesionarios" routerLinkActive="active">Red de Concesionarios</a>
+      <a class="nav-link" routerLink="/planes" routerLinkActive="active">Planes y Seguros</a>
+      <a class="nav-link" routerLink="/promociones" routerLinkActive="active">Promociones</a>
+      <a class="nav-link" routerLink="/contacto" routerLinkActive="active">Contacto & PQR</a>
+      <a class="nav-link" routerLink="/simulador" routerLinkActive="active">Simulador</a>
+      <a class="nav-link nav-account" routerLink="/login" routerLinkActive="active">Mi Cuenta</a>
+      <a class="nav-btn-pagos btn-toyota" routerLink="/login">Pagos</a>
+    </nav>
+
+    <!-- Hamburger -->
+    <button class="hamburger" (click)="toggleMenu()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <!-- Mobile menu -->
+  @if (menuOpen()) {
+    <nav class="mobile-menu">
+      <a class="nav-link" routerLink="/acerca" routerLinkActive="active" (click)="toggleMenu()">Acerca de nosotros</a>
+      <a class="nav-link" routerLink="/concesionarios" routerLinkActive="active" (click)="toggleMenu()">Red de Concesionarios</a>
+      <a class="nav-link" routerLink="/planes" routerLinkActive="active" (click)="toggleMenu()">Planes y Seguros</a>
+      <a class="nav-link" routerLink="/promociones" routerLinkActive="active" (click)="toggleMenu()">Promociones</a>
+      <a class="nav-link" routerLink="/contacto" routerLinkActive="active" (click)="toggleMenu()">Contacto & PQR</a>
+      <a class="nav-link" routerLink="/simulador" routerLinkActive="active" (click)="toggleMenu()">Simulador</a>
+      <a class="nav-link nav-account" routerLink="/login" routerLinkActive="active" (click)="toggleMenu()">Mi Cuenta</a>
+      <a class="nav-btn-pagos btn-toyota" routerLink="/login" (click)="toggleMenu()">Pagos</a>
+    </nav>
+  }
+</header>

@@ -1,0 +1,53 @@
+.planes-hero {
+  height: 350px;
+  background: url('https://images.unsplash.com/photo-1619767886558-efdc259b6e09?w=1920&q=80') center/cover;
+  position: relative;
+}
+.planes-hero-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: #fff; text-align: center;
+}
+.planes-hero-overlay h1 { font-size: 44px; font-weight: 900; margin-bottom: 12px; }
+.planes-hero-overlay p { font-size: 18px; opacity: 0.85; }
+
+.planes-container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+.section-title { font-size: 32px; font-weight: 900; color: #1a1a1a; text-align: center; margin-bottom: 48px; }
+
+.planes-section { padding: 80px 0; background: #fff; }
+.planes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+
+.plan-card { border: 2px solid #e8e8e8; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; position: relative; transition: transform 0.2s, box-shadow 0.2s; }
+.plan-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.12); }
+.plan-card.popular { border-color: #EB0A1E; }
+.badge-popular { background: #EB0A1E; color: #fff; text-align: center; padding: 8px; font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+.plan-header { padding: 32px 28px 24px; background: #1a1a1a; color: #fff; }
+.plan-header h3 { font-size: 24px; font-weight: 900; margin-bottom: 6px; }
+.plan-header p { font-size: 14px; opacity: 0.75; }
+.plan-body { padding: 24px 28px; flex: 1; }
+.plan-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
+.plan-label { font-size: 14px; color: #777; }
+.plan-value { font-size: 16px; font-weight: 700; color: #1a1a1a; }
+.btn-plan { display: block; margin: 0 28px 28px; padding: 14px; background: #EB0A1E; color: #fff; border-radius: 8px; text-align: center; font-weight: 700; text-decoration: none; transition: background 0.2s; }
+.btn-plan:hover { background: #c00015; }
+
+.seguros-section { padding: 80px 0; background: #f8f8f8; }
+.seguros-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.seguro-card { background: #fff; border-radius: 12px; padding: 32px 24px; text-align: center; box-shadow: 0 4px 16px rgba(0,0,0,0.08); transition: transform 0.2s; }
+.seguro-card:hover { transform: translateY(-4px); }
+.seguro-icon { font-size: 48px; margin-bottom: 16px; }
+.seguro-card h3 { font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 10px; }
+.seguro-card p { font-size: 14px; color: #666; line-height: 1.6; }
+
+.planes-cta { background: #1a1a1a; padding: 80px 0; text-align: center; }
+.planes-cta h2 { font-size: 36px; font-weight: 900; color: #fff; margin-bottom: 16px; }
+.planes-cta p { font-size: 18px; color: rgba(255,255,255,0.75); margin-bottom: 32px; }
+.btn-cta { display: inline-block; padding: 16px 48px; background: #EB0A1E; color: #fff; border-radius: 8px; font-weight: 700; font-size: 18px; text-decoration: none; transition: background 0.2s; }
+.btn-cta:hover { background: #c00015; }
+
+@media (max-width: 768px) {
+  .planes-grid { grid-template-columns: 1fr; }
+  .seguros-grid { grid-template-columns: 1fr 1fr; }
+}

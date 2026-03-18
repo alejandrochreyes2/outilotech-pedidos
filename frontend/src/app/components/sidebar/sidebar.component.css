@@ -1,1 +1,147 @@
-/* Vacío (estilos globales) */
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+  background: #1a1a1a;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Brand */
+.sidebar-brand {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.brand-text {
+  display: block;
+  font-size: 22px;
+  font-weight: 900;
+  color: #EB0A1E;
+  letter-spacing: 3px;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,0.40);
+  letter-spacing: 0.5px;
+}
+
+/* Usuario */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #EB0A1E;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.role-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+}
+.role-admin    { background: #EB0A1E; color: #fff; }
+.role-vendedor { background: #f39c12; color: #fff; }
+.role-user     { background: #2980b9; color: #fff; }
+
+/* Menú */
+.sidebar-menu {
+  list-style: none;
+  padding: 16px 0;
+  flex: 1;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  color: rgba(255,255,255,0.70);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 400;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-link:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.06);
+  border-left-color: rgba(235,10,30,0.5);
+}
+
+.sidebar-link.active {
+  color: #fff;
+  background: rgba(235,10,30,0.15);
+  border-left-color: #EB0A1E;
+  font-weight: 500;
+}
+
+.link-icon { font-size: 16px; }
+.link-label { flex: 1; }
+
+/* Logout */
+.logout-btn {
+  margin: 16px;
+  padding: 12px 16px;
+  background: rgba(235,10,30,0.15);
+  color: rgba(255,255,255,0.80);
+  border: 1px solid rgba(235,10,30,0.30);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  width: calc(100% - 32px);
+  font-family: 'Roboto', sans-serif;
+}
+.logout-btn:hover {
+  background: rgba(235,10,30,0.30);
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+    height: auto;
+    position: static;
+  }
+  .sidebar-menu { padding: 8px 0; }
+}

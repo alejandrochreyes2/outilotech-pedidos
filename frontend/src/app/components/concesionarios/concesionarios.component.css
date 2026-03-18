@@ -1,0 +1,37 @@
+.conc-hero {
+  height: 350px;
+  background: url('https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=1920&q=80') center/cover;
+  position: relative;
+}
+.conc-hero-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: #fff; text-align: center;
+}
+.conc-hero-overlay h1 { font-size: 44px; font-weight: 900; margin-bottom: 12px; }
+.conc-hero-overlay p { font-size: 18px; opacity: 0.85; }
+
+.conc-body { padding: 60px 0; background: #f8f8f8; min-height: 60vh; }
+.conc-container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+.conc-filter { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 32px; }
+.filter-label { font-weight: 700; color: #1a1a1a; margin-right: 8px; }
+.filter-btn { padding: 8px 18px; border: 2px solid #ddd; border-radius: 24px; background: #fff; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+.filter-btn:hover { border-color: #EB0A1E; color: #EB0A1E; }
+.filter-btn.active { background: #EB0A1E; border-color: #EB0A1E; color: #fff; }
+
+.conc-count { color: #777; font-size: 14px; margin-bottom: 24px; }
+
+.conc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+
+.conc-card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); display: flex; flex-direction: column; gap: 16px; transition: transform 0.2s; }
+.conc-card:hover { transform: translateY(-4px); }
+.conc-card-header { display: flex; align-items: flex-start; gap: 12px; }
+.conc-icon { font-size: 32px; }
+.conc-card-header h3 { font-size: 16px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+.conc-ciudad { font-size: 13px; color: #EB0A1E; font-weight: 600; }
+.conc-card-body p { font-size: 14px; color: #555; margin-bottom: 6px; }
+.btn-mapa { display: block; text-align: center; padding: 10px; background: #EB0A1E; color: #fff; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 14px; margin-top: auto; transition: background 0.2s; }
+.btn-mapa:hover { background: #c00015; }

@@ -14,6 +14,7 @@ export class LoginComponent {
   username = '';
   password = '';
   error    = '';
+  showPwd  = false;
 
   get isLoading() { return this.auth.isLoading(); }
 

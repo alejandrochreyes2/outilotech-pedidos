@@ -1,0 +1,96 @@
+<app-navbar></app-navbar>
+
+<section class="sim-hero">
+  <div class="sim-hero-overlay">
+    <h1>Simulador de Crédito</h1>
+    <p>Conoce tu cuota mensual en segundos</p>
+  </div>
+</section>
+
+<section class="sim-body">
+  <div class="sim-container">
+    <div class="sim-grid">
+
+      <!-- Controles -->
+      <div class="sim-controls">
+        <h2>Configura tu crédito</h2>
+
+        <div class="sim-group">
+          <label>Modelo del vehículo</label>
+          <select (change)="onModeloChange($any($event.target).value)">
+            @for (m of modelos; track m.nombre; let i = $index) {
+              <option [value]="i">{{ m.nombre }} — {{ m.precio | currency:'COP':'symbol':'1.0-0' }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="sim-group">
+          <label>Cuota inicial: <strong>{{ cuotaInicial() }}% — {{ valorCuotaInicial() | currency:'COP':'symbol':'1.0-0' }}</strong></label>
+          <input type="range" min="10" max="50" step="5"
+            [value]="cuotaInicial()"
+            (input)="onCuotaChange($any($event.target).value)" />
+          <div class="range-labels"><span>10%</span><span>50%</span></div>
+        </div>
+
+        <div class="sim-group">
+          <label>Plazo en meses</label>
+          <div class="plazo-btns">
+            @for (p of plazos; track p) {
+              <button [class.active]="plazo() === p" (click)="onPlazoChange(p.toString())">{{ p }}m</button>
+            }
+          </div>
+        </div>
+
+        <div class="sim-group">
+          <label>Tasa de interés</label>
+          <div class="tasa-display">{{ (tasa() * 100).toFixed(1) }}% MV</div>
+        </div>
+      </div>
+
+      <!-- Resultado -->
+      <div class="sim-resultado">
+        <h2>Tu simulación</h2>
+        <div class="resultado-modelo">Toyota {{ modelos[modeloSeleccionado()].nombre }}</div>
+
+        <div class="resultado-cuota">
+          <div class="cuota-label">Cuota mensual</div>
+          <div class="cuota-valor">{{ cuotaMensual() | currency:'COP':'symbol':'1.0-0' }}</div>
+        </div>
+
+        <div class="resultado-detalle">
+          <div class="det-row">
+            <span>Valor del vehículo</span>
+            <span>{{ precioVehiculo() | currency:'COP':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="det-row">
+            <span>Cuota inicial ({{ cuotaInicial() }}%)</span>
+            <span>{{ valorCuotaInicial() | currency:'COP':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="det-row">
+            <span>Monto a financiar</span>
+            <span>{{ montoFinanciar() | currency:'COP':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="det-row">
+            <span>Plazo</span>
+            <span>{{ plazo() }} meses</span>
+          </div>
+          <div class="det-row">
+            <span>Tasa mensual</span>
+            <span>{{ (tasa() * 100).toFixed(1) }}% MV</span>
+          </div>
+          <div class="det-row highlight">
+            <span>Total a pagar</span>
+            <span>{{ totalPagar() | currency:'COP':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="det-row">
+            <span>Total intereses</span>
+            <span>{{ totalIntereses() | currency:'COP':'symbol':'1.0-0' }}</span>
+          </div>
+        </div>
+
+        <a routerLink="/contacto" class="btn-solicitar">Solicitar este crédito</a>
+        <p class="sim-disclaimer">* Valores aproximados. La tasa final depende del estudio de crédito. Valores en COP.</p>
+      </div>
+    </div>
+  </div>
+</section>
