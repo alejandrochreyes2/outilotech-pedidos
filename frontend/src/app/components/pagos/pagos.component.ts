@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 export interface PagoResponse {
   id:       number;
@@ -38,7 +39,7 @@ export class PagosComponent implements OnInit {
   cargarPagos() {
     this.isLoading.set(true);
     this.error.set(null);
-    this.http.get<PagoResponse[]>('/api/pagos').subscribe({
+    this.http.get<PagoResponse[]>(`${environment.apiUrl}/api/pagos`).subscribe({
       next: data => {
         this.pagos.set(data);
         this.isLoading.set(false);
@@ -56,7 +57,7 @@ export class PagosComponent implements OnInit {
     if (this.form.invalid) return;
     const { pedidoId, monto } = this.form.value;
     this.isLoading.set(true);
-    this.http.post<PagoResponse>('/api/pagos', { pedidoId, monto }).subscribe({
+    this.http.post<PagoResponse>(`${environment.apiUrl}/api/pagos`, { pedidoId, monto }).subscribe({
       next: pago => {
         this.pagos.update(list => [...list, pago]);
         this.form.reset({ pedidoId: 1, monto: 0.01 });

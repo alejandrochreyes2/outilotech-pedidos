@@ -1,0 +1,17 @@
+{
+  "routes": [
+    {
+      "route": "/api/*",
+      "rewrite": "https://toyota-gateway.wittystone-43cf97a7.eastus2.azurecontainerapps.io/api/*"
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/assets/*", "/*.{css,js,ico,png,jpg,svg,woff,woff2}"]
+  },
+  "globalHeaders": {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type,Authorization"
+  }
+}

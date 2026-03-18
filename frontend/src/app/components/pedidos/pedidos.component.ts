@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 export interface PedidoResponse {
   id:      number;
@@ -37,7 +38,7 @@ export class PedidosComponent implements OnInit {
   cargarPedidos() {
     this.isLoading.set(true);
     this.error.set(null);
-    this.http.get<PedidoResponse[]>('/api/pedidos').subscribe({
+    this.http.get<PedidoResponse[]>(`${environment.apiUrl}/api/pedidos`).subscribe({
       next: data => {
         this.pedidos.set(data);
         this.isLoading.set(false);
@@ -53,7 +54,7 @@ export class PedidosComponent implements OnInit {
     if (this.form.invalid) return;
     const { cliente, total } = this.form.value;
     this.isLoading.set(true);
-    this.http.post<PedidoResponse>('/api/pedidos', { cliente, total }).subscribe({
+    this.http.post<PedidoResponse>(`${environment.apiUrl}/api/pedidos`, { cliente, total }).subscribe({
       next: pedido => {
         this.pedidos.update(list => [...list, pedido]);
         this.form.reset({ cliente: '', total: 0 });

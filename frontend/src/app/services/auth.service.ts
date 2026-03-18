@@ -2,6 +2,7 @@ import { Injectable, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { tap, finalize } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface CurrentUser {
   email: string;
@@ -27,7 +28,7 @@ export class AuthService {
 
   login(email: string, password: string) {
     this.isLoading.set(true);
-    return this.http.post<any>('/api/usuarios/auth/login', { email, password }).pipe(
+    return this.http.post<any>(`${environment.apiUrl}/api/usuarios/auth/login`, { email, password }).pipe(
       tap(res => {
         const role: string  = res?.role     ?? res?.Role     ?? 'User';
         const token: string = res?.token    ?? res?.Token    ?? '';

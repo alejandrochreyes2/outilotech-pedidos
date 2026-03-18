@@ -14,11 +14,20 @@ using UsuariosAPI.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DB Context PostgreSQL
-var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
-    ?? "Host=postgres;Port=5432;Database=toyota_db;Username=toyota_user;Password=Toyota2026!";
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
+// DB Context — PostgreSQL local o InMemory para cloud demo
+var useInMemory = builder.Configuration["USE_INMEMORY"] == "true";
+if (useInMemory)
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseInMemoryDatabase("UsuariosCloud"));
+}
+else
+{
+    var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
+        ?? "Host=postgres;Port=5432;Database=usuarios_db;Username=toyota_user;Password=Toyota2026!";
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseNpgsql(connectionString));
+}
 
 // Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()

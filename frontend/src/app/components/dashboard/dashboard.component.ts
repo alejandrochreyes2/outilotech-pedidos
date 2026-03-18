@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-dashboard',
@@ -17,12 +18,12 @@ export class DashboardComponent {
   private http = inject(HttpClient);
 
   pedidos = toSignal(
-    this.http.get<any[]>('/api/pedidos').pipe(catchError(() => of([]))),
+    this.http.get<any[]>(`${environment.apiUrl}/api/pedidos`).pipe(catchError(() => of([]))),
     { initialValue: [] }
   );
 
   pagos = toSignal(
-    this.http.get<any[]>('/api/pagos').pipe(catchError(() => of([]))),
+    this.http.get<any[]>(`${environment.apiUrl}/api/pagos`).pipe(catchError(() => of([]))),
     { initialValue: [] }
   );
 
@@ -34,7 +35,7 @@ export class DashboardComponent {
   crearPedidoPrueba() {
     this.creandoPrueba.set(true);
     this.mensajePrueba.set(null);
-    this.http.post<any>('/api/pedidos', { cliente: 'Toyota Colombia', total: 150000 }).subscribe({
+    this.http.post<any>(`${environment.apiUrl}/api/pedidos`, { cliente: 'Toyota Colombia', total: 150000 }).subscribe({
       next: () => {
         this.mensajePrueba.set('Pedido de prueba creado. Recarga la página para ver el contador.');
         this.creandoPrueba.set(false);

@@ -3,12 +3,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Agregar CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", builder =>
-    {
-        builder.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader();
-    });
+    options.AddPolicy("AllowAll", policy =>
+        policy.WithOrigins(
+            "http://localhost",
+            "http://localhost:4200",
+            "http://localhost:80",
+            "https://gentle-water-0ba98b90f.1.azurestaticapps.net"
+        )
+        .AllowAnyMethod()
+        .AllowAnyHeader());
 });
 
 builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));

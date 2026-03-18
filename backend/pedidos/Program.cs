@@ -17,11 +17,20 @@ var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "toyota-pedidos-clien
 
 Console.WriteLine($"[JWT CONFIG] Key len={jwtKey.Length} Issuer={jwtIssuer} Audience={jwtAudience}");
 
-// DbContext PostgreSQL
-var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
-    ?? "Host=postgres;Port=5432;Database=toyota_db;Username=toyota_user;Password=Toyota2026!";
-builder.Services.AddDbContext<PedidosDbContext>(options =>
-    options.UseNpgsql(connectionString));
+// DbContext — PostgreSQL local o InMemory para cloud demo
+var useInMemory = builder.Configuration["USE_INMEMORY"] == "true";
+if (useInMemory)
+{
+    builder.Services.AddDbContext<PedidosDbContext>(options =>
+        options.UseInMemoryDatabase("PedidosCloud"));
+}
+else
+{
+    var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
+        ?? "Host=postgres;Port=5432;Database=pedidos_db;Username=toyota_user;Password=Toyota2026!";
+    builder.Services.AddDbContext<PedidosDbContext>(options =>
+        options.UseNpgsql(connectionString));
+}
 
 // Repositories
 builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
