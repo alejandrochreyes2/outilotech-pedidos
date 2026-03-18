@@ -1,176 +1,208 @@
-# 🚀 Proyecto Pedidos: Arquitectura Enterprise (Nivel Toyota)
+# 🚗 Toyota Pedidos — Plataforma Enterprise
 
-[![CI/CD Nivel Toyota](https://github.com/alejandrochreyes2/proyecto-pedidos/actions/workflows/main.yml/badge.svg)](https://github.com/alejandrochreyes2/proyecto-pedidos/actions)
+[![CI/CD](https://github.com/alejandrochreyes2/proyecto-pedidos/actions/workflows/main.yml/badge.svg)](https://github.com/alejandrochreyes2/proyecto-pedidos/actions)
 
-Este proyecto ha evolucionado de un MVP básico a una **Arquitectura Enterprise de alto nivel (Nivel Toyota)**. Implementa un ecosistema de microservicios robusto, seguro y escalable utilizando las últimas tecnologías de .NET y Angular, todo orquestado con Docker de grado profesional.
+Sistema enterprise de gestión de pedidos con arquitectura de microservicios, desarrollado con los más altos estándares de la industria como proyecto de portafolio fullstack.
 
----
+## 🌐 Demo en vivo
 
-## 🏗️ Arquitectura del Sistema
+**URL:** https://toyota-pedidos-app.azurewebsites.net
 
-El sistema utiliza un patrón de **API Gateway** centralizado y contenedores optimizados.
-
-### Componentes Principales:
-1.  **Frontend (Angular 21)**: Modernizado con **Signals** y **Interceptores funcionales**. Se sirve vía Nginx en Docker.
-2.  **API Gateway (YARP)**: Punto de entrada único (:5000) que gestiona el tráfico hacia los microservicios.
-3.  **Microservicios (.NET 8)**:
-    *   **Usuarios**: Gestión de identidad con **Identity** y JWT.
-    *   **Pedidos**: Lógica de negocio con **Repository Pattern**.
-    *   **Pagos**: Procesamiento de transacciones.
-4.  **Base de Datos**: **MongoDB** profesional con volúmenes persistentes.
-5.  **Red (Toyota-Network)**: Red interna privada para comunicación segura entre contenedores.
+| Usuario | Contraseña | Rol |
+|---------|-----------|-----|
+| admin@toyota.com | Admin123! | Administrador |
+| vendedor@toyota.com | Vend123! | Vendedor |
+| user@user.com | User@123 | Usuario |
 
 ---
 
-## 🛣️ Hoja de Ruta: La Evolución "Toyota"
+## 🏗️ Arquitectura de Microservicios
 
-### Fase 1: Seguridad Industrial
-- Autenticación Real con Identity.
-- JWT con Roles y Claims.
-
-### Fase 2: Arquitectura Limpia
-- Repository Pattern e Inyección de Dependencias.
-- DTOs y AutoMapper.
-
-### Fase 3: Gateway Hub
-- YARP como Proxy Inverso.
-- Centralización de CORS y Seguridad.
-
-### Fase 4: Cloud & DevOps
-- **Docker Full Stack**: Orquestación total con `docker-compose`.
-- **CI/CD**: Sincronización automática con GitHub Actions.
-
----
-
-## 📊 Diagrama de Infraestructura Docker
-
-```mermaid
-graph TD
-    User((Usuario)) -->|"Puerto 80"| Frontend[Frontend Container]
-    User -->|"Puerto 5000"| Gateway[ApiGateway Container]
-    
-    subgraph "Docker Toyota Network"
-        Gateway --> Usuarios[Usuarios MS]
-        Gateway --> Pedidos[Pedidos MS]
-        Gateway --> Pagos[Pagos MS]
-        
-        Usuarios --> Mongo[(MongoDB Persistente)]
-        Pedidos --> Mongo
-        Pagos --> Mongo
-    end
+```
+┌─────────────────────────────────────────────────────┐
+│                   CLIENTE (Angular 21)               │
+│              http://localhost  (:80)                 │
+└────────────────────┬────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────┐
+│              API GATEWAY — YARP                      │
+│                 :5000                                │
+│  /api/usuarios → :3001                              │
+│  /api/pedidos  → :3002                              │
+│  /api/pagos    → :3003                              │
+└──────┬──────────────┬──────────────┬────────────────┘
+       │              │              │
+┌──────▼──────┐ ┌─────▼──────┐ ┌───▼────────┐
+│  Usuarios   │ │  Pedidos   │ │   Pagos    │
+│  .NET 8     │ │  .NET 8    │ │  .NET 8    │
+│   :3001     │ │   :3002    │ │   :3003    │
+└──────┬──────┘ └─────┬──────┘ └───┬────────┘
+       └──────────────┴────────────┘
+                      │
+          ┌───────────▼───────────┐
+          │      MongoDB 6        │
+          │       :27017          │
+          └───────────────────────┘
 ```
 
 ---
 
-## 🚀 Cómo Ejecutar el Ecosistema Completo
+## ✅ Funcionalidades
 
-### Con Docker Compose (Recomendado)
-Desde la raíz del proyecto, ejecuta:
+### Backend
+- ✅ JWT Bearer Authentication con ASP.NET Core Identity
+- ✅ 3 microservicios .NET 8 independientes (Usuarios, Pedidos, Pagos)
+- ✅ API Gateway YARP con routing centralizado
+- ✅ Repository Pattern + DTOs + AutoMapper
+- ✅ Middleware global de manejo de excepciones
+- ✅ Roles de usuario (Administrador, Vendedor, Usuario)
+- ✅ Swagger/OpenAPI en cada microservicio
+
+### Frontend
+- ✅ Angular 21 standalone components con Signals
+- ✅ Interceptor HTTP automático con JWT token
+- ✅ Guards por rol (authGuard, adminGuard)
+- ✅ Diseño corporativo estilo Toyota (rojo #EB0A1E)
+- ✅ Navbar corporativo con 8 secciones
+- ✅ Home con hero fullscreen
+- ✅ Login dos columnas (imagen + formulario)
+- ✅ Dashboard con header rojo y stat cards
+- ✅ Sidebar oscuro con active state
+- ✅ Formulario de contacto con EmailJS (envío real a Gmail)
+- ✅ Simulador de crédito funcional (fórmula PMT)
+- ✅ Countdown timer en promociones
+- ✅ Filtro reactivo en concesionarios
+- ✅ `@for` / `@if` Angular 17+ control flow
+
+### DevOps
+- ✅ Docker multi-stage builds
+- ✅ docker-compose con 6 servicios
+- ✅ CI/CD GitHub Actions → Azure Container Registry (ACR)
+- ✅ Azure App Service B1 (Linux containers)
+- ✅ Service Principal con roles AcrPush/AcrPull
+
+---
+
+## 🛠️ Stack Tecnológico
+
+| Tecnología | Versión | Uso |
+|-----------|---------|-----|
+| .NET | 8.0 | Backend microservicios |
+| Angular | 21.2 | Frontend SPA |
+| YARP | 2.x | API Gateway / Reverse Proxy |
+| MongoDB | 6.0 | Base de datos NoSQL |
+| Docker | Latest | Contenedores |
+| Nginx | Alpine | Servidor frontend |
+| Azure App Service | B1 | Hosting en nube |
+| Azure Container Registry | Basic | Registro imágenes Docker |
+| GitHub Actions | Latest | CI/CD Pipeline |
+| EmailJS | 4.x | Formulario de contacto |
+
+---
+
+## 🧪 Pruebas API — Postman Collection
+
+Importar: `ProyectoPedidos.postman_collection.json`
+
+| # | Endpoint | Método | Auth | Descripción |
+|---|----------|--------|------|-------------|
+| 1 | /api/usuarios/auth/login | POST | ❌ | Login Admin |
+| 2 | /api/usuarios/auth/login | POST | ❌ | Login Vendedor |
+| 3 | /api/usuarios/auth/login | POST | ❌ | Login Usuario |
+| 4 | /api/usuarios/auth/login | POST | ❌ | Login Inválido |
+| 5 | /api/usuarios/auth/register | POST | ❌ | Registrar usuario |
+| 6 | /api/usuarios | GET | ✅ Admin | Listar usuarios |
+| 7 | /api/pedidos | GET | ✅ JWT | Listar pedidos |
+| 8 | /api/pedidos | POST | ✅ JWT | Crear pedido |
+| 9 | /api/pagos | GET | ✅ Admin | Listar pagos |
+| 10 | /api/pagos | POST | ✅ Admin | Crear pago |
+| 11 | Flujo Admin completo | - | Auto | Login → Pedido → Pago |
+
+> El token JWT se guarda automáticamente en la variable `{{token}}` al hacer login.
+
+---
+
+## 🌐 Secciones del Frontend
+
+| Ruta | Descripción |
+|------|-------------|
+| `/home` | Hero fullscreen + navbar corporativo |
+| `/acerca` | Historia, valores, timeline, cifras |
+| `/concesionarios` | 8 dealers con filtro por ciudad |
+| `/planes` | 3 planes financiamiento + 4 seguros |
+| `/promociones` | Ofertas vigentes + countdown |
+| `/contacto` | Formulario PQR con EmailJS |
+| `/simulador` | Calculadora de crédito en tiempo real |
+| `/login` | Acceso al sistema (dos columnas) |
+| `/dashboard` | Panel principal (auth requerida) |
+| `/pedidos` | Gestión de pedidos (auth requerida) |
+| `/pagos` | Gestión de pagos (solo Admin) |
+
+---
+
+## 🚀 Ejecutar Localmente
+
 ```bash
+# Clonar repositorio
+git clone https://github.com/alejandrochreyes2/proyecto-pedidos.git
+cd proyecto-pedidos
+
+# Levantar todos los servicios
 docker-compose up --build
-```
-Esto levantará los 6 servicios sincronizados: `frontend`, `apigateway`, `usuarios`, `pedidos`, `pagos` y `mongodb`.
 
-### Puertos Disponibles:
-- **Frontend**: [http://localhost](http://localhost)
-- **API Gateway**: [http://localhost:5000](http://localhost:5000)
-- **MongoDB**: [http://localhost:27017](http://localhost:27017)
+# Abrir en el navegador
+http://localhost
+```
+
+**Swagger por microservicio:**
+- Usuarios: http://localhost:3001/swagger
+- Pedidos: http://localhost:3002/swagger
+- Pagos: http://localhost:3003/swagger
 
 ---
 
-## 📁 Estructura del Repositorio
-```text
+## 📁 Estructura del Proyecto
+
+```
 proyecto-pedidos/
-├── docker-compose.yml      # Orquestación Maestra
-├── backend/
-│   ├── ApiGateway/         # Punto de entrada (YARP)
-│   ├── usuarios/           # Identidad (.NET 8)
-│   ├── pedidos/            # Negocio (.NET 8)
-│   └── pagos/              # Transacciones (.NET 8)
-├── frontend/               # Angular 21 + Signals
-└── .github/workflows/      # CI/CD Automático
+├── ApiGateway/                  # YARP Reverse Proxy
+│   └── appsettings.json         # Configuración de rutas
+├── MicroservicioUsuarios/       # Auth + JWT
+├── MicroservicioPedidos/        # CRUD Pedidos
+├── MicroservicioPagos/          # CRUD Pagos
+├── frontend/                    # Angular 21
+│   └── src/app/
+│       ├── components/
+│       │   ├── navbar/          # Navbar corporativo
+│       │   ├── home/            # Hero + landing
+│       │   ├── login/           # Auth two-column
+│       │   ├── sidebar/         # Sidebar oscuro
+│       │   ├── dashboard/       # Panel principal
+│       │   ├── pedidos/         # Gestión pedidos
+│       │   ├── pagos/           # Gestión pagos
+│       │   ├── acerca/          # Quiénes somos
+│       │   ├── concesionarios/  # Red dealers
+│       │   ├── planes/          # Financiamiento
+│       │   ├── promociones/     # Ofertas vigentes
+│       │   ├── contacto/        # Formulario PQR
+│       │   └── simulador/       # Calculadora crédito
+│       ├── guards/              # authGuard, adminGuard
+│       ├── interceptors/        # JWT interceptor
+│       └── services/            # AuthService, etc.
+├── .github/workflows/
+│   └── deploy.yml               # CI/CD → Azure ACR
+├── docker-compose.yml           # Orquestación local
+└── ProyectoPedidos.postman_collection.json
 ```
 
 ---
 
-Desarrollado con ❤️ para alcanzar el **Nivel Toyota** en arquitectura de software. 🏁🚀
+## 👨‍💻 Autor
+
+**Alejandro Reyes**
+Desarrollador Fullstack — Portfolio 2026
+📧 alejandrochreyes2@gmail.com
 
 ---
 
-## 🚀 Deploy en Azure
-
-### Prerequisitos
-- Cuenta de Azure activa
-- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) instalado
-- Docker instalado localmente
-
-### 1. Crear recursos en Azure
-
-```bash
-# Grupo de recursos
-az group create --name toyota-pedidos-rg --location eastus
-
-# Azure Container Registry (ACR)
-az acr create --name toyotapedidosacr --resource-group toyota-pedidos-rg --sku Basic
-
-# Habilitar admin en ACR (necesario para GitHub Actions)
-az acr update --name toyotapedidosacr --admin-enabled true
-
-# App Service Plan (Linux B1)
-az appservice plan create \
-  --name toyota-plan \
-  --resource-group toyota-pedidos-rg \
-  --sku B1 \
-  --is-linux
-
-# Web App con docker-compose.azure.yml
-az webapp create \
-  --name toyota-pedidos-app \
-  --resource-group toyota-pedidos-rg \
-  --plan toyota-plan \
-  --multicontainer-config-type compose \
-  --multicontainer-config-file docker-compose.azure.yml
-```
-
-### 2. Configurar secrets en GitHub
-
-En tu repositorio: **Settings → Secrets and variables → Actions → New repository secret**
-
-| Secret | Cómo obtenerlo |
-|--------|---------------|
-| `ACR_LOGIN_SERVER` | `az acr show --name toyotapedidosacr --query loginServer -o tsv` |
-| `ACR_USERNAME` | `az acr credential show --name toyotapedidosacr --query username -o tsv` |
-| `ACR_PASSWORD` | `az acr credential show --name toyotapedidosacr --query passwords[0].value -o tsv` |
-| `AZURE_APP_NAME` | `toyota-pedidos-app` |
-| `AZURE_PUBLISH_PROFILE` | Descargar desde Azure Portal → Web App → **Get publish profile** |
-
-### 3. Activar el pipeline
-
-```bash
-git add .
-git commit -m "Deploy: Azure CI/CD pipeline"
-git push origin main
-```
-
-El workflow `.github/workflows/deploy.yml` se ejecutará automáticamente en cada push a `main`.
-
-### 4. Variables de entorno en Azure
-
-Copia `.env.example` a `.env`, rellena los valores reales y configúralos en Azure:
-
-```bash
-az webapp config appsettings set \
-  --name toyota-pedidos-app \
-  --resource-group toyota-pedidos-rg \
-  --settings JWT_KEY="ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!" \
-             JWT_ISSUER="toyota-pedidos-api" \
-             JWT_AUDIENCE="toyota-pedidos-client"
-```
-
-### URLs de producción
-
-Una vez desplegado:
-- **App**: `https://toyota-pedidos-app.azurewebsites.net`
-- **Gateway**: `https://toyota-pedidos-app.azurewebsites.net:5000`
-
-<!-- Docker Sync: 2026-03-15 23:05 -->
+*Proyecto desarrollado como prueba técnica de nivel enterprise fullstack.*

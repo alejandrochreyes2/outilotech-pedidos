@@ -20,12 +20,12 @@
             <div class="alert-icon">✅</div>
             <div>
               <strong>¡Mensaje enviado con éxito!</strong>
-              <p>Tu mensaje fue enviado. Nos comunicaremos en máximo 24 horas hábiles.</p>
+              <p>{{ mensajeExito() }}</p>
               <button (click)="reintentar()" class="btn-reintentar">Enviar otro mensaje</button>
             </div>
           </div>
         } @else {
-          <form (ngSubmit)="enviar()" #f="ngForm">
+          <form (ngSubmit)="enviarFormulario()" #f="ngForm">
             <div class="form-row">
               <div class="form-group">
                 <label>Nombre completo *</label>
@@ -75,8 +75,8 @@
               <input type="checkbox" [(ngModel)]="form.autorizo" name="autorizo" id="autorizo" />
               <label for="autorizo">Autorizo el tratamiento de mis datos personales según la Ley 1581 de 2012</label>
             </div>
-            @if (error()) {
-              <div class="alert-error">⚠️ {{ error() }}</div>
+            @if (mensajeError()) {
+              <div class="alert-error">⚠️ {{ mensajeError() }}</div>
             }
             <button type="submit" class="btn-enviar" [disabled]="enviando()">
               @if (enviando()) { Enviando... } @else { Enviar mensaje }
@@ -104,10 +104,8 @@
           <span class="info-icon">🕐</span>
           <div><strong>Horario de atención</strong><p>Lun-Vie: 8am-6pm<br/>Sábado: 9am-1pm</p></div>
         </div>
-        <div class="info-notice">
-          <strong>Nota:</strong> Para activar el envío de correos, configura las credenciales de EmailJS en el archivo <code>contacto.component.ts</code> con tu cuenta gratuita en <a href="https://www.emailjs.com" target="_blank">emailjs.com</a>.
-        </div>
       </div>
+
     </div>
   </div>
 </section>

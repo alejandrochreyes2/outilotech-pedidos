@@ -26,46 +26,48 @@ export class ContactoComponent {
   ciudades = ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Bucaramanga', 'Cartagena', 'Pereira', 'Manizales', 'Ibagué', 'Santa Marta', 'Otra'];
   tipos = ['Petición', 'Queja', 'Reclamo', 'Sugerencia', 'Información', 'Otro'];
 
-  enviando = signal(false);
-  enviado = signal(false);
-  error = signal<string | null>(null);
+  enviando     = signal(false);
+  enviado      = signal(false);
+  mensajeExito = signal<string | null>(null);
+  mensajeError = signal<string | null>(null);
 
-  async enviar() {
+  async enviarFormulario() {
     if (!this.form.autorizo) {
-      this.error.set('Debes autorizar el tratamiento de datos personales.');
+      this.mensajeError.set('Debes autorizar el tratamiento de datos personales.');
       return;
     }
     if (this.form.mensaje.length < 20) {
-      this.error.set('El mensaje debe tener al menos 20 caracteres.');
+      this.mensajeError.set('El mensaje debe tener al menos 20 caracteres.');
       return;
     }
 
     this.enviando.set(true);
-    this.error.set(null);
+    this.mensajeExito.set(null);
+    this.mensajeError.set(null);
 
     try {
-      // EmailJS - configure your credentials at emailjs.com
-      // Service ID: YOUR_SERVICE_ID
-      // Template ID: YOUR_TEMPLATE_ID
-      // Public Key: YOUR_PUBLIC_KEY
-      await (window as any).emailjs.send(
-        'YOUR_SERVICE_ID',
-        'YOUR_TEMPLATE_ID',
+      await emailjs.send(
+        'service_toyota',
+        'template_jzz8rai',
         {
-          from_name: this.form.nombre,
-          from_email: this.form.email,
-          telefono: this.form.telefono,
-          ciudad: this.form.ciudad,
+          nombre:        this.form.nombre,
+          email:         this.form.email,
+          telefono:      this.form.telefono,
+          ciudad:        this.form.ciudad,
           tipo_consulta: this.form.tipo,
-          asunto: this.form.asunto,
-          mensaje: this.form.mensaje,
-          to_email: 'alejandrochreyes2@gmail.com'
+          asunto:        this.form.asunto,
+          mensaje:       this.form.mensaje
         },
-        'YOUR_PUBLIC_KEY'
+        'K16QvN016m0k4KJdY'
+      );
+      this.mensajeExito.set(
+        'Tu mensaje fue enviado correctamente. ' +
+        'Nos comunicaremos en máximo 24 horas.'
       );
       this.enviado.set(true);
-    } catch (e) {
-      this.error.set('Error al enviar el mensaje. Por favor intenta nuevamente o escríbenos directamente a servicios@toyotacredito.com.co');
+      this.form = { nombre: '', email: '', telefono: '', ciudad: '', tipo: '', asunto: '', mensaje: '', autorizo: false };
+    } catch (error) {
+      this.mensajeError.set('Error al enviar. Por favor intenta de nuevo.');
     } finally {
       this.enviando.set(false);
     }
@@ -73,6 +75,7 @@ export class ContactoComponent {
 
   reintentar() {
     this.enviado.set(false);
-    this.error.set(null);
+    this.mensajeExito.set(null);
+    this.mensajeError.set(null);
   }
 }
