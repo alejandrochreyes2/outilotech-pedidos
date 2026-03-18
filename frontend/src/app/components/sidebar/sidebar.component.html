@@ -1,20 +1,39 @@
 @if (auth.isAuthenticated()) {
-  <nav class="sidebar">
-    <div class="user-info">
+<nav class="sidebar">
+
+  <!-- Logo Toyota -->
+  <div class="sidebar-brand">
+    <a routerLink="/home" style="color: inherit; text-decoration: none; display: block;">
+      <span class="brand-text">TOYOTA</span>
+    </a>
+    <span class="brand-sub">Sistema de Gestión</span>
+  </div>
+
+  <!-- Info usuario -->
+  <div class="sidebar-user">
+    <div class="user-avatar">{{ auth.currentUser()?.name?.charAt(0)?.toUpperCase() ?? 'U' }}</div>
+    <div class="user-details">
       <p class="user-name">{{ auth.currentUser()?.name }}</p>
       <span class="role-badge role-{{ auth.role()?.toLowerCase() }}">{{ auth.role() }}</span>
     </div>
+  </div>
 
-    <ul class="menu-list">
-      @for (item of menuItems; track item.label) {
-        <li>
-          <a [routerLink]="item.link" class="menu-link">
-            {{ item.icon }} {{ item.label }}
-          </a>
-        </li>
-      }
-    </ul>
+  <!-- Menú -->
+  <ul class="sidebar-menu">
+    @for (item of menuItems; track item.label) {
+      <li>
+        <a [routerLink]="item.link" class="sidebar-link" routerLinkActive="active">
+          <span class="link-icon">{{ item.icon }}</span>
+          <span class="link-label">{{ item.label }}</span>
+        </a>
+      </li>
+    }
+  </ul>
 
-    <button class="logout-btn" (click)="logout()">⏻ Cerrar sesión</button>
-  </nav>
+  <!-- Logout -->
+  <button class="logout-btn" (click)="logout()">
+    <span>⏻</span> Cerrar sesión
+  </button>
+
+</nav>
 }

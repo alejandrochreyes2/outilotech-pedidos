@@ -1,0 +1,71 @@
+<app-navbar></app-navbar>
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <p class="hero-subtitle">PLATAFORMA DE GESTIÓN</p>
+    <h1 class="hero-title">TOYOTA PEDIDOS</h1>
+    <p class="hero-desc">Sistema enterprise de microservicios</p>
+    <div class="hero-actions">
+      <a class="btn-toyota" [routerLink]="['/login']">Ingresar al sistema</a>
+      <a class="btn-outline" href="#features">Ver más</a>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="features" id="features">
+  <div class="features-inner">
+    <h2 class="section-title">¿Qué ofrecemos?</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3>Gestión de Pedidos</h3>
+        <p>Control completo del ciclo de vida de cada pedido con trazabilidad en tiempo real.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💳</div>
+        <h3>Procesamiento de Pagos</h3>
+        <p>Registro y seguimiento de pagos con historial completo y estados de transacción.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Control de Usuarios</h3>
+        <p>Sistema de roles y permisos: Admin, Vendedor y Usuario con accesos diferenciados.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <h3>Seguridad JWT</h3>
+        <p>Autenticación con tokens JWT y autorización basada en roles empresariales.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">☁️</div>
+        <h3>Deploy en Azure</h3>
+        <p>Arquitectura de microservicios containerizada en Azure con CI/CD automatizado.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>API Gateway</h3>
+        <p>Proxy reverso YARP que centraliza y enruta el tráfico entre microservicios.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+  <div class="cta-inner">
+    <h2>¿Listo para comenzar?</h2>
+    <p>Accede al sistema con tus credenciales Toyota</p>
+    <a class="btn-toyota" [routerLink]="['/login']">Iniciar sesión</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-logo">TOYOTA</span>
+    <p>© 2026 Toyota Pedidos. Sistema Enterprise de Microservicios.</p>
+  </div>
+</footer>

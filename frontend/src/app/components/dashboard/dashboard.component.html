@@ -1,39 +1,93 @@
-<div class="dashboard-container">
-
-  <div class="welcome-card">
-    <h1>Bienvenido, {{ auth.currentUser()?.name }}</h1>
-    <span class="role-badge role-{{ auth.currentUser()?.role?.toLowerCase() }}">
+<!-- Header Toyota rojo -->
+<div class="dash-header">
+  <div class="dash-header-inner">
+    <div>
+      <h1 class="dash-title">Bienvenido, {{ auth.currentUser()?.name }}</h1>
+      <p class="dash-email">{{ auth.currentUser()?.email }}</p>
+    </div>
+    <span class="dash-role role-{{ auth.currentUser()?.role?.toLowerCase() }}">
       {{ auth.currentUser()?.role }}
     </span>
-    <p class="email">{{ auth.currentUser()?.email }}</p>
   </div>
+</div>
+
+<div class="dash-body">
 
   @if (auth.isAdmin()) {
+    <!-- Stats cards -->
     <div class="stats-grid">
       <div class="stat-card">
-        <h3>Total Pedidos</h3>
-        <span class="stat-number">{{ totalPedidos() }}</span>
+        <div class="stat-icon">📦</div>
+        <div class="stat-info">
+          <span class="stat-number">{{ totalPedidos() }}</span>
+          <span class="stat-label">Total Pedidos</span>
+        </div>
       </div>
       <div class="stat-card">
-        <h3>Total Pagos</h3>
-        <span class="stat-number">{{ totalPagos() }}</span>
+        <div class="stat-icon">💳</div>
+        <div class="stat-info">
+          <span class="stat-number">{{ totalPagos() }}</span>
+          <span class="stat-label">Total Pagos</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <span class="stat-number">{{ totalPedidos() > 0 ? 100 : 0 }}%</span>
+          <span class="stat-label">Disponibilidad</span>
+        </div>
       </div>
     </div>
 
-    <div class="demo-section">
-      <button class="btn-demo" (click)="crearPedidoPrueba()" [disabled]="creandoPrueba()">
+    <!-- Tabla pedidos recientes -->
+    @if (pedidos().length > 0) {
+      <div class="card">
+        <h2 class="section-heading">Pedidos recientes</h2>
+        <table class="toyota-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Cliente</th>
+              <th>Total</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of pedidos().slice(0, 5); track p.id) {
+              <tr>
+                <td>{{ p.id }}</td>
+                <td>{{ p.cliente }}</td>
+                <td>$ {{ p.total | number }}</td>
+                <td>{{ p.fecha | date:'dd/MM/yyyy' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <!-- Botón demo -->
+    <div class="card">
+      <h2 class="section-heading">Acciones rápidas</h2>
+      <button class="btn-toyota" (click)="crearPedidoPrueba()" [disabled]="creandoPrueba()">
+        @if (creandoPrueba()) { <span class="spinner"></span> }
         {{ creandoPrueba() ? 'Creando...' : '+ Crear pedido de prueba' }}
       </button>
       @if (mensajePrueba()) {
-        <p class="demo-msg">{{ mensajePrueba() }}</p>
+        <div class="alert-success" style="margin-top:12px">{{ mensajePrueba() }}</div>
       }
     </div>
   }
 
   @if (!auth.isAdmin()) {
-    <div class="info-card">
-      <h3>Mis pedidos: {{ totalPedidos() }}</h3>
-      <p>Accede al menú lateral para gestionar tus pedidos.</p>
+    <div class="card">
+      <div class="info-block">
+        <div class="info-icon">📦</div>
+        <div>
+          <h3>Mis pedidos: {{ totalPedidos() }}</h3>
+          <p>Accede al menú lateral para gestionar tus pedidos.</p>
+        </div>
+      </div>
     </div>
   }
 

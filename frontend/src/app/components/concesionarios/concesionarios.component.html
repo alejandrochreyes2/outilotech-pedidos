@@ -1,0 +1,46 @@
+<app-navbar></app-navbar>
+
+<section class="conc-hero">
+  <div class="conc-hero-overlay">
+    <h1>Red de Concesionarios</h1>
+    <p>Más de 100 puntos de atención en todo el país</p>
+  </div>
+</section>
+
+<section class="conc-body">
+  <div class="conc-container">
+    <div class="conc-filter">
+      <span class="filter-label">Filtrar por ciudad:</span>
+      @for (ciudad of ciudades; track ciudad) {
+        <button
+          class="filter-btn"
+          [class.active]="ciudadSeleccionada() === ciudad"
+          (click)="seleccionar(ciudad)">
+          {{ ciudad }}
+        </button>
+      }
+    </div>
+
+    <p class="conc-count">{{ filtrados().length }} concesionario(s) encontrado(s)</p>
+
+    <div class="conc-grid">
+      @for (c of filtrados(); track c.nombre) {
+        <div class="conc-card">
+          <div class="conc-card-header">
+            <span class="conc-icon">🏢</span>
+            <div>
+              <h3>{{ c.nombre }}</h3>
+              <span class="conc-ciudad">{{ c.ciudad }}</span>
+            </div>
+          </div>
+          <div class="conc-card-body">
+            <p>📍 {{ c.direccion }}</p>
+            <p>📞 {{ c.telefono }}</p>
+            <p>🕐 {{ c.horario }}</p>
+          </div>
+          <a [href]="c.mapsUrl" target="_blank" class="btn-mapa">Ver en mapa</a>
+        </div>
+      }
+    </div>
+  </div>
+</section>

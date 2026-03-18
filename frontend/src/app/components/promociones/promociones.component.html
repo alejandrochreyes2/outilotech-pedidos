@@ -1,0 +1,38 @@
+<app-navbar></app-navbar>
+
+<section class="promo-hero">
+  <div class="promo-hero-inner">
+    <h1>Promociones Vigentes</h1>
+    <p>Vigencia: Marzo 2026</p>
+    <div class="countdown">
+      <div class="count-item"><span class="count-num">{{ dias() }}</span><span class="count-lbl">Días</span></div>
+      <div class="count-sep">:</div>
+      <div class="count-item"><span class="count-num">{{ horas() }}</span><span class="count-lbl">Horas</span></div>
+      <div class="count-sep">:</div>
+      <div class="count-item"><span class="count-num">{{ minutos() }}</span><span class="count-lbl">Min</span></div>
+      <div class="count-sep">:</div>
+      <div class="count-item"><span class="count-num">{{ segundos() }}</span><span class="count-lbl">Seg</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="promo-body">
+  <div class="promo-container">
+    <div class="promo-grid">
+      @for (p of promos; track p.modelo) {
+        <div class="promo-card">
+          <div class="promo-img-wrap">
+            <img [src]="p.imagen" [alt]="p.modelo" />
+            <span class="promo-badge" [class]="p.badgeClass">{{ p.badge }}</span>
+          </div>
+          <div class="promo-card-body">
+            <h3>Toyota {{ p.modelo }}</h3>
+            <div class="promo-precio">{{ p.precio }}</div>
+            <p class="promo-detalle">{{ p.detalle }}</p>
+            <a routerLink="/simulador" class="btn-promo">Simular crédito</a>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</section>
