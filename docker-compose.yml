@@ -32,6 +32,9 @@ services:
       - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
       - Jwt__Issuer=toyota-pedidos-api
       - Jwt__Audience=toyota-pedidos-client
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - toyota-network
 
@@ -45,6 +48,9 @@ services:
       - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
       - Jwt__Issuer=toyota-pedidos-api
       - Jwt__Audience=toyota-pedidos-client
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - toyota-network
 
@@ -58,6 +64,9 @@ services:
       - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
       - Jwt__Issuer=toyota-pedidos-api
       - Jwt__Audience=toyota-pedidos-client
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - toyota-network
 
@@ -71,9 +80,31 @@ services:
     networks:
       - toyota-network
 
+  # Persistencia PostgreSQL
+  postgres:
+    image: postgres:15
+    container_name: proyecto-pedidos-postgres-1
+    environment:
+      - POSTGRES_USER=toyota_user
+      - POSTGRES_PASSWORD=Toyota2026!
+      - POSTGRES_DB=toyota_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - toyota-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toyota_user -d toyota_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
 networks:
   toyota-network:
     driver: bridge
 
 volumes:
   mongo-data:
+  postgres-data:

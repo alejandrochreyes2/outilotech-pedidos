@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using PedidosAPI.Data;
 using PedidosAPI.Repositories;
 using PedidosAPI.Models;
 using PedidosAPI.DTOs;
@@ -14,6 +16,12 @@ var jwtIssuer   = builder.Configuration["Jwt:Issuer"]   ?? "toyota-pedidos-api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "toyota-pedidos-client";
 
 Console.WriteLine($"[JWT CONFIG] Key len={jwtKey.Length} Issuer={jwtIssuer} Audience={jwtAudience}");
+
+// DbContext PostgreSQL
+var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
+    ?? "Host=postgres;Port=5432;Database=toyota_db;Username=toyota_user;Password=Toyota2026!";
+builder.Services.AddDbContext<PedidosDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
 // Repositories
 builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
@@ -75,6 +83,12 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PedidosDbContext>();
+    db.Database.EnsureCreated();
+}
 
 // Middleware global de excepciones
 app.Use(async (context, next) =>

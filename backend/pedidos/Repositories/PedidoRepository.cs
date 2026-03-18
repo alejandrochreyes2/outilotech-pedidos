@@ -1,26 +1,32 @@
+using Microsoft.EntityFrameworkCore;
+using PedidosAPI.Data;
 using PedidosAPI.Models;
 
 namespace PedidosAPI.Repositories
 {
     public class PedidoRepository : IPedidoRepository
     {
-        private static readonly List<Pedido> _pedidos = new();
+        private readonly PedidosDbContext _context;
 
-        public Task<IEnumerable<Pedido>> GetAllAsync()
+        public PedidoRepository(PedidosDbContext context)
         {
-            return Task.FromResult((IEnumerable<Pedido>)_pedidos);
+            _context = context;
         }
 
-        public Task<Pedido?> GetByIdAsync(int id)
+        public async Task<IEnumerable<Pedido>> GetAllAsync()
         {
-            return Task.FromResult(_pedidos.FirstOrDefault(p => p.Id == id));
+            return await _context.Pedidos.ToListAsync();
         }
 
-        public Task CreateAsync(Pedido pedido)
+        public async Task<Pedido?> GetByIdAsync(int id)
         {
-            pedido.Id = _pedidos.Count + 1;
-            _pedidos.Add(pedido);
-            return Task.CompletedTask;
+            return await _context.Pedidos.FindAsync(id);
+        }
+
+        public async Task CreateAsync(Pedido pedido)
+        {
+            _context.Pedidos.Add(pedido);
+            await _context.SaveChangesAsync();
         }
     }
 }

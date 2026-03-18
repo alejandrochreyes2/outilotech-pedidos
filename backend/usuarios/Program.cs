@@ -14,9 +14,11 @@ using UsuariosAPI.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DB Context
+// DB Context PostgreSQL
+var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
+    ?? "Host=postgres;Port=5432;Database=toyota_db;Username=toyota_user;Password=Toyota2026!";
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseInMemoryDatabase("UsuariosDB"));
+    options.UseNpgsql(connectionString));
 
 // Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()

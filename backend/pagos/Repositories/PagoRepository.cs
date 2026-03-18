@@ -1,18 +1,27 @@
+using Microsoft.EntityFrameworkCore;
+using PagosAPI.Data;
 using PagosAPI.Models;
 
 namespace PagosAPI.Repositories
 {
     public class PagoRepository : IPagoRepository
     {
-        private static readonly List<Pago> _pagos = new();
+        private readonly PagosDbContext _context;
 
-        public Task<IEnumerable<Pago>> GetAllAsync() => Task.FromResult((IEnumerable<Pago>)_pagos);
-
-        public Task CreateAsync(Pago pago)
+        public PagoRepository(PagosDbContext context)
         {
-            pago.Id = _pagos.Count + 1;
-            _pagos.Add(pago);
-            return Task.CompletedTask;
+            _context = context;
+        }
+
+        public async Task<IEnumerable<Pago>> GetAllAsync()
+        {
+            return await _context.Pagos.ToListAsync();
+        }
+
+        public async Task CreateAsync(Pago pago)
+        {
+            _context.Pagos.Add(pago);
+            await _context.SaveChangesAsync();
         }
     }
 }
