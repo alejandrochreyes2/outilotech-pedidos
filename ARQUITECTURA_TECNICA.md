@@ -226,10 +226,10 @@ Un único punto de entrada (YARP Gateway) recibe todas las solicitudes del front
 | DELETE | /api/usuarios/{id} | Admin | Elimina usuario |
 
 **Usuarios sembrados (seed data):**
-- `admin@toyota.com` / `Admin123!` → Rol: Admin
-- `vendedor@toyota.com` / `Vend123!` → Rol: Vendedor
-- `user@user.com` / `User@123` → Rol: User
-- `admin@admin.com` / `Admin@123` → Rol: Admin
+- `alejandrochreyes2@gmail.com` / `[contraseña-admin]` → Rol: Admin
+- `vendedor@toyota-pedidos.com` / `[contraseña-vendedor]` → Rol: Vendedor
+- `usuario@toyota-pedidos.com` / `[contraseña-user]` → Rol: User
+- `alejandrochreyes2@gmail.com` / `[contraseña-admin]` → Rol: Admin
 
 ---
 

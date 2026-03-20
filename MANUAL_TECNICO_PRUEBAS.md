@@ -51,12 +51,12 @@ JWT compartido: Key + Issuer + Audience idénticos en los 3 microservicios
 |----------|---------------|-------------|
 | `base_url` | `http://localhost:5000` | URL base del Gateway |
 | `token` | *(vacío — se llena automático)* | JWT del usuario actual |
-| `admin_email` | `admin@toyota.com` | Email del admin Toyota |
-| `admin_password` | `Admin123!` | Contraseña del admin Toyota |
-| `vendedor_email` | `vendedor@toyota.com` | Email del vendedor |
-| `vendedor_password` | `Vend123!` | Contraseña del vendedor |
-| `user_email` | `user@user.com` | Email del usuario básico |
-| `user_password` | `User@123` | Contraseña del usuario básico |
+| `admin_email` | `alejandrochreyes2@gmail.com` | Email del admin Toyota |
+| `admin_password` | `[contraseña-admin]` | Contraseña del admin Toyota |
+| `vendedor_email` | `vendedor@toyota-pedidos.com` | Email del vendedor |
+| `vendedor_password` | `[contraseña-vendedor]` | Contraseña del vendedor |
+| `user_email` | `usuario@toyota-pedidos.com` | Email del usuario básico |
+| `user_password` | `[contraseña-user]` | Contraseña del usuario básico |
 
 4. Clic en **"Save"** y seleccionar el entorno `Toyota Local` en el dropdown superior derecho
 
@@ -94,14 +94,14 @@ URL:     {{base_url}}/api/usuarios/auth/login
 Headers: Content-Type: application/json
 Body (raw JSON):
 {
-  "email": "admin@toyota.com",
-  "password": "Admin123!"
+  "email": "alejandrochreyes2@gmail.com",
+  "password": "[contraseña-admin]"
 }
 ```
 **Resultado esperado:** `200 OK`
 ```json
 {
-  "email": "admin@toyota.com",
+  "email": "alejandrochreyes2@gmail.com",
   "fullName": "Admin Toyota",
   "role": "Admin",
   "token": "eyJhbGciOiJIUzI1NiIs..."
@@ -115,7 +115,7 @@ Body (raw JSON):
 ```
 Método:  POST
 URL:     {{base_url}}/api/usuarios/auth/login
-Body:    { "email": "vendedor@toyota.com", "password": "Vend123!" }
+Body:    { "email": "vendedor@toyota-pedidos.com", "password": "[contraseña-vendedor]" }
 ```
 **Resultado esperado:** `200 OK` con `"role": "Vendedor"`
 
@@ -125,7 +125,7 @@ Body:    { "email": "vendedor@toyota.com", "password": "Vend123!" }
 ```
 Método:  POST
 URL:     {{base_url}}/api/usuarios/auth/login
-Body:    { "email": "admin@toyota.com", "password": "wrongpassword" }
+Body:    { "email": "alejandrochreyes2@gmail.com", "password": "wrongpassword" }
 ```
 **Resultado esperado:** `401 Unauthorized`
 
@@ -223,7 +223,7 @@ Body:    { "cliente": "Cliente Vendedor", "total": 50000 }
 ---
 
 #### TEST 10 — Crear pedido como User (sin permiso)
-1. Login como `user@user.com / User@123`
+1. Login como `usuario@toyota-pedidos.com / [contraseña-user]`
 2. Usar ese token:
 ```
 Método:  POST
@@ -553,10 +553,10 @@ Los nombres (`usuarios`, `pedidos`, `pagos`) deben coincidir exactamente con los
 
 ```
 AUTENTICACIÓN
-[ ] Login funciona con admin@toyota.com / Admin123!     → role: Admin
-[ ] Login funciona con vendedor@toyota.com / Vend123!   → role: Vendedor
-[ ] Login funciona con admin@admin.com / Admin@123      → role: Admin
-[ ] Login funciona con user@user.com / User@123         → role: User
+[ ] Login funciona con alejandrochreyes2@gmail.com / [contraseña-admin]     → role: Admin
+[ ] Login funciona con vendedor@toyota-pedidos.com / [contraseña-vendedor]   → role: Vendedor
+[ ] Login funciona con alejandrochreyes2@gmail.com / [contraseña-admin]      → role: Admin
+[ ] Login funciona con usuario@toyota-pedidos.com / [contraseña-user]         → role: User
 [ ] JWT contiene claim de rol correcto (verificar en jwt.io)
 [ ] Credenciales incorrectas devuelven 401
 

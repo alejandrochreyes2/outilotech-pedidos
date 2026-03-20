@@ -1,18 +1,6 @@
+// Este archivo fue reemplazado por el seed en Program.cs usando ASP.NET Identity
+// Las credenciales de acceso son gestionadas via UserManager<ApplicationUser>
 namespace UsuariosAPI.Data
 {
-    public static class UsuariosSeed
-    {
-        public static List<Usuario> Usuarios = new List<Usuario>
-        {
-            new Usuario { Email = "admin@admin.com", Password = "admin", Role = "admin" },
-            new Usuario { Email = "user@user.com", Password = "user", Role = "user" }
-        };
-    }
-
-    public class Usuario
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
-        public string Role { get; set; }
-    }
+    // Seed migrado a Program.cs — ver sección "Seed" en ese archivo
 }

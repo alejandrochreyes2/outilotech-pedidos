@@ -49,10 +49,10 @@ En el menú lateral izquierdo, haga clic en el botón **"Cerrar sesión"** (o "L
 
 | Correo electrónico | Contraseña | Tipo de acceso |
 |--------------------|------------|----------------|
-| `admin@toyota.com` | `Admin123!` | Administrador completo |
-| `vendedor@toyota.com` | `Vend123!` | Vendedor |
-| `admin@admin.com` | `Admin@123` | Administrador |
-| `user@user.com` | `User@123` | Usuario básico |
+| `alejandrochreyes2@gmail.com` | `[contraseña-admin]` | Administrador completo |
+| `vendedor@toyota-pedidos.com` | `[contraseña-vendedor]` | Vendedor |
+| `alejandrochreyes2@gmail.com` | `[contraseña-admin]` | Administrador |
+| `usuario@toyota-pedidos.com` | `[contraseña-user]` | Usuario básico |
 
 ---
 

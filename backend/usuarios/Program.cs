@@ -112,10 +112,9 @@ try
     // Crear usuarios
     var seedUsers = new[]
     {
-        (Email: "admin@admin.com",      UserName: "admin",           FullName: "Administrador",    Password: "Admin@123",  Role: "Admin"),
-        (Email: "user@user.com",        UserName: "user",            FullName: "Usuario",          Password: "User@123",   Role: "User"),
-        (Email: "admin@toyota.com",     UserName: "toyota_admin",    FullName: "Admin Toyota",     Password: "Admin123!",  Role: "Admin"),
-        (Email: "vendedor@toyota.com",  UserName: "toyota_vendedor", FullName: "Vendedor Toyota",  Password: "Vend123!",   Role: "Vendedor"),
+        (Email: "alejandrochreyes2@gmail.com",    UserName: "alejandro_admin",    FullName: "Alejandro Chaparro",  Password: "Kx9#mT4$vR2n", Role: "Admin"),
+        (Email: "vendedor@toyota-pedidos.com",    UserName: "vendedor_pedidos",   FullName: "Vendedor Toyota",     Password: "Bw3$pL7#qN5j", Role: "Vendedor"),
+        (Email: "usuario@toyota-pedidos.com",     UserName: "usuario_pedidos",    FullName: "Usuario Toyota",      Password: "Ym6#cF1$hK8s", Role: "User"),
     };
 
     foreach (var (Email, UserName, FullName, Password, Role) in seedUsers)
@@ -231,10 +230,6 @@ app.UseSwaggerUI();
 
 Console.WriteLine("========================================");
 Console.WriteLine("Usuarios API - Puerto 3001");
-Console.WriteLine("  admin@admin.com     / Admin@123  → Admin");
-Console.WriteLine("  user@user.com       / User@123   → User");
-Console.WriteLine("  admin@toyota.com    / Admin123!  → Admin");
-Console.WriteLine("  vendedor@toyota.com / Vend123!   → Vendedor");
 Console.WriteLine("  Swagger: http://localhost:3001/swagger");
 Console.WriteLine("========================================");
 

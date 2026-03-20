@@ -10,10 +10,9 @@
 
 | Usuario | Contraseña | Rol | Acceso |
 |---------|-----------|-----|--------|
-| admin@toyota.com | Admin123! | Administrador | Dashboard · Pedidos · Pagos · Completo |
-| vendedor@toyota.com | Vend123! | Vendedor | Dashboard · Pedidos |
-| user@user.com | User@123 | Usuario | Solo lectura |
-| admin@admin.com | Admin@123 | Administrador | Acceso completo alternativo |
+| alejandrochreyes2@gmail.com | [contactar administrador] | Administrador | Acceso completo |
+| vendedor@toyota-pedidos.com | [contactar administrador] | Vendedor | Dashboard · Pedidos |
+| usuario@toyota-pedidos.com | [contactar administrador] | Usuario | Solo lectura |
 
 ---
 
@@ -326,9 +325,9 @@ Abre `http://localhost` en tu navegador.
 
 **Paso 5 — Ingresar con credenciales de prueba:**
 ```
-Admin:    admin@toyota.com    / Admin123!
-Vendedor: vendedor@toyota.com / Vend123!
-User:     user@user.com       / User@123
+Admin:    alejandrochreyes2@gmail.com   / [contraseña privada]
+Vendedor: vendedor@toyota-pedidos.com  / [contraseña privada]
+User:     usuario@toyota-pedidos.com   / [contraseña privada]
 ```
 
 ### Detener el proyecto
