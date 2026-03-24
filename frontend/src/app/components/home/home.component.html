@@ -8,16 +8,16 @@
     <div class="slide" [class.active]="currentSlide() === $index">
 
       @if (slide.videoUrl) {
-        <!-- Slide con video de fondo -->
+        <!-- Slide con video de fondo: avanza al terminar (sin loop) -->
         <video
           class="slide-video"
           [src]="slide.videoUrl"
           [poster]="slide.url"
           autoplay
           muted
-          loop
           playsinline
-          crossorigin="anonymous">
+          crossorigin="anonymous"
+          (ended)="onVideoEnded()">
         </video>
       } @else {
         <!-- Slide con imagen de fondo -->

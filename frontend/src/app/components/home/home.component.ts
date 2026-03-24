@@ -68,25 +68,32 @@ export class HomeComponent implements OnInit, OnDestroy {
   animating = signal(false);
   private timer: any;
 
-  ngOnInit() { this.startTimer(); }
-  ngOnDestroy() { clearInterval(this.timer); }
+  ngOnInit() { this.scheduleNext(); }
+  ngOnDestroy() { clearTimeout(this.timer); }
 
-  startTimer() {
-    this.timer = setInterval(() => this.goNext(), 10000);
+  /** Programa el avance automático solo para slides sin video */
+  scheduleNext() {
+    clearTimeout(this.timer);
+    const slide = this.slides[this.currentSlide()];
+    if (!slide.videoUrl) {
+      // Solo imagen: avanza a los 10s
+      this.timer = setTimeout(() => this.goNext(), 10000);
+    }
+    // Si tiene video: el evento (ended) del <video> llama a onVideoEnded()
   }
 
-  resetTimer() {
-    clearInterval(this.timer);
-    this.startTimer();
+  /** Llamado cuando el video termina */
+  onVideoEnded() {
+    this.goNext();
   }
 
   prev() {
-    this.resetTimer();
+    clearTimeout(this.timer);
     this.goTo((this.currentSlide() - 1 + this.slides.length) % this.slides.length);
   }
 
   next() {
-    this.resetTimer();
+    clearTimeout(this.timer);
     this.goNext();
   }
 
@@ -98,7 +105,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.animating()) return;
     this.animating.set(true);
     this.currentSlide.set(index);
-    setTimeout(() => this.animating.set(false), 800);
+    setTimeout(() => {
+      this.animating.set(false);
+      this.scheduleNext();
+    }, 800);
   }
 
   get slide(): Slide { return this.slides[this.currentSlide()]; }
