@@ -23,11 +23,22 @@ export interface Slide {
 export class HomeComponent implements OnInit, OnDestroy {
   slides: Slide[] = [
     {
-      url: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=1920&q=80',
-      model: 'Model S',
+      // Interior Tesla: conductor supervisando, pantalla FSD, carretera
+      url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=1920&q=80',
+      model: 'Conducción Autónoma',
       tagline: 'Conducción totalmente autónoma (supervisada)',
+      cta1: 'Demo FSD',
+      cta2: 'Más información',
+      link1: '/login',
+      link2: '#features'
+    },
+    {
+      // Vista cockpit / carretera
+      url: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1920&q=80',
+      model: 'Model S',
+      tagline: 'Sedán deportivo — El más rápido del mundo',
       cta1: 'Ordenar ahora',
-      cta2: 'Ver inventario',
+      cta2: 'Ver más',
       link1: '/login',
       link2: '#features'
     },
@@ -42,17 +53,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     },
     {
       url: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=1920&q=80',
-      model: 'Model X',
-      tagline: 'Seguridad y rendimiento sin igual',
-      cta1: 'Ordenar ahora',
-      cta2: 'Ver más',
-      link1: '/login',
-      link2: '#features'
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=1920&q=80',
       model: 'Model Y',
-      tagline: 'El SUV eléctrico más popular del mundo',
+      tagline: 'SUV de tamaño mediano — El más vendido del mundo',
       cta1: 'Ordenar ahora',
       cta2: 'Ver inventario',
       link1: '/login',
