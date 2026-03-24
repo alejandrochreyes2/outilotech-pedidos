@@ -6,7 +6,24 @@
   <!-- Slides -->
   @for (slide of slides; track $index) {
     <div class="slide" [class.active]="currentSlide() === $index">
-      <div class="slide-bg" [style.background-image]="'url(' + slide.url + ')'"></div>
+
+      @if (slide.videoUrl) {
+        <!-- Slide con video de fondo -->
+        <video
+          class="slide-video"
+          [src]="slide.videoUrl"
+          [poster]="slide.url"
+          autoplay
+          muted
+          loop
+          playsinline
+          crossorigin="anonymous">
+        </video>
+      } @else {
+        <!-- Slide con imagen de fondo -->
+        <div class="slide-bg" [style.background-image]="'url(' + slide.url + ')'"></div>
+      }
+
       <div class="slide-overlay"></div>
     </div>
   }

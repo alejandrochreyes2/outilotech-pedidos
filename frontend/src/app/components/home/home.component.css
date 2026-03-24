@@ -33,6 +33,16 @@
   to   { transform: scale(1.06); }
 }
 
+/* Video de fondo (estilo Tesla) */
+.slide-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
 /* Overlay oscuro */
 .slide-overlay {
   position: absolute;

@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 
 export interface Slide {
   url: string;
+  videoUrl?: string;
   model: string;
   tagline: string;
   cta1: string;
@@ -23,8 +24,9 @@ export interface Slide {
 export class HomeComponent implements OnInit, OnDestroy {
   slides: Slide[] = [
     {
-      // Interior Tesla: conductor supervisando, pantalla FSD, carretera
-      url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=1920&q=80',
+      // Video real Tesla FSD Supervised — tesla.com hero
+      url: 'https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Homepage-Promo-Carousel-FSD-Supervised-Tablet-Poster.jpg',
+      videoUrl: 'https://digitalassets.tesla.com/tesla-contents/video/upload/f_auto,q_auto:best/Homepage-Promo-Carousel-FSD-Supervised-Tablet.mp4',
       model: 'Conducción Autónoma',
       tagline: 'Conducción totalmente autónoma (supervisada)',
       cta1: 'Demo FSD',
