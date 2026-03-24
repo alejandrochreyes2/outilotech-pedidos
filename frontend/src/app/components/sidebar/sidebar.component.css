@@ -18,18 +18,34 @@
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
+.sidebar-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+
+.sidebar-tesla-t {
+  width: 20px;
+  height: 24px;
+  color: #CC0000;
+  flex-shrink: 0;
+}
+
 .brand-text {
-  display: block;
-  font-size: 22px;
-  font-weight: 900;
-  color: #EB0A1E;
-  letter-spacing: 3px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 4px;
 }
 
 .brand-sub {
   font-size: 11px;
   color: rgba(255,255,255,0.40);
   letter-spacing: 0.5px;
+  padding-left: 30px;
 }
 
 /* Usuario */

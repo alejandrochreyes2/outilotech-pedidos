@@ -20,6 +20,22 @@
   text-decoration: none;
   display: flex;
   align-items: center;
+  gap: 8px;
+  color: #1a1a1a;
+}
+
+.tesla-t-icon {
+  width: 22px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.navbar-logo-text {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #1a1a1a;
 }
 
 .navbar-menu {

@@ -1,18 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;900&family=Roboto:wght@300;400;500;700;900&display=swap');
 
 :root {
-  --toyota-red:   #EB0A1E;
+  --toyota-red:   #CC0000;
   --toyota-dark:  #1a1a1a;
   --toyota-gray:  #f5f5f5;
   --toyota-white: #FFFFFF;
   --toyota-mid:   #555555;
   --sidebar-w:    260px;
+  --font-tesla:   'Montserrat', 'Roboto', sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Roboto', sans-serif;
+  font-family: var(--font-tesla);
   background: var(--toyota-white);
   color: var(--toyota-dark);
   min-height: 100vh;

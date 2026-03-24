@@ -55,12 +55,26 @@
   color: #fff;
 }
 
-.login-brand {
-  display: block;
-  font-size: 32px;
-  font-weight: 900;
-  letter-spacing: 6px;
+.login-brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 24px;
+}
+
+.login-tesla-t {
+  width: 28px;
+  height: 34px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.login-brand {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #fff;
 }
 
 .login-left-content h2 {
@@ -142,11 +156,24 @@
   max-width: 380px;
 }
 
-.login-logo { margin-bottom: 32px; }
+.login-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.login-form-tesla-t {
+  width: 22px;
+  height: 28px;
+  color: #CC0000;
+  flex-shrink: 0;
+}
 
 .logo-text {
-  font-size: 28px;
-  font-weight: 900;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
   color: #CC0000;
   letter-spacing: 4px;
 }
