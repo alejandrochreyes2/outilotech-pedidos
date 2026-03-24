@@ -1,69 +1,170 @@
-/* ── Hero ── */
+/* ── Hero / Slideshow ── */
 .hero {
   position: relative;
   height: 100vh;
   min-height: 600px;
-  background: url('https://images.unsplash.com/photo-1550355291-bbee04a92027?w=1920&q=80') center/cover no-repeat;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
+  background: #000;
 }
 
-.hero-overlay {
+/* Cada slide: ocupa todo el hero */
+.slide {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.62);
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+  pointer-events: none;
+}
+.slide.active {
+  opacity: 1;
+  pointer-events: auto;
 }
 
+/* Imagen de fondo con zoom suave */
+.slide-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  animation: zoomIn 12s ease-in-out infinite alternate;
+}
+@keyframes zoomIn {
+  from { transform: scale(1); }
+  to   { transform: scale(1.06); }
+}
+
+/* Overlay oscuro */
+.slide-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.10) 0%,
+    rgba(0,0,0,0.20) 50%,
+    rgba(0,0,0,0.70) 100%
+  );
+}
+
+/* Contenido centrado en la parte inferior (estilo Tesla) */
 .hero-content {
-  position: relative;
-  z-index: 1;
+  position: absolute;
+  bottom: 120px;
+  left: 0;
+  right: 0;
   text-align: center;
   color: #fff;
+  z-index: 10;
   padding: 0 24px;
-  max-width: 800px;
+  animation: fadeUp 0.8s ease;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.hero-subtitle {
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 4px;
-  color: rgba(255,255,255,0.75);
-  margin-bottom: 16px;
-  text-transform: uppercase;
+.slide-model {
+  font-size: clamp(32px, 6vw, 64px);
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.4);
 }
 
-.hero-title {
-  font-size: clamp(48px, 8vw, 88px);
-  font-weight: 900;
-  letter-spacing: -2px;
-  line-height: 1;
-  margin-bottom: 20px;
+.slide-tagline {
+  font-size: clamp(14px, 2vw, 20px);
+  font-weight: 400;
+  opacity: 0.90;
+  margin-bottom: 28px;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
 }
 
-.hero-desc {
-  font-size: 18px;
-  font-weight: 300;
-  color: rgba(255,255,255,0.80);
-  margin-bottom: 40px;
-}
-
-.hero-actions {
+/* Botones estilo Tesla */
+.slide-actions {
   display: flex;
   gap: 16px;
   justify-content: center;
   flex-wrap: wrap;
 }
 
-.hero-actions .btn-toyota {
-  padding: 14px 36px;
+.btn-tesla-primary {
+  background: rgba(255,255,255,0.90);
+  color: #111;
+  padding: 13px 40px;
+  border-radius: 4px;
   font-size: 15px;
+  font-weight: 600;
   text-decoration: none;
+  transition: background 0.2s;
+  backdrop-filter: blur(4px);
 }
-.hero-actions .btn-outline {
-  padding: 12px 36px;
+.btn-tesla-primary:hover { background: #fff; }
+
+.btn-tesla-outline {
+  background: rgba(30,30,30,0.55);
+  color: #fff;
+  padding: 13px 40px;
+  border-radius: 4px;
   font-size: 15px;
+  font-weight: 600;
   text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.35);
+  transition: background 0.2s;
+  backdrop-filter: blur(4px);
+}
+.btn-tesla-outline:hover { background: rgba(30,30,30,0.80); }
+
+/* ── Flechas ── */
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  backdrop-filter: blur(6px);
+  transition: background 0.2s, transform 0.2s;
+}
+.arrow:hover {
+  background: rgba(255,255,255,0.30);
+  transform: translateY(-50%) scale(1.1);
+}
+.arrow svg { width: 22px; height: 22px; }
+.arrow-left  { left: 24px; }
+.arrow-right { right: 24px; }
+
+/* ── Dots ── */
+.dots {
+  position: absolute;
+  bottom: 72px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  z-index: 20;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.40);
+  cursor: pointer;
+  transition: background 0.3s, transform 0.3s;
+  padding: 0;
+}
+.dot.active {
+  background: #fff;
+  transform: scale(1.35);
 }
 
 /* ── Features ── */
@@ -103,23 +204,9 @@
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
 }
 
-.feature-icon {
-  font-size: 36px;
-  margin-bottom: 16px;
-}
-
-.feature-card h3 {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 10px;
-  color: #1a1a1a;
-}
-
-.feature-card p {
-  font-size: 14px;
-  color: #666;
-  line-height: 1.6;
-}
+.feature-icon { font-size: 36px; margin-bottom: 16px; }
+.feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; color: #1a1a1a; }
+.feature-card p  { font-size: 14px; color: #666; line-height: 1.6; }
 
 /* ── CTA ── */
 .cta-section {
@@ -128,53 +215,31 @@
   text-align: center;
   color: #fff;
 }
-
-.cta-inner {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.cta-section h2 {
-  font-size: 36px;
-  font-weight: 900;
-  margin-bottom: 12px;
-}
-
-.cta-section p {
-  font-size: 16px;
-  opacity: 0.85;
-  margin-bottom: 32px;
-}
-
+.cta-inner { max-width: 600px; margin: 0 auto; }
+.cta-section h2 { font-size: 36px; font-weight: 900; margin-bottom: 12px; }
+.cta-section p  { font-size: 16px; opacity: 0.85; margin-bottom: 32px; }
 .cta-section .btn-toyota {
   background: #fff;
   color: #EB0A1E;
   padding: 14px 40px;
   font-size: 15px;
   text-decoration: none;
+  border-radius: 4px;
+  font-weight: 600;
 }
 .cta-section .btn-toyota:hover { background: #f0f0f0; }
 
 /* ── Footer ── */
-.footer {
-  background: #1a1a1a;
-  color: rgba(255,255,255,0.6);
-  padding: 32px 24px;
-  text-align: center;
-}
-
-.footer-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.footer-logo {
-  display: block;
-  font-size: 24px;
-  font-weight: 900;
-  color: #EB0A1E;
-  margin-bottom: 8px;
-  letter-spacing: 2px;
-}
-
+.footer { background: #1a1a1a; color: rgba(255,255,255,0.6); padding: 32px 24px; text-align: center; }
+.footer-inner { max-width: 1100px; margin: 0 auto; }
+.footer-logo { display: block; font-size: 24px; font-weight: 900; color: #fff; margin-bottom: 8px; letter-spacing: 4px; }
 .footer p { font-size: 13px; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .arrow { width: 36px; height: 36px; }
+  .arrow svg { width: 18px; height: 18px; }
+  .arrow-left  { left: 10px; }
+  .arrow-right { right: 10px; }
+  .hero-content { bottom: 100px; }
+}

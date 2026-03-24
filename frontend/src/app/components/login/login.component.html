@@ -1,13 +1,51 @@
 <div class="login-page">
 
-  <!-- Columna izquierda: imagen -->
+  <!-- Columna izquierda: slideshow estilo Tesla -->
   <div class="login-left">
+
+    <!-- Slides de fondo -->
+    @for (url of slides; track $index) {
+      <div class="login-slide" [class.active]="currentSlide() === $index">
+        <div class="login-slide-bg" [style.background-image]="'url(' + url + ')'"></div>
+      </div>
+    }
+
+    <!-- Overlay -->
     <div class="login-left-overlay"></div>
+
+    <!-- Contenido izquierdo -->
     <div class="login-left-content">
-      <span class="login-brand">TOYOTA</span>
+      <span class="login-brand">TESLA</span>
       <h2>Bienvenido al sistema de gestión</h2>
       <p>Plataforma enterprise de pedidos y pagos</p>
     </div>
+
+    <!-- Flecha anterior -->
+    <button class="login-arrow login-arrow-left" (click)="prev()" aria-label="Anterior">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+
+    <!-- Flecha siguiente -->
+    <button class="login-arrow login-arrow-right" (click)="next()" aria-label="Siguiente">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+
+    <!-- Dots -->
+    <div class="login-dots">
+      @for (url of slides; track $index) {
+        <button
+          class="login-dot"
+          [class.active]="currentSlide() === $index"
+          (click)="goTo($index)"
+          [attr.aria-label]="'Slide ' + ($index + 1)">
+        </button>
+      }
+    </div>
+
   </div>
 
   <!-- Columna derecha: formulario -->
@@ -15,7 +53,7 @@
     <div class="login-form-box">
 
       <div class="login-logo">
-        <span class="logo-text">TOYOTA</span>
+        <span class="logo-text">TESLA</span>
       </div>
 
       <h1 class="login-title">Iniciar Sesión</h1>
@@ -31,7 +69,7 @@
               type="email"
               [(ngModel)]="username"
               name="username"
-              placeholder="usuario@toyota.com"
+              placeholder="usuario@empresa.com"
               required>
           </div>
         </div>

@@ -1,17 +1,52 @@
 <app-navbar></app-navbar>
 
-<!-- Hero Section -->
+<!-- ── Tesla-style Hero Slideshow ── -->
 <section class="hero">
-  <div class="hero-overlay"></div>
+
+  <!-- Slides -->
+  @for (slide of slides; track $index) {
+    <div class="slide" [class.active]="currentSlide() === $index">
+      <div class="slide-bg" [style.background-image]="'url(' + slide.url + ')'"></div>
+      <div class="slide-overlay"></div>
+    </div>
+  }
+
+  <!-- Content -->
   <div class="hero-content">
-    <p class="hero-subtitle">PLATAFORMA DE GESTIÓN</p>
-    <h1 class="hero-title">TOYOTA PEDIDOS</h1>
-    <p class="hero-desc">Sistema enterprise de microservicios</p>
-    <div class="hero-actions">
-      <a class="btn-toyota" [routerLink]="['/login']">Ingresar al sistema</a>
-      <a class="btn-outline" href="#features">Ver más</a>
+    <h2 class="slide-model">{{ slide.model }}</h2>
+    <p class="slide-tagline">{{ slide.tagline }}</p>
+    <div class="slide-actions">
+      <a class="btn-tesla-primary" [routerLink]="slide.link1">{{ slide.cta1 }}</a>
+      <a class="btn-tesla-outline" [href]="slide.link2">{{ slide.cta2 }}</a>
     </div>
   </div>
+
+  <!-- Arrow prev -->
+  <button class="arrow arrow-left" (click)="prev()" aria-label="Anterior">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+  </button>
+
+  <!-- Arrow next -->
+  <button class="arrow arrow-right" (click)="next()" aria-label="Siguiente">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </button>
+
+  <!-- Dot indicators -->
+  <div class="dots">
+    @for (slide of slides; track $index) {
+      <button
+        class="dot"
+        [class.active]="currentSlide() === $index"
+        (click)="goTo($index)"
+        [attr.aria-label]="'Ir a slide ' + ($index + 1)">
+      </button>
+    }
+  </div>
+
 </section>
 
 <!-- Features Section -->
@@ -57,7 +92,7 @@
 <section class="cta-section">
   <div class="cta-inner">
     <h2>¿Listo para comenzar?</h2>
-    <p>Accede al sistema con tus credenciales Toyota</p>
+    <p>Accede al sistema con tus credenciales</p>
     <a class="btn-toyota" [routerLink]="['/login']">Iniciar sesión</a>
   </div>
 </section>
@@ -65,7 +100,7 @@
 <!-- Footer -->
 <footer class="footer">
   <div class="footer-inner">
-    <span class="footer-logo">TOYOTA</span>
-    <p>© 2026 Toyota Pedidos. Sistema Enterprise de Microservicios.</p>
+    <span class="footer-logo">TESLA</span>
+    <p>© 2026 Tesla Pedidos. Sistema Enterprise de Microservicios.</p>
   </div>
 </footer>
