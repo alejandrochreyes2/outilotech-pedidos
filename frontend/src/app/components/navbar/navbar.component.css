@@ -1,79 +1,103 @@
+/* ── Banner naranja de ofertas ── */
+.offer-banner {
+  background: #FF6B00;
+  color: #fff;
+  text-align: center;
+  padding: 8px 24px;
+  font-size: 13px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.offer-banner strong { font-weight: 700; }
+.offer-cta {
+  color: #fff;
+  font-weight: 700;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.offer-cta:hover { opacity: 0.85; }
+
+/* ── Navbar principal (negro Apple) ── */
 .navbar {
-  position: fixed;
-  top: 0; left: 0; right: 0;
+  position: sticky;
+  top: 0;
+  left: 0; right: 0;
   z-index: 1000;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  background: rgba(0,0,0,0.92);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 .navbar-inner {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 24px;
-  height: 64px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
+/* ── Logo ── */
 .navbar-logo {
   text-decoration: none;
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #1a1a1a;
+  color: #fff;
 }
 
-.tesla-t-icon {
-  width: 22px;
-  height: 26px;
+.outilotech-icon {
+  width: 20px;
+  height: 20px;
+  color: #fff;
   flex-shrink: 0;
 }
 
 .navbar-logo-text {
   font-family: 'Montserrat', sans-serif;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 3px;
-  color: #1a1a1a;
+  letter-spacing: 0.5px;
+  color: #fff;
 }
 
+/* ── Menu desktop ── */
 .navbar-menu {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .nav-link {
-  color: #1a1a1a;
+  color: rgba(255,255,255,0.85);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   padding: 6px 10px;
   border-radius: 3px;
   transition: color 0.2s;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 }
-.nav-link:hover { color: #EB0A1E; }
+.nav-link:hover { color: #fff; }
 
-.nav-account {
-  font-weight: 700;
+.nav-ofertas { color: #FF6B00 !important; font-weight: 600; }
+.nav-ofertas:hover { color: #ff8c33 !important; }
+
+.nav-account, .nav-cart {
+  padding: 6px 8px;
+  color: rgba(255,255,255,0.85);
 }
+.nav-account:hover, .nav-cart:hover { color: #fff; }
 
-.nav-btn-pagos {
-  margin-left: 8px;
-  padding: 8px 20px;
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: none;
-  background: #EB0A1E;
-  color: #fff;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-.nav-btn-pagos:hover { background: #c20018; }
-
-/* Hamburger */
+/* ── Hamburger ── */
 .hamburger {
   display: none;
   flex-direction: column;
@@ -82,27 +106,30 @@
   border: none;
   cursor: pointer;
   padding: 8px;
-  width: auto;
 }
 .hamburger span {
   display: block;
-  width: 24px;
-  height: 2px;
-  background: #1a1a1a;
+  width: 22px;
+  height: 1.5px;
+  background: #fff;
   border-radius: 2px;
 }
 
-/* Mobile */
+/* ── Mobile menu ── */
 .mobile-menu {
   display: flex;
   flex-direction: column;
-  background: #fff;
-  padding: 16px 24px;
-  border-top: 1px solid #eee;
-  gap: 4px;
+  background: #000;
+  padding: 12px 24px 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  gap: 0;
 }
-.mobile-menu .nav-link { padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
-.mobile-menu .nav-btn-pagos { margin: 12px 0 0; text-align: center; padding: 12px; }
+.mobile-menu .nav-link {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 15px;
+}
+.mobile-menu .nav-link:last-child { border-bottom: none; }
 
 @media (max-width: 900px) {
   .navbar-menu { display: none; }

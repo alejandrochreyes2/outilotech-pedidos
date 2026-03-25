@@ -1,25 +1,43 @@
+<!-- Banner oferta naranja — siempre visible arriba -->
+<div class="offer-banner">
+  <span>Orange Days — Descuentos hasta <strong>$530.000</strong> en iPhone Air &nbsp;|&nbsp; Nuevo iPhone 17e desde $3.499.000</span>
+  <a routerLink="/login" class="offer-cta">Ver más</a>
+</div>
+
 <header class="navbar">
   <div class="navbar-inner">
-    <!-- Logo -->
+    <!-- Logo OutiloTech -->
     <a routerLink="/home" class="navbar-logo">
-      <!-- Tesla T mark -->
-      <svg class="tesla-t-icon" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,0 L100,0 L100,18 L60,18 Q50,26 40,18 L0,18 Z" fill="currentColor"/>
-        <path d="M40,18 Q50,26 60,18 L56,120 L44,120 Z" fill="currentColor"/>
+      <svg class="outilotech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2v7"/>
+        <path d="M6.3 5.3A9 9 0 1 0 17.7 5.3"/>
       </svg>
-      <span class="navbar-logo-text">TESLA</span>
+      <span class="navbar-logo-text">OutiloTech</span>
     </a>
 
     <!-- Desktop menu -->
     <nav class="navbar-menu">
-      <a class="nav-link" routerLink="/acerca" routerLinkActive="active">Acerca de nosotros</a>
-      <a class="nav-link" routerLink="/concesionarios" routerLinkActive="active">Red de Concesionarios</a>
-      <a class="nav-link" routerLink="/planes" routerLinkActive="active">Planes y Seguros</a>
-      <a class="nav-link" routerLink="/promociones" routerLinkActive="active">Promociones</a>
-      <a class="nav-link" routerLink="/contacto" routerLinkActive="active">Contacto & PQR</a>
-      <a class="nav-link" routerLink="/simulador" routerLinkActive="active">Simulador</a>
-      <a class="nav-link nav-account" routerLink="/login" routerLinkActive="active">Mi Cuenta</a>
-      <a class="nav-btn-pagos btn-toyota" routerLink="/login">Pagos</a>
+      <a class="nav-link" routerLink="/acerca" routerLinkActive="active">Mac</a>
+      <a class="nav-link" routerLink="/concesionarios" routerLinkActive="active">iPhone</a>
+      <a class="nav-link" routerLink="/planes" routerLinkActive="active">iPad</a>
+      <a class="nav-link" routerLink="/promociones" routerLinkActive="active">Watch</a>
+      <a class="nav-link" routerLink="/simulador" routerLinkActive="active">AirPods</a>
+      <a class="nav-link" routerLink="/contacto" routerLinkActive="active">TV &amp; Hogar</a>
+      <a class="nav-link" routerLink="/acerca" routerLinkActive="active">Accesorios</a>
+      <a class="nav-link nav-ofertas" routerLink="/promociones" routerLinkActive="active">Ofertas</a>
+      <a class="nav-link nav-account" routerLink="/login" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </a>
+      <a class="nav-link nav-cart" routerLink="/login">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20">
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
+      </a>
     </nav>
 
     <!-- Hamburger -->
@@ -31,14 +49,16 @@
   <!-- Mobile menu -->
   @if (menuOpen()) {
     <nav class="mobile-menu">
-      <a class="nav-link" routerLink="/acerca" routerLinkActive="active" (click)="toggleMenu()">Acerca de nosotros</a>
-      <a class="nav-link" routerLink="/concesionarios" routerLinkActive="active" (click)="toggleMenu()">Red de Concesionarios</a>
-      <a class="nav-link" routerLink="/planes" routerLinkActive="active" (click)="toggleMenu()">Planes y Seguros</a>
-      <a class="nav-link" routerLink="/promociones" routerLinkActive="active" (click)="toggleMenu()">Promociones</a>
-      <a class="nav-link" routerLink="/contacto" routerLinkActive="active" (click)="toggleMenu()">Contacto & PQR</a>
-      <a class="nav-link" routerLink="/simulador" routerLinkActive="active" (click)="toggleMenu()">Simulador</a>
-      <a class="nav-link nav-account" routerLink="/login" routerLinkActive="active" (click)="toggleMenu()">Mi Cuenta</a>
-      <a class="nav-btn-pagos btn-toyota" routerLink="/login" (click)="toggleMenu()">Pagos</a>
+      <a class="nav-link" routerLink="/acerca" (click)="toggleMenu()">Mac</a>
+      <a class="nav-link" routerLink="/concesionarios" (click)="toggleMenu()">iPhone</a>
+      <a class="nav-link" routerLink="/planes" (click)="toggleMenu()">iPad</a>
+      <a class="nav-link" routerLink="/promociones" (click)="toggleMenu()">Watch</a>
+      <a class="nav-link" routerLink="/simulador" (click)="toggleMenu()">AirPods</a>
+      <a class="nav-link" routerLink="/contacto" (click)="toggleMenu()">TV &amp; Hogar</a>
+      <a class="nav-link" routerLink="/acerca" (click)="toggleMenu()">Accesorios</a>
+      <a class="nav-link nav-ofertas" routerLink="/promociones" (click)="toggleMenu()">Ofertas del día</a>
+      <a class="nav-link" routerLink="/login" (click)="toggleMenu()">Mi Cuenta</a>
+      <a class="nav-link" routerLink="/login" (click)="toggleMenu()">Carrito</a>
     </nav>
   }
 </header>

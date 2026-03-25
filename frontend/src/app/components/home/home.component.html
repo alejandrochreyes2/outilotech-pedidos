@@ -1,26 +1,32 @@
 <app-navbar></app-navbar>
 
-<!-- ── Tesla-style Hero Slideshow ── -->
+<!-- ── Hero Slideshow ── -->
 <section class="hero">
 
-  <!-- Slides -->
   @for (slide of slides; track $index) {
     <div class="slide" [class.active]="currentSlide() === $index">
 
       @if (slide.videoUrl) {
-        <!-- Slide con video de fondo: avanza al terminar (sin loop) -->
         <video
+          #heroVideo
           class="slide-video"
           [src]="slide.videoUrl"
           [poster]="slide.url"
-          autoplay
-          muted
           playsinline
-          crossorigin="anonymous"
+          preload="auto"
+          (loadedmetadata)="forcePlay(heroVideo)"
+          (loadeddata)="forcePlay(heroVideo)"
           (ended)="onVideoEnded()">
         </video>
+        @if (videoPaused()) {
+          <button class="play-overlay" (click)="playVideo(heroVideo)" aria-label="Reproducir video">
+            <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="40" cy="40" r="38" fill="rgba(0,0,0,0.50)" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>
+              <polygon points="31,22 60,40 31,58" fill="white"/>
+            </svg>
+          </button>
+        }
       } @else {
-        <!-- Slide con imagen de fondo -->
         <div class="slide-bg" [style.background-image]="'url(' + slide.url + ')'"></div>
       }
 
@@ -30,11 +36,14 @@
 
   <!-- Content -->
   <div class="hero-content">
+    @if (slide.badge) {
+      <span class="slide-badge">{{ slide.badge }}</span>
+    }
     <h2 class="slide-model">{{ slide.model }}</h2>
     <p class="slide-tagline">{{ slide.tagline }}</p>
     <div class="slide-actions">
-      <a class="btn-tesla-primary" [routerLink]="slide.link1">{{ slide.cta1 }}</a>
-      <a class="btn-tesla-outline" [href]="slide.link2">{{ slide.cta2 }}</a>
+      <a class="btn-outilotech-primary" [routerLink]="slide.link1">{{ slide.cta1 }}</a>
+      <a class="btn-outilotech-outline" [href]="slide.link2">{{ slide.cta2 }}</a>
     </div>
   </div>
 
@@ -52,9 +61,9 @@
     </svg>
   </button>
 
-  <!-- Dot indicators -->
+  <!-- Dots -->
   <div class="dots">
-    @for (slide of slides; track $index) {
+    @for (s of slides; track $index) {
       <button
         class="dot"
         [class.active]="currentSlide() === $index"
@@ -66,64 +75,68 @@
 
 </section>
 
-<!-- Features Section -->
-<section class="features" id="features">
-  <div class="features-inner">
-    <h2 class="section-title">¿Qué ofrecemos?</h2>
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">📦</div>
-        <h3>Gestión de Pedidos</h3>
-        <p>Control completo del ciclo de vida de cada pedido con trazabilidad en tiempo real.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">💳</div>
-        <h3>Procesamiento de Pagos</h3>
-        <p>Registro y seguimiento de pagos con historial completo y estados de transacción.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">👥</div>
-        <h3>Control de Usuarios</h3>
-        <p>Sistema de roles y permisos: Admin, Vendedor y Usuario con accesos diferenciados.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔐</div>
-        <h3>Seguridad JWT</h3>
-        <p>Autenticación con tokens JWT y autorización basada en roles empresariales.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">☁️</div>
-        <h3>Deploy en Azure</h3>
-        <p>Arquitectura de microservicios containerizada en Azure con CI/CD automatizado.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3>API Gateway</h3>
-        <p>Proxy reverso YARP que centraliza y enruta el tráfico entre microservicios.</p>
-      </div>
+<!-- ── Catálogo de Productos ── -->
+<section class="catalogo" id="catalogo">
+  <div class="catalogo-inner">
+
+    <!-- Tabs de categorías -->
+    <div class="cat-tabs">
+      @for (cat of categories; track cat.id) {
+        <button
+          class="cat-tab"
+          [class.active]="activeCategory() === cat.id"
+          (click)="setCategory(cat.id)">
+          {{ cat.label }}
+        </button>
+      }
     </div>
+
+    <!-- Grid de productos -->
+    <div class="products-grid">
+      @for (product of visibleProducts; track product.name) {
+        <div class="product-card">
+          @if (product.badge) {
+            <span class="product-badge" [style.background]="product.badgeColor">{{ product.badge }}</span>
+          }
+          <div class="product-img-wrap">
+            <img [src]="product.img" [alt]="product.name" class="product-img" loading="lazy"/>
+          </div>
+          <div class="product-info">
+            <h3 class="product-name">{{ product.name }}</h3>
+            <p class="product-price">{{ product.price }}</p>
+            <div class="product-actions">
+              <a class="btn-buy" routerLink="/login">Comprar</a>
+              <a class="btn-details" routerLink="/login">Ver más</a>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
   </div>
 </section>
 
-<!-- CTA Section -->
+<!-- ── CTA ── -->
 <section class="cta-section">
   <div class="cta-inner">
     <h2>¿Listo para comenzar?</h2>
-    <p>Accede al sistema con tus credenciales</p>
-    <a class="btn-toyota" [routerLink]="['/login']">Iniciar sesión</a>
+    <p>Accede al sistema con tus credenciales de OutiloTech</p>
+    <a class="btn-cta" [routerLink]="['/login']">Iniciar sesión</a>
   </div>
 </section>
 
-<!-- Footer -->
+<!-- ── Footer ── -->
 <footer class="footer">
   <div class="footer-inner">
     <div class="footer-brand">
-      <svg class="footer-tesla-t" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,0 L100,0 L100,18 L60,18 Q50,26 40,18 L0,18 Z" fill="currentColor"/>
-        <path d="M40,18 Q50,26 60,18 L56,120 L44,120 Z" fill="currentColor"/>
+      <svg class="footer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round">
+        <path d="M12 2v7"/>
+        <path d="M6.3 5.3A9 9 0 1 0 17.7 5.3"/>
       </svg>
-      <span class="footer-logo">TESLA</span>
+      <span class="footer-logo">OutiloTech</span>
     </div>
-    <p>© 2026 Tesla. Sistema Enterprise de Microservicios.</p>
+    <p class="footer-tagline">Especialistas en Microelectrónica</p>
+    <p class="footer-copy">© 2026 OutiloTech. Sistema Enterprise de Microservicios — Bogotá, Colombia.</p>
   </div>
 </footer>
