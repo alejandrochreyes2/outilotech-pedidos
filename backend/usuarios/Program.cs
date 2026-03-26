@@ -30,7 +30,11 @@ else
 }
 
 // Identity
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 6;
+})
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
@@ -112,9 +116,10 @@ try
     // Crear usuarios
     var seedUsers = new[]
     {
-        (Email: "alejandrochreyes2@gmail.com",    UserName: "alejandro_admin",    FullName: "Jhonatan Hernandez",  Password: "Kx9#mT4$vR2n", Role: "Admin"),
-        (Email: "vendedor@toyota-pedidos.com",    UserName: "vendedor_pedidos",   FullName: "Vendedor Toyota",     Password: "Bw3$pL7#qN5j", Role: "Vendedor"),
-        (Email: "usuario@toyota-pedidos.com",     UserName: "usuario_pedidos",    FullName: "Usuario Toyota",      Password: "Ym6#cF1$hK8s", Role: "User"),
+        (Email: "alejandrochreyes2@gmail.com",    UserName: "alejandro_admin",    FullName: "Jhonatan Hernandez",         Password: "Kx9#mT4$vR2n", Role: "Admin"),
+        (Email: "jhonatanhtech@gmail.com",        UserName: "jhonatan_admin",     FullName: "Jhonnathan Hernández Medina", Password: "Admin1327",     Role: "Admin"),
+        (Email: "vendedor@toyota-pedidos.com",    UserName: "vendedor_pedidos",   FullName: "Vendedor Toyota",             Password: "Bw3$pL7#qN5j", Role: "Vendedor"),
+        (Email: "usuario@toyota-pedidos.com",     UserName: "usuario_pedidos",    FullName: "Usuario Toyota",              Password: "Ym6#cF1$hK8s", Role: "User"),
     };
 
     foreach (var (Email, UserName, FullName, Password, Role) in seedUsers)
