@@ -129,6 +129,36 @@
 .link-icon { font-size: 16px; }
 .link-label { flex: 1; }
 
+/* AppSheet */
+.sidebar-appsheet {
+  padding: 0 16px 12px;
+}
+
+.btn-appsheet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(13,71,161,0.4);
+}
+
+.btn-appsheet:hover {
+  background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+  box-shadow: 0 4px 14px rgba(13,71,161,0.5);
+  transform: translateY(-1px);
+}
+
+.btn-appsheet span { flex: 1; }
+.ext-icon { opacity: 0.7; flex-shrink: 0; }
+
 /* Logout */
 .logout-btn {
   margin: 16px;

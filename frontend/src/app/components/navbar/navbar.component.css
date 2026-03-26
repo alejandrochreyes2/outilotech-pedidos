@@ -1,137 +1,57 @@
-/* ── Banner naranja de ofertas ── */
-.offer-banner {
-  background: #FF6B00;
-  color: #fff;
-  text-align: center;
-  padding: 8px 24px;
-  font-size: 13px;
-  font-weight: 400;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.offer-banner strong { font-weight: 700; }
-.offer-cta {
-  color: #fff;
-  font-weight: 700;
-  text-decoration: underline;
-  white-space: nowrap;
-}
-.offer-cta:hover { opacity: 0.85; }
+:host { display: block; position: sticky; top: 0; z-index: 1000; }
 
-/* ── Navbar principal (negro Apple) ── */
-.navbar {
-  position: sticky;
-  top: 0;
-  left: 0; right: 0;
-  z-index: 1000;
-  background: rgba(0,0,0,0.92);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
+.ot-nav { background: rgba(0,0,0,0.94); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; height: 60px; border-bottom: 1px solid rgba(255,255,255,0.06); position: relative; z-index: 100; }
+.ot-logo { display: flex; align-items: center; text-decoration: none; flex-shrink: 0; }
 
-.navbar-inner {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 24px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+.ot-menu { display: flex; list-style: none; margin: 0; padding: 0; height: 60px; align-items: center; }
+.menu-item { height: 100%; display: flex; align-items: center; position: static; }
+.menu-link { color: rgba(255,255,255,0.78); font-size: 13px; font-weight: 500; padding: 0 14px; height: 60px; display: flex; align-items: center; cursor: pointer; transition: color 0.2s; white-space: nowrap; user-select: none; }
+.menu-item:hover .menu-link, .menu-item.active .menu-link { color: #fff; }
 
-/* ── Logo ── */
-.navbar-logo {
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #fff;
-}
+/* MEGA MENÚ BASE */
+.mega-menu { position: fixed; top: 60px; left: 0; right: 0; background: rgba(13,13,13,0.97); backdrop-filter: blur(28px); border-top: 1px solid rgba(255,255,255,0.07); padding: 44px 80px 52px; z-index: 99; animation: megaIn 0.18s ease; }
+@keyframes megaIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 
-.outilotech-icon {
-  width: 20px;
-  height: 20px;
-  color: #fff;
-  flex-shrink: 0;
-}
+.mega-grid { display: grid; gap: 48px; max-width: 860px; margin: 0 auto; }
+.mega-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.mega-grid.cols-4 { grid-template-columns: repeat(4, 1fr); max-width: 1100px; }
 
-.navbar-logo-text {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #fff;
-}
+.mega-col h4 { font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,0.3); letter-spacing: 1.8px; text-transform: uppercase; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.mega-col a { display: block; color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; padding: 7px 0; transition: color 0.15s, transform 0.15s; }
+.mega-col a:hover { color: #fff; transform: translateX(4px); }
 
-/* ── Menu desktop ── */
-.navbar-menu {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
+/* MEGA EQUIPOS — estilo Tesla Vehículos */
+.mega-equipos { padding: 48px 60px 56px; display: flex; gap: 48px; align-items: flex-start; }
+.equipos-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; flex: 1; }
 
-.nav-link {
-  color: rgba(255,255,255,0.85);
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 400;
-  padding: 6px 10px;
-  border-radius: 3px;
-  transition: color 0.2s;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-}
-.nav-link:hover { color: #fff; }
+.equipo-card { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: white; padding: 16px 8px 12px; border-radius: 12px; transition: background 0.2s; cursor: pointer; }
+.equipo-card:hover { background: rgba(255,255,255,0.06); }
+.equipo-card img { width: 100%; max-width: 160px; height: 110px; object-fit: cover; border-radius: 8px; margin-bottom: 12px; }
+.equipo-card.equipo-featured img { border: 2px solid #FF6B00; }
+.eq-name { font-size: 14px; font-weight: 500; color: white; text-align: center; margin: 0 0 8px; }
+.eq-links { display: flex; gap: 16px; }
+.eq-links span { font-size: 12px; color: rgba(255,255,255,0.55); text-decoration: underline; cursor: pointer; transition: color 0.15s; }
+.eq-links span:hover { color: white; }
 
-.nav-ofertas { color: #FF6B00 !important; font-weight: 600; }
-.nav-ofertas:hover { color: #ff8c33 !important; }
+.equipos-sidebar { min-width: 180px; padding-top: 8px; border-left: 1px solid rgba(255,255,255,0.07); padding-left: 40px; display: flex; flex-direction: column; gap: 2px; }
+.equipos-sidebar a { color: rgba(255,255,255,0.68); text-decoration: none; font-size: 14px; padding: 7px 0; transition: color 0.15s, transform 0.15s; display: block; }
+.equipos-sidebar a:hover { color: #fff; transform: translateX(4px); }
 
-.nav-account, .nav-cart {
-  padding: 6px 8px;
-  color: rgba(255,255,255,0.85);
-}
-.nav-account:hover, .nav-cart:hover { color: #fff; }
+/* OVERLAY */
+.nav-overlay { position: fixed; top: 60px; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 98; backdrop-filter: blur(2px); animation: fadeOv 0.2s ease; }
+@keyframes fadeOv { from { opacity: 0; } to { opacity: 1; } }
 
-/* ── Hamburger ── */
-.hamburger {
-  display: none;
-  flex-direction: column;
-  gap: 5px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-}
-.hamburger span {
-  display: block;
-  width: 22px;
-  height: 1.5px;
-  background: #fff;
-  border-radius: 2px;
-}
+.ot-actions { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.ot-actions a { display: flex; align-items: center; opacity: 0.75; transition: opacity 0.2s; text-decoration: none; }
+.ot-actions a:hover { opacity: 1; }
+.ot-hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 4px; }
+.ot-hamburger span { display: block; width: 22px; height: 2px; background: white; border-radius: 2px; }
 
-/* ── Mobile menu ── */
-.mobile-menu {
-  display: flex;
-  flex-direction: column;
-  background: #000;
-  padding: 12px 24px 20px;
-  border-top: 1px solid rgba(255,255,255,0.1);
-  gap: 0;
-}
-.mobile-menu .nav-link {
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  font-size: 15px;
-}
-.mobile-menu .nav-link:last-child { border-bottom: none; }
+@media (max-width: 1024px) { .ot-menu { display: none; } .ot-hamburger { display: flex; } .ot-nav { padding: 0 20px; } }
 
-@media (max-width: 900px) {
-  .navbar-menu { display: none; }
-  .hamburger { display: flex; }
-}
+/* CARRITO */
+.cart-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; position: relative; padding: 4px; opacity: 0.75; transition: opacity 0.2s; }
+.cart-btn:hover { opacity: 1; }
+.cart-badge { position: absolute; top: -4px; right: -6px; background: #FF6B00; color: #fff; font-size: 10px; font-weight: 700; border-radius: 50%; width: 17px; height: 17px; display: flex; align-items: center; justify-content: center; line-height: 1; }
+
+@media (max-width: 480px) { .cart-btn { padding: 2px; } }

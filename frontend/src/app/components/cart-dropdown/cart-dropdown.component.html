@@ -1,0 +1,55 @@
+<div class="cart-overlay" (click)="onClose()"></div>
+
+<div class="cart-panel">
+  <div class="cart-header">
+    <h3>Mi Carrito</h3>
+    <button class="close-btn" (click)="onClose()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- VACÍO -->
+  <div class="cart-empty" *ngIf="cart.cartCount() === 0">
+    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.2">
+      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <path d="M16 10a4 4 0 01-8 0"/>
+    </svg>
+    <p>Tu carrito está vacío</p>
+    <button class="btn-seguir" (click)="onClose()">Ver productos</button>
+  </div>
+
+  <!-- ITEMS -->
+  <div class="cart-items" *ngIf="cart.cartCount() > 0">
+    <div class="cart-item" *ngFor="let item of cart.cartItems(); trackBy: trackById">
+      <img [src]="item.img" [alt]="item.name"/>
+      <div class="item-info">
+        <p class="item-brand">{{item.brand}}</p>
+        <p class="item-name">{{item.name}}</p>
+        <p class="item-price">{{item.price}}</p>
+        <div class="item-qty">
+          <button class="qty-btn" (click)="decrement(item.id)">−</button>
+          <span class="qty-num">{{item.quantity}}</span>
+          <button class="qty-btn" (click)="increment(item.id)">+</button>
+        </div>
+      </div>
+      <button class="remove-btn" (click)="remove(item.id)" title="Eliminar">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="cart-footer" *ngIf="cart.cartCount() > 0">
+    <div class="cart-total-row">
+      <span>Total</span>
+      <strong>{{cart.formatTotal()}}</strong>
+    </div>
+    <button class="btn-ir-pagar" (click)="irAPagar()">🔒 Ir a pagar</button>
+    <button class="btn-vaciar" (click)="clearCart()">Vaciar carrito</button>
+  </div>
+</div>

@@ -1,0 +1,134 @@
+<app-navbar></app-navbar>
+
+<div class="ot-nosotros">
+
+  <!-- HERO VIDEO — estilo Tesla About -->
+  <section class="hero-about">
+    <video
+      #heroVideo
+      class="about-video"
+      muted loop playsinline preload="auto"
+      poster="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1600&q=85">
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-futuristic-devices-99786-large.mp4" type="video/mp4"/>
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-computer-hacking-animation-1916-large.mp4" type="video/mp4"/>
+    </video>
+    <div class="hero-overlay">
+      <div class="hero-text">
+        <p class="hero-eyebrow">OUTILTECH — Especialistas en Microelectrónica</p>
+        <h1>Nuestra Historia</h1>
+        <p class="hero-desc">
+          Nacimos para proteger lo que más importa: tu información,
+          tus datos y la continuidad de tu negocio digital.
+        </p>
+      </div>
+    </div>
+    <div class="scroll-indicator">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- STATS BAR -->
+  <section class="stats-bar">
+    <div class="stats-grid">
+      @for (s of stats; track s.label) {
+        <div class="stat-item">
+          <h3>{{s.value}}</h3>
+          <p>{{s.label}}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- INTRO TEXTO -->
+  <section class="about-intro">
+    <div class="intro-inner">
+      <h2>Un propósito claro desde el primer día</h2>
+      <p>
+        Nuestra empresa nace con el propósito de responder a una necesidad creciente:
+        la protección de la información y la recuperación de datos en entornos digitales
+        cada vez más complejos. Iniciamos con un enfoque en análisis técnico, reparación
+        de equipos y optimización de procesos, evolucionando hacia servicios especializados
+        en seguridad informática, análisis forense digital y microelectrónica aplicada.
+      </p>
+      <p>
+        Con el tiempo, hemos fortalecido nuestras capacidades para ofrecer soluciones
+        completas que abarcan desde la detección de vulnerabilidades hasta la recuperación
+        de información en dispositivos críticos, convirtiéndonos en un aliado estratégico
+        para nuestros clientes.
+      </p>
+    </div>
+  </section>
+
+  <!-- TIMELINE DE HISTORIA -->
+  <section class="timeline-section">
+    <div class="timeline-inner">
+      <h2>Línea de tiempo</h2>
+      <div class="timeline">
+        @for (m of milestones; track m.year; let i = $index) {
+          <div class="timeline-item" [class.right]="i % 2 !== 0">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card">
+              <span class="timeline-year">{{m.year}}</span>
+              <h3>{{m.title}}</h3>
+              <p>{{m.desc}}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- VIDEO CONTEXTO — análisis técnico / ciberseguridad -->
+  <section class="context-video-section">
+    <div class="context-inner">
+      <div class="context-text">
+        <span class="eyebrow">NUESTRA ESPECIALIDAD</span>
+        <h2>Seguridad, análisis forense y microelectrónica</h2>
+        <p>
+          Desde diagnósticos avanzados hasta auditorías de ciberseguridad,
+          nuestro equipo combina experiencia técnica con tecnología de vanguardia
+          para proteger y potenciar tu infraestructura digital.
+        </p>
+        <ul class="feature-list">
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF6B00" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Análisis forense digital certificado
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF6B00" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Recuperación de datos en dispositivos críticos
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF6B00" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Auditoría y consultoría ISO 27001
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF6B00" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Ethical hacking y detección de vulnerabilidades
+          </li>
+        </ul>
+        <a routerLink="/servicios" class="btn-orange">Ver todos los servicios</a>
+      </div>
+      <div class="context-video-wrap">
+        <video muted loop playsinline preload="none" autoplay
+          poster="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&q=85"
+          class="context-vid">
+          <source src="https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-person-working-on-a-laptop-computer-23447-large.mp4" type="video/mp4"/>
+        </video>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section class="cta-section">
+    <h2>¿Listo para proteger tu empresa?</h2>
+    <p>Contáctanos hoy y descubre cómo podemos ser tu aliado estratégico en tecnología.</p>
+    <div class="cta-btns">
+      <a routerLink="/servicios" class="btn-white">Ver servicios</a>
+      <a routerLink="/contacto" class="btn-outline">Contactar ahora</a>
+    </div>
+  </section>
+
+</div>

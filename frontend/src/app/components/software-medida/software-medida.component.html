@@ -1,0 +1,69 @@
+<app-navbar></app-navbar>
+
+<div class="sw-page">
+  <section class="sw-hero">
+    <video #heroVideo class="sw-hero-video" muted loop playsinline preload="auto"
+      poster="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1600&q=85">
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-software-developer-working-at-his-desk-34861-large.mp4" type="video/mp4"/>
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-developer-writing-code-on-laptop-computer-4939-large.mp4" type="video/mp4"/>
+    </video>
+    <div class="sw-overlay">
+      <div class="sw-content">
+        <span class="sw-eyebrow">OUTILTECH — Software &amp; Tecnología</span>
+        <h1>Soluciones de Software<br>a la Medida</h1>
+        <p>Transformamos tus procesos en soluciones digitales eficientes, escalables y diseñadas exactamente para tu negocio.</p>
+        <div class="sw-btns">
+          <a routerLink="/contacto" class="btn-blue">Solicitar cotización</a>
+          <a routerLink="/servicios" class="btn-outline-w">Ver todos los servicios</a>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-down"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </section>
+
+  <section class="sw-soluciones">
+    <div class="sw-sol-inner">
+      <span class="sw-eye">💡 Nuestras soluciones</span>
+      <h2>Todo lo que necesitas en tecnología</h2>
+      <div class="sw-sol-grid">
+        @for (s of soluciones; track s.title) {
+          <a class="sw-sol-card" [routerLink]="s.route">
+            <div class="sw-sol-icon">{{s.icon}}</div>
+            <h3>{{s.title}}</h3>
+            <p>{{s.desc}}</p>
+            <span class="sw-sol-link">Ver más →</span>
+          </a>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="sw-proceso">
+    <div class="sw-proc-bg">
+      <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1600&q=80" alt="equipo"/>
+      <div class="sw-proc-overlay"></div>
+    </div>
+    <div class="sw-proc-content">
+      <span class="sw-eye light">⚙️ Cómo trabajamos</span>
+      <h2>Proceso de desarrollo</h2>
+      <div class="sw-steps">
+        @for (p of proceso; track p.num) {
+          <div class="sw-step">
+            <div class="sw-step-num">{{p.num}}</div>
+            <h4>{{p.title}}</h4>
+            <p>{{p.desc}}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="sw-cta">
+    <h2>¿Tienes un proyecto en mente?</h2>
+    <p>Cuéntanos tu idea y te ayudamos a convertirla en una solución digital real.</p>
+    <div class="sw-cta-btns">
+      <a routerLink="/contacto" class="btn-blue">Hablemos de tu proyecto</a>
+      <a routerLink="/servicios" class="btn-outline-dark">Ver todos los servicios</a>
+    </div>
+  </section>
+</div>

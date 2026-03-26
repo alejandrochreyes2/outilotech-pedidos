@@ -1,0 +1,89 @@
+<app-navbar></app-navbar>
+
+<div class="iso-page">
+  <section class="iso-hero">
+    <video #heroVideo class="iso-hero-video" muted loop playsinline preload="auto"
+      poster="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=1600&q=85">
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-person-working-on-a-laptop-computer-23447-large.mp4" type="video/mp4"/>
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-working-on-a-computer-in-the-night-4900-large.mp4" type="video/mp4"/>
+    </video>
+    <div class="iso-hero-overlay">
+      <div class="iso-hero-content">
+        <span class="iso-eyebrow">OUTILTECH — Sistemas y Tecnologías</span>
+        <h1>Auditoría Interna<br>ISO 27001</h1>
+        <p class="iso-hero-desc">Asegura, Cumple y Fortalece tu Organización.<br>Transformamos la auditoría en una herramienta estratégica, no en un simple requisito.</p>
+        <div class="iso-hero-btns">
+          <a routerLink="/contacto" class="btn-green">Solicitar auditoría</a>
+          <a routerLink="/servicios" class="btn-outline-w">Ver todos los servicios</a>
+          <a routerLink="/certificados" class="btn-cert">🏅 Certificados actuales</a>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-down"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </section>
+
+  <section class="iso-alerta">
+    <div class="iso-alerta-inner">
+      <div class="alerta-badge">🚨 ¿Tu empresa realmente cumple con ISO 27001 o solo lo parece?</div>
+      <p>Nuestra Auditoría Interna de SGSI está diseñada para ayudarte a identificar brechas, reducir riesgos y garantizar que tu organización esté preparada para certificaciones, auditorías externas y para enfrentar amenazas reales.</p>
+    </div>
+  </section>
+
+  <section class="iso-servicios">
+    <div class="iso-servicios-inner">
+      <span class="section-eye">🚨 ¿Qué puedes esperar?</span>
+      <h2>Nuestro alcance de auditoría</h2>
+      <div class="iso-grid">
+        @for (s of servicios; track s.title) {
+          <div class="iso-card">
+            <div class="iso-icon">{{s.icon}}</div>
+            <h3>{{s.title}}</h3>
+            <p>{{s.desc}}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="iso-beneficios">
+    <div class="iso-ben-bg">
+      <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=1600&q=80" alt="iso"/>
+      <div class="iso-ben-overlay"></div>
+    </div>
+    <div class="iso-ben-content">
+      <span class="section-eye light">🎯 Beneficios reales para tu empresa</span>
+      <h2>Lo que obtienes con nuestra auditoría</h2>
+      <div class="iso-ben-grid">
+        @for (b of beneficios; track b.title) {
+          <div class="iso-ben-card">
+            <div class="iso-icon">{{b.icon}}</div>
+            <div><h4>{{b.title}}</h4><p>{{b.desc}}</p></div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="iso-porque">
+    <div class="iso-porque-inner">
+      <span class="section-eye">🛡️ ¿Por qué elegirnos?</span>
+      <h2>Experiencia, ética y resultados</h2>
+      <div class="iso-razones">
+        <div class="iso-razon"><span>🔒</span><p>Experiencia en seguridad informática y análisis técnico profundo</p></div>
+        <div class="iso-razon"><span>🎯</span><p>Enfoque práctico, claro y orientado a resultados medibles</p></div>
+        <div class="iso-razon"><span>🤫</span><p>Confidencialidad total en el manejo de toda la información</p></div>
+        <div class="iso-razon"><span>🤝</span><p>Acompañamiento personalizado durante todo el proceso</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="iso-cta">
+    <div class="iso-cta-warning">⚠️</div>
+    <h2>No esperes a que ocurra un incidente</h2>
+    <p>Una auditoría a tiempo puede evitar pérdidas económicas, daños reputacionales y fallas críticas en tu organización.</p>
+    <div class="iso-cta-btns">
+      <a routerLink="/contacto" class="btn-green">Solicitar auditoría ISO 27001 ahora</a>
+      <a routerLink="/seguridad-forense" class="btn-outline-dark">Ver Seguridad Forense Digital</a>
+    </div>
+  </section>
+</div>

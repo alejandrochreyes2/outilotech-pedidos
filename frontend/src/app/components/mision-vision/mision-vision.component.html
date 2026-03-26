@@ -1,0 +1,134 @@
+<app-navbar></app-navbar>
+
+<div class="mv-page">
+
+  <!-- HERO -->
+  <section class="mv-hero">
+    <video #heroVideo class="mv-hero-video" muted loop playsinline preload="auto"
+      poster="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1600&q=85">
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-working-on-a-computer-in-the-night-4900-large.mp4" type="video/mp4"/>
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-person-working-on-a-laptop-computer-23447-large.mp4" type="video/mp4"/>
+    </video>
+    <div class="mv-hero-overlay">
+      <div class="mv-hero-content">
+        <span class="mv-eyebrow">OUTILTECH — Quiénes somos</span>
+        <h1>Misión &amp;<br>Visión</h1>
+        <p class="mv-hero-desc">El propósito que nos mueve y el futuro que construimos cada día con excelencia, ética e innovación tecnológica.</p>
+        <div class="mv-hero-btns">
+          <a routerLink="/nosotros" class="btn-orange">Nuestra historia</a>
+          <a routerLink="/contacto" class="btn-outline-w">Contáctanos</a>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-down">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- MISION Y VISION CARDS -->
+  <section class="mv-cards">
+    <div class="mv-cards-inner">
+
+      <div class="mv-card mv-mision">
+        <div class="mv-card-header">
+          <div class="mv-card-icon">🎯</div>
+          <h2>Nuestra Misión</h2>
+        </div>
+        <p class="mv-card-lead">
+          Brindar servicios especializados en seguridad informática, auditoría, análisis forense digital, microelectrónica y recuperación de datos.
+        </p>
+        <p class="mv-card-body">
+          Ayudamos a empresas y personas a <strong>proteger su información</strong>, identificar vulnerabilidades y recuperar datos críticos, mediante un enfoque profesional, ético y orientado a resultados.
+        </p>
+        <div class="mv-card-tags">
+          <span>Seguridad Informática</span>
+          <span>Análisis Forense</span>
+          <span>Recuperación de Datos</span>
+          <span>Microelectrónica</span>
+        </div>
+      </div>
+
+      <div class="mv-card mv-vision">
+        <div class="mv-card-header">
+          <div class="mv-card-icon">🚀</div>
+          <h2>Nuestra Visión</h2>
+        </div>
+        <p class="mv-card-lead">
+          Ser una empresa reconocida a nivel nacional por su excelencia en seguridad informática, análisis forense y soluciones tecnológicas avanzadas.
+        </p>
+        <p class="mv-card-body">
+          Destacarnos por la <strong>confianza, la innovación y la capacidad de resolver problemas complejos</strong>, incluyendo recuperación de datos y reparación especializada de dispositivos, especialmente en entornos de alta exigencia como el ecosistema Apple.
+        </p>
+        <div class="mv-card-tags">
+          <span>Alcance Nacional</span>
+          <span>Innovación 2026</span>
+          <span>Ecosistema Apple</span>
+          <span>Alta Exigencia</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- VALORES -->
+  <section class="mv-valores">
+    <div class="mv-valores-inner">
+      <span class="section-eye">⚡ Lo que nos define</span>
+      <h2>Nuestros valores</h2>
+      <div class="mv-valores-grid">
+        @for (v of valores; track v.title) {
+          <div class="mv-valor-card">
+            <div class="mv-valor-icon">{{v.icon}}</div>
+            <h3>{{v.title}}</h3>
+            <p>{{v.desc}}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- PILARES CON FONDO IMAGEN -->
+  <section class="mv-pilares">
+    <div class="mv-pilares-bg">
+      <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1600&q=80" alt="tecnología"/>
+      <div class="mv-pilares-overlay"></div>
+    </div>
+    <div class="mv-pilares-content">
+      <span class="section-eye light">🛡️ En qué nos enfocamos</span>
+      <h2>Pilares de nuestra actividad</h2>
+      <div class="mv-pilares-grid">
+        @for (p of pilares; track p.num) {
+          <div class="mv-pilar">
+            <div class="mv-pilar-num">{{p.num}}</div>
+            <h4>{{p.title}}</h4>
+            <p>{{p.desc}}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- DECLARACION CENTRAL -->
+  <section class="mv-declaracion">
+    <div class="mv-declaracion-inner">
+      <div class="mv-decl-quote">"</div>
+      <p class="mv-decl-text">
+        No somos simplemente un proveedor de servicios tecnológicos. Somos el equipo que te respalda cuando la seguridad de tu información y la integridad de tu negocio están en juego.
+      </p>
+      <span class="mv-decl-firma">— Equipo OutilTech</span>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="mv-cta">
+    <h2>¿Compartimos el mismo compromiso?</h2>
+    <p>Trabajemos juntos para proteger lo que más importa: tu información, tu negocio, tu futuro.</p>
+    <div class="mv-cta-btns">
+      <a routerLink="/contacto" class="btn-orange">Hablar con un experto</a>
+      <a routerLink="/seguridad-forense" class="btn-outline-dark">Ver servicios de seguridad</a>
+    </div>
+  </section>
+
+</div>

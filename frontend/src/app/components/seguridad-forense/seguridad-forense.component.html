@@ -1,0 +1,131 @@
+<app-navbar></app-navbar>
+
+<div class="sf-page">
+
+  <!-- HERO VIDEO FULLSCREEN -->
+  <section class="sf-hero">
+    <video #heroVideo class="sf-hero-video" muted loop playsinline preload="auto"
+      poster="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1600&q=85">
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-futuristic-devices-99786-large.mp4" type="video/mp4"/>
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-computer-hacking-animation-1916-large.mp4" type="video/mp4"/>
+    </video>
+    <div class="sf-hero-overlay">
+      <div class="sf-hero-content">
+        <span class="sf-eyebrow">OUTILTECH — Servicios Especializados</span>
+        <h1>Seguridad Informática<br>&amp; Análisis Forense Digital</h1>
+        <p class="sf-hero-desc">
+          Protegemos, investigamos y recuperamos datos en dispositivos móviles
+          y computadores con evidencia técnica confiable y absoluta confidencialidad.
+        </p>
+        <div class="sf-hero-btns">
+          <a routerLink="/contacto" class="btn-orange">Solicitar diagnóstico</a>
+          <a routerLink="/servicios" class="btn-outline-white">Ver todos los servicios</a>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-down">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- INTRO STATEMENT -->
+  <section class="sf-intro">
+    <div class="sf-intro-inner">
+      <div class="sf-badge">🔍 Nuestra misión</div>
+      <h2>Descubrir la verdad detrás de un incidente digital</h2>
+      <p>
+        El mundo cada vez es más digital y la información es uno de los activos más valiosos.
+        Ofrecemos soluciones especializadas orientadas a proteger, investigar y recuperar datos
+        en dispositivos móviles y computadores. Nuestro servicio está diseñado para empresas,
+        profesionales y particulares que requieren respuestas claras, evidencia técnica confiable
+        y absoluta confidencialidad.
+      </p>
+    </div>
+  </section>
+
+  <!-- QUÉ HACEMOS — grid de servicios -->
+  <section class="sf-servicios">
+    <div class="sf-servicios-inner">
+      <span class="section-eyebrow">💻 ¿Qué hacemos?</span>
+      <h2>Capacidades técnicas especializadas</h2>
+      <div class="sf-grid">
+        @for (s of servicios; track s.title) {
+          <div class="sf-card">
+            <div class="sf-card-icon">{{s.icon}}</div>
+            <h3>{{s.title}}</h3>
+            <p>{{s.desc}}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- POR QUÉ ELEGIRNOS -->
+  <section class="sf-porque">
+    <div class="sf-porque-bg">
+      <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1600&q=80" alt="seguridad"/>
+      <div class="sf-porque-overlay"></div>
+    </div>
+    <div class="sf-porque-content">
+      <span class="section-eyebrow light">🛡️ ¿Por qué elegirnos?</span>
+      <h2>Confianza basada en metodología y ética profesional</h2>
+      <div class="sf-razones-grid">
+        @for (r of razones; track r.title) {
+          <div class="sf-razon">
+            <div class="sf-razon-icon">{{r.icon}}</div>
+            <div>
+              <h4>{{r.title}}</h4>
+              <p>{{r.desc}}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESO -->
+  <section class="sf-proceso">
+    <div class="sf-proceso-inner">
+      <span class="section-eyebrow">NUESTRO PROCESO</span>
+      <h2>Cómo trabajamos</h2>
+      <div class="sf-steps">
+        <div class="sf-step">
+          <div class="step-num">01</div>
+          <h4>Recepción del caso</h4>
+          <p>Evaluamos el incidente, firmamos acuerdo de confidencialidad y definimos el alcance.</p>
+        </div>
+        <div class="sf-step-line"></div>
+        <div class="sf-step">
+          <div class="step-num">02</div>
+          <h4>Adquisición forense</h4>
+          <p>Creamos imágenes forenses bit a bit preservando la integridad de la evidencia original.</p>
+        </div>
+        <div class="sf-step-line"></div>
+        <div class="sf-step">
+          <div class="step-num">03</div>
+          <h4>Análisis técnico</h4>
+          <p>Procesamos la evidencia con herramientas especializadas y metodologías reconocidas.</p>
+        </div>
+        <div class="sf-step-line"></div>
+        <div class="sf-step">
+          <div class="step-num">04</div>
+          <h4>Informe y entrega</h4>
+          <p>Entregamos informe técnico detallado con hallazgos, conclusiones y recomendaciones.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section class="sf-cta">
+    <h2>¿Necesitas una investigación forense digital?</h2>
+    <p>Contáctanos hoy. Absoluta confidencialidad garantizada desde el primer contacto.</p>
+    <div class="sf-cta-btns">
+      <a routerLink="/contacto" class="btn-orange">Solicitar diagnóstico gratuito</a>
+      <a routerLink="/servicios" class="btn-outline-dark">Ver más servicios</a>
+    </div>
+  </section>
+
+</div>

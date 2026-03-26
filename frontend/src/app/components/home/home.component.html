@@ -1,142 +1,265 @@
 <app-navbar></app-navbar>
 
-<!-- ── Hero Slideshow ── -->
-<section class="hero">
+<main class="ot-home">
 
-  @for (slide of slides; track $index) {
-    <div class="slide" [class.active]="currentSlide() === $index">
+  <!-- ===== HERO SLIDER ===== -->
+  <section class="ot-hero">
+    <div class="slides-container" [style.transform]="'translateX(-' + currentSlide * 100 + '%)'">
 
-      @if (slide.videoUrl) {
-        <video
-          #heroVideo
-          class="slide-video"
-          [src]="slide.videoUrl"
-          [poster]="slide.url"
-          playsinline
-          preload="auto"
-          (loadedmetadata)="forcePlay(heroVideo)"
-          (loadeddata)="forcePlay(heroVideo)"
-          (ended)="onVideoEnded()">
+      <!-- SLIDE 0 — Video hero autoplay -->
+      <div class="slide slide-video">
+        <video #heroVideo class="hero-video" muted loop playsinline preload="auto"
+          poster="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600&q=80" (canplay)="playVideo()">
+          <source src="assets/videos/hero-tech.mp4" type="video/mp4" />
         </video>
-        @if (videoPaused()) {
-          <button class="play-overlay" (click)="playVideo(heroVideo)" aria-label="Reproducir video">
-            <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="40" cy="40" r="38" fill="rgba(0,0,0,0.50)" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>
-              <polygon points="31,22 60,40 31,58" fill="white"/>
-            </svg>
-          </button>
-        }
-      } @else {
-        <div class="slide-bg" [style.background-image]="'url(' + slide.url + ')'"></div>
-      }
-
-      <div class="slide-overlay"></div>
-    </div>
-  }
-
-  <!-- Content -->
-  <div class="hero-content">
-    @if (slide.badge) {
-      <span class="slide-badge">{{ slide.badge }}</span>
-    }
-    <h2 class="slide-model">{{ slide.model }}</h2>
-    <p class="slide-tagline">{{ slide.tagline }}</p>
-    <div class="slide-actions">
-      <a class="btn-outilotech-primary" [routerLink]="slide.link1">{{ slide.cta1 }}</a>
-      <a class="btn-outilotech-outline" [href]="slide.link2">{{ slide.cta2 }}</a>
-    </div>
-  </div>
-
-  <!-- Arrow prev -->
-  <button class="arrow arrow-left" (click)="prev()" aria-label="Anterior">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <polyline points="15 18 9 12 15 6"></polyline>
-    </svg>
-  </button>
-
-  <!-- Arrow next -->
-  <button class="arrow arrow-right" (click)="next()" aria-label="Siguiente">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <polyline points="9 18 15 12 9 6"></polyline>
-    </svg>
-  </button>
-
-  <!-- Dots -->
-  <div class="dots">
-    @for (s of slides; track $index) {
-      <button
-        class="dot"
-        [class.active]="currentSlide() === $index"
-        (click)="goTo($index)"
-        [attr.aria-label]="'Ir a slide ' + ($index + 1)">
-      </button>
-    }
-  </div>
-
-</section>
-
-<!-- ── Catálogo de Productos ── -->
-<section class="catalogo" id="catalogo">
-  <div class="catalogo-inner">
-
-    <!-- Tabs de categorías -->
-    <div class="cat-tabs">
-      @for (cat of categories; track cat.id) {
-        <button
-          class="cat-tab"
-          [class.active]="activeCategory() === cat.id"
-          (click)="setCategory(cat.id)">
-          {{ cat.label }}
-        </button>
-      }
-    </div>
-
-    <!-- Grid de productos -->
-    <div class="products-grid">
-      @for (product of visibleProducts; track product.name) {
-        <div class="product-card">
-          @if (product.badge) {
-            <span class="product-badge" [style.background]="product.badgeColor">{{ product.badge }}</span>
-          }
-          <div class="product-img-wrap">
-            <img [src]="product.img" [alt]="product.name" class="product-img" loading="lazy"/>
-          </div>
-          <div class="product-info">
-            <h3 class="product-name">{{ product.name }}</h3>
-            <p class="product-price">{{ product.price }}</p>
-            <div class="product-actions">
-              <a class="btn-buy" routerLink="/login">Comprar</a>
-              <a class="btn-details" routerLink="/login">Ver más</a>
+        <div class="slide-overlay">
+          <div class="slide-content">
+            <span class="hero-badge">NUEVO 2026</span>
+            <h1>Macbook Pro</h1>
+            <p class="hero-sub" style="color:#FF6B00">Trae de todo. Toda una oportunidad.<br>Desde $2.799.000</p>
+            <div class="hero-btns">
+              <button class="btn-primary" (click)="addHeroProduct(0)">Comprar</button>
+              <a routerLink="/iphone" class="btn-ghost">Más información</a>
             </div>
           </div>
         </div>
-      }
+      </div>
+
+      <div class="slide"
+        style="background-image: url('https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1600&q=80')">
+        <div class="slide-content">
+          <span class="hero-badge">NUEVO</span>
+          <h1>MacBook Pro M5</h1>
+          <p class="hero-sub">Rendimiento extremo. 14 pulgadas desde $9.399.000</p>
+          <div class="hero-btns">
+            <button class="btn-primary" (click)="addHeroProduct(1)">Comprar</button>
+            <a routerLink="/login" class="btn-ghost">Ver todos los Mac</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide"
+        style="background-image: url('https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1600&q=80')">
+        <div class="slide-content">
+          <span class="hero-badge" style="background:#c20018">OFERTA</span>
+          <h1>Orange Days</h1>
+          <p class="hero-sub">Descuentos hasta $530.000 en iPhone Air<br>+ 50% en accesorios MagSafe</p>
+          <div class="hero-btns">
+            <button class="btn-primary" (click)="addHeroProduct(2)">Comprar ahora</button>
+            <a href="#ofertas" class="btn-ghost">Ver ofertas</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 3 — Apple Watch -->
+      <div class="slide"
+        style="background-image: url('https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=1600&q=80')">
+        <div class="slide-content">
+          <span class="hero-badge">NUEVO</span>
+          <h1>Apple Watch Ultra 3</h1>
+          <p class="hero-sub">El más avanzado. Desde $3.299.000</p>
+          <div class="hero-btns">
+            <button class="btn-primary" (click)="addHeroProduct(3)">Comprar</button>
+            <a routerLink="/login" class="btn-ghost">Más información</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 4 — Análisis Forense Digital 2026 -->
+      <div class="slide slide-video-ext">
+        <video class="hero-video" muted loop playsinline preload="none"
+          poster="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1600&q=85">
+          <source src="https://assets.mixkit.co/videos/preview/mixkit-working-on-a-computer-in-the-night-4900-large.mp4" type="video/mp4"/>
+        </video>
+        <div class="slide-overlay" style="background:linear-gradient(135deg,rgba(0,0,0,0.85) 0%,rgba(2,8,20,0.72) 100%)">
+          <div class="slide-content">
+            <span class="hero-badge" style="background:linear-gradient(90deg,#00d4ff,#0066ff);letter-spacing:2px">FORENSE DIGITAL 2026</span>
+            <h1 style="font-size:clamp(2rem,5vw,3.8rem);line-height:1.08">Análisis Forense<br>Digital Avanzado</h1>
+            <p class="hero-sub" style="color:#67e8f9;max-width:520px">
+              Recuperación de evidencia digital · IA forense · Análisis de memoria RAM<br>
+              Rastreo de amenazas APT y respuesta a incidentes en tiempo real.
+            </p>
+            <div class="hero-btns">
+              <a routerLink="/seguridad-forense" class="btn-primary" style="background:linear-gradient(90deg,#0066ff,#00d4ff);border:none">Ver servicio</a>
+              <a routerLink="/contacto" class="btn-ghost">Solicitar auditoría</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 5 — Samsung Galaxy S25 Ultra -->
+      <div class="slide slide-video-ext">
+        <video class="hero-video" muted loop playsinline preload="none"
+          poster="https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=1600&q=85">
+          <source src="https://assets.mixkit.co/videos/preview/mixkit-person-typing-on-a-smartphone-with-one-hand-42898-large.mp4" type="video/mp4"/>
+        </video>
+        <div class="slide-overlay">
+          <div class="slide-content">
+            <span class="hero-badge" style="background:#1428A0">SAMSUNG 2026</span>
+            <h1>Galaxy S25 Ultra</h1>
+            <p class="hero-sub" style="color:#4A90D9">IA integrada. Cámara 200MP.<br>Desde $5.199.000</p>
+            <div class="hero-btns">
+              <button class="btn-primary" (click)="addHeroProduct(5)">Comprar</button>
+              <a routerLink="/samsung" class="btn-ghost">Más información</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 6 — ISO 27001 -->
+      <div class="slide slide-video-ext">
+        <video class="hero-video" muted loop playsinline preload="none"
+          poster="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1600&q=85">
+          <source src="https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-person-working-on-a-laptop-computer-23447-large.mp4" type="video/mp4"/>
+        </video>
+        <div class="slide-overlay">
+          <div class="slide-content">
+            <span class="hero-badge" style="background:#1a6b3c">ISO 27001</span>
+            <h1>Gestión de Seguridad</h1>
+            <p class="hero-sub" style="color:#4ade80">Certificación y consultoría ISO 27001.<br>Protege tu información empresarial.</p>
+            <div class="hero-btns">
+              <a routerLink="/servicios" class="btn-primary">Ver servicios</a>
+              <a routerLink="/servicios" class="btn-ghost">Más información</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 7 — Ciberseguridad -->
+      <div class="slide slide-video-ext">
+        <video class="hero-video" muted loop playsinline preload="none"
+          poster="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1600&q=85">
+          <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-futuristic-devices-99786-large.mp4" type="video/mp4"/>
+        </video>
+        <div class="slide-overlay">
+          <div class="slide-content">
+            <span class="hero-badge" style="background:#7c3aed">CIBERSEGURIDAD</span>
+            <h1>Protección Digital 360°</h1>
+            <p class="hero-sub" style="color:#a78bfa">Auditoría, ethical hacking y<br>monitoreo 24/7 para tu empresa.</p>
+            <div class="hero-btns">
+              <a routerLink="/servicios" class="btn-primary">Conocer más</a>
+              <a routerLink="/servicios" class="btn-ghost">Hablar con experto</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
-  </div>
-</section>
-
-<!-- ── CTA ── -->
-<section class="cta-section">
-  <div class="cta-inner">
-    <h2>¿Listo para comenzar?</h2>
-    <p>Accede al sistema con tus credenciales de OutiloTech</p>
-    <a class="btn-cta" [routerLink]="['/login']">Iniciar sesión</a>
-  </div>
-</section>
-
-<!-- ── Footer ── -->
-<footer class="footer">
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <svg class="footer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="2" stroke-linecap="round">
-        <path d="M12 2v7"/>
-        <path d="M6.3 5.3A9 9 0 1 0 17.7 5.3"/>
+    <!-- Flechas -->
+    <button class="hero-arrow left" (click)="prevSlide()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6" />
       </svg>
-      <span class="footer-logo">OutiloTech</span>
+    </button>
+    <button class="hero-arrow right" (click)="nextSlide()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </button>
+
+    <!-- Dots -->
+    <div class="hero-dots">
+      <button *ngFor="let s of slides; let i = index"
+        class="dot" [class.active]="i === currentSlide"
+        (click)="goToSlide(i)">
+      </button>
     </div>
-    <p class="footer-tagline">Especialistas en Microelectrónica</p>
-    <p class="footer-copy">© 2026 OutiloTech. Sistema Enterprise de Microservicios — Bogotá, Colombia.</p>
-  </div>
-</footer>
+  </section>
+
+  <!-- ===== CATEGORÍAS SCROLL ===== -->
+  <section class="ot-categories" id="categorias">
+    <h2>Explora nuestra línea</h2>
+    <div class="cat-scroll">
+      <a routerLink="/login" class="cat-pill">
+        <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200&q=80" alt="Mac" />
+        <span>Mac</span><small>Desde $3.799.000</small>
+      </a>
+      <a routerLink="/login" class="cat-pill">
+        <img src="https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=200&q=80" alt="iPhone" />
+        <span>iPhone</span><small>Desde $3.499.000</small>
+      </a>
+      <a routerLink="/login" class="cat-pill">
+        <img src="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=200&q=80" alt="iPad" />
+        <span>iPad</span><small>Desde $1.899.000</small>
+      </a>
+      <a routerLink="/login" class="cat-pill">
+        <img src="https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=200&q=80" alt="Watch" />
+        <span>Watch</span><small>Desde $1.299.000</small>
+      </a>
+      <a routerLink="/login" class="cat-pill">
+        <img src="https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=200&q=80" alt="AirPods" />
+        <span>AirPods</span><small>Desde $699.000</small>
+      </a>
+      <a routerLink="/login" class="cat-pill">
+        <img src="https://images.unsplash.com/photo-1593359677879-a4bb92f829e1?w=200&q=80" alt="TV y Hogar" />
+        <span>TV &amp; Hogar</span><small>Desde $899.000</small>
+      </a>
+      <a routerLink="/login" class="cat-pill">
+        <img src="https://images.unsplash.com/photo-1586495777744-4e6232bf4e91?w=200&q=80" alt="Accesorios" />
+        <span>Accesorios</span><small>Desde $149.000</small>
+      </a>
+      <a routerLink="/login" class="cat-pill ofertas-pill">
+        <img src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=200&q=80" alt="Ofertas" />
+        <span>🔥 Ofertas</span><small>Hasta 50% OFF</small>
+      </a>
+    </div>
+  </section>
+
+  <!-- ===== PRODUCTOS DESTACADOS ===== -->
+  <section class="ot-featured">
+    <h2>Productos destacados</h2>
+    <div class="products-grid">
+
+      @for (p of products; track p.id) {
+        <div class="product-card">
+          <div class="product-img-wrap">
+            <img [src]="p.img" [alt]="p.name" />
+            <span class="product-badge" [style.background]="p.badgeColor">{{ p.badge }}</span>
+          </div>
+          <div class="product-info">
+            <p class="product-brand">{{ p.brand }}</p>
+            <h4>{{ p.name }}</h4>
+            <div class="product-prices">
+              <span class="new-price">{{ p.price }}</span>
+            </div>
+            <button class="btn-buy" (click)="buyProduct(p)">Agregar al carrito</button>
+          </div>
+        </div>
+      }
+
+    </div>
+  </section>
+
+  <!-- ===== BANNER ORANGE DAYS ===== -->
+  <section class="ot-orange-banner" id="ofertas">
+    <div class="orange-content">
+      <p class="orange-tag">Hot Sale</p>
+      <h2>Orange Days</h2>
+      <p class="orange-desc">Descuento hasta <strong>$530.000</strong> + 50% en Batería Externa MagSafe</p>
+      <a routerLink="/login" class="btn-primary">Ver todas las ofertas</a>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="ot-footer">
+    <div class="footer-inner">
+      <svg viewBox="0 0 260 52" width="160" height="36" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="0,32 12,32 17,18 22,42 27,10 32,32 46,32" fill="none" stroke="white" stroke-width="1.4"
+          stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="62" cy="24" r="13" fill="none" stroke="white" stroke-width="2.5" stroke-dasharray="60 20"
+          stroke-dashoffset="10" />
+        <line x1="62" y1="11" x2="62" y2="24" stroke="white" stroke-width="3" stroke-linecap="round" />
+        <text x="78" y="36" font-family="Arial Black,sans-serif" font-weight="900" font-size="28" fill="white"
+          letter-spacing="-0.5">UTIL</text>
+        <text x="148" y="36" font-family="Arial Black,sans-serif" font-weight="900" font-size="28" fill="white"
+          letter-spacing="-0.5">TECH</text>
+        <polyline points="214,32 222,32 227,18 232,42 237,10 242,32 260,32" fill="none" stroke="white"
+          stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <p>Especialistas en Microelectrónica — Bogotá, Colombia</p>
+      <p class="footer-copy">© 2026 OutiloTech. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
+</main>

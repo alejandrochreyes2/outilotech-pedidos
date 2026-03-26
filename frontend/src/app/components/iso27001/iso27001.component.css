@@ -1,0 +1,78 @@
+/* ISO 27001 PAGE */
+.iso-page { min-height: 100vh; background: #0a0a0a; color: #fff; }
+
+/* HERO */
+.iso-hero { position: relative; height: 100vh; min-height: 600px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.iso-hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+.iso-hero-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(0,0,0,0.82) 0%, rgba(0,30,15,0.65) 100%); z-index: 1; display: flex; align-items: center; justify-content: center; }
+.iso-hero-content { text-align: center; padding: 0 24px; max-width: 800px; }
+.iso-eyebrow { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: #22c55e; margin-bottom: 20px; }
+.iso-hero-content h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); font-weight: 800; line-height: 1.1; margin: 0 0 20px; }
+.iso-hero-desc { font-size: 1.15rem; color: rgba(255,255,255,0.75); line-height: 1.7; margin-bottom: 36px; }
+.iso-hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+/* BUTTONS */
+.btn-green { background: #22c55e; color: #fff; padding: 14px 32px; border-radius: 8px; font-weight: 700; font-size: 15px; text-decoration: none; transition: background 0.2s, transform 0.2s; }
+.btn-green:hover { background: #16a34a; transform: translateY(-2px); }
+.btn-outline-w { border: 1.5px solid rgba(255,255,255,0.5); color: #fff; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; text-decoration: none; transition: border-color 0.2s, background 0.2s; }
+.btn-outline-w:hover { border-color: #fff; background: rgba(255,255,255,0.07); }
+.btn-outline-dark { border: 1.5px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.8); padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 15px; text-decoration: none; transition: border-color 0.2s; }
+.btn-outline-dark:hover { border-color: rgba(255,255,255,0.6); color: #fff; }
+.btn-cert { background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.35); color: #fff; padding: 14px 28px; border-radius: 8px; font-weight: 700; font-size: 15px; text-decoration: none; transition: background 0.2s, border-color 0.2s, transform 0.2s; white-space: nowrap; }
+.btn-cert:hover { background: rgba(255,255,255,0.15); border-color: #fff; transform: translateY(-2px); }
+
+/* SCROLL DOWN */
+.scroll-down { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 2; opacity: 0.6; animation: bounce 2s infinite; }
+@keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(6px)} }
+
+/* ALERTA SECTION */
+.iso-alerta { background: linear-gradient(135deg, #0f2a1a, #1a3a26); padding: 48px 24px; border-bottom: 1px solid rgba(34,197,94,0.2); }
+.iso-alerta-inner { max-width: 860px; margin: 0 auto; text-align: center; }
+.alerta-badge { display: inline-block; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.35); color: #22c55e; font-size: 14px; font-weight: 700; padding: 10px 24px; border-radius: 100px; margin-bottom: 20px; }
+.iso-alerta-inner p { font-size: 1.1rem; color: rgba(255,255,255,0.78); line-height: 1.8; max-width: 720px; margin: 0 auto; }
+
+/* SERVICIOS SECTION */
+.iso-servicios { padding: 96px 24px; background: #0a0a0a; }
+.iso-servicios-inner { max-width: 1100px; margin: 0 auto; }
+.section-eye { display: inline-block; font-size: 13px; font-weight: 700; color: #22c55e; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+.iso-servicios h2, .iso-beneficios h2, .iso-porque h2 { font-size: clamp(1.7rem, 3.5vw, 2.4rem); font-weight: 800; margin: 0 0 48px; }
+.iso-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+.iso-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 32px 28px; transition: border-color 0.2s, transform 0.2s; }
+.iso-card:hover { border-color: rgba(34,197,94,0.35); transform: translateY(-4px); }
+.iso-icon { font-size: 2rem; margin-bottom: 16px; }
+.iso-card h3 { font-size: 1.1rem; font-weight: 700; margin: 0 0 10px; }
+.iso-card p { font-size: 0.92rem; color: rgba(255,255,255,0.65); line-height: 1.65; margin: 0; }
+
+/* BENEFICIOS */
+.iso-beneficios { position: relative; padding: 100px 24px; overflow: hidden; }
+.iso-ben-bg { position: absolute; inset: 0; z-index: 0; }
+.iso-ben-bg img { width: 100%; height: 100%; object-fit: cover; }
+.iso-ben-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(0,0,0,0.88) 0%, rgba(0,20,10,0.80) 100%); }
+.iso-ben-content { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; }
+.section-eye.light { color: #4ade80; }
+.iso-ben-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.iso-ben-card { display: flex; align-items: flex-start; gap: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(34,197,94,0.15); border-radius: 12px; padding: 24px 20px; }
+.iso-ben-card .iso-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+.iso-ben-card h4 { font-size: 1rem; font-weight: 700; margin: 0 0 6px; }
+.iso-ben-card p { font-size: 0.88rem; color: rgba(255,255,255,0.65); line-height: 1.6; margin: 0; }
+
+/* POR QUÉ */
+.iso-porque { padding: 96px 24px; background: #0d0d0d; }
+.iso-porque-inner { max-width: 900px; margin: 0 auto; text-align: center; }
+.iso-porque h2 { margin-bottom: 48px; }
+.iso-razones { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; }
+.iso-razon { display: flex; flex-direction: column; align-items: center; gap: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 28px 20px; text-align: center; }
+.iso-razon span { font-size: 2rem; }
+.iso-razon p { font-size: 0.92rem; color: rgba(255,255,255,0.7); line-height: 1.6; margin: 0; }
+
+/* CTA */
+.iso-cta { padding: 96px 24px; background: linear-gradient(135deg, #0a1a10, #0f2a1a); text-align: center; }
+.iso-cta-warning { font-size: 3rem; margin-bottom: 16px; }
+.iso-cta h2 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 800; margin: 0 0 16px; }
+.iso-cta p { font-size: 1rem; color: rgba(255,255,255,0.72); max-width: 600px; margin: 0 auto 36px; line-height: 1.7; }
+.iso-cta-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+@media (max-width: 768px) {
+  .iso-hero-btns, .iso-cta-btns { flex-direction: column; align-items: center; }
+  .iso-grid { grid-template-columns: 1fr; }
+}

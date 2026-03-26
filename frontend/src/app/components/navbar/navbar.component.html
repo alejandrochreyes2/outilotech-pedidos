@@ -1,64 +1,273 @@
-<!-- Banner oferta naranja — siempre visible arriba -->
-<div class="offer-banner">
-  <span>Orange Days — Descuentos hasta <strong>$530.000</strong> en iPhone Air &nbsp;|&nbsp; Nuevo iPhone 17e desde $3.499.000</span>
-  <a routerLink="/login" class="offer-cta">Ver más</a>
-</div>
+<header class="ot-header">
+  <nav class="ot-nav" (mouseleave)="closeMenu()">
 
-<header class="navbar">
-  <div class="navbar-inner">
-    <!-- Logo OutiloTech -->
-    <a routerLink="/home" class="navbar-logo">
-      <svg class="outilotech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="2" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2v7"/>
-        <path d="M6.3 5.3A9 9 0 1 0 17.7 5.3"/>
+    <a routerLink="/home" class="ot-logo">
+      <svg viewBox="0 0 260 52" width="190" height="42" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="0,32 12,32 17,18 22,42 27,10 32,32 46,32" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="62" cy="24" r="13" fill="none" stroke="white" stroke-width="2.5" stroke-dasharray="60 20" stroke-dashoffset="10"/>
+        <line x1="62" y1="11" x2="62" y2="24" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <text x="78" y="36" font-family="Arial Black,sans-serif" font-weight="900" font-size="28" fill="white" letter-spacing="-0.5">UTIL</text>
+        <text x="148" y="36" font-family="Arial Black,sans-serif" font-weight="900" font-size="28" fill="white" letter-spacing="-0.5">TECH</text>
+        <polyline points="214,32 222,32 227,18 232,42 237,10 242,32 260,32" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="46" y="49" font-family="Arial,sans-serif" font-size="7.5" fill="white" letter-spacing="2" opacity="0.85">Especialistas en Microelectrónica</text>
       </svg>
-      <span class="navbar-logo-text">OutiloTech</span>
     </a>
 
-    <!-- Desktop menu -->
-    <nav class="navbar-menu">
-      <a class="nav-link" routerLink="/acerca" routerLinkActive="active">Mac</a>
-      <a class="nav-link" routerLink="/concesionarios" routerLinkActive="active">iPhone</a>
-      <a class="nav-link" routerLink="/planes" routerLinkActive="active">iPad</a>
-      <a class="nav-link" routerLink="/promociones" routerLinkActive="active">Watch</a>
-      <a class="nav-link" routerLink="/simulador" routerLinkActive="active">AirPods</a>
-      <a class="nav-link" routerLink="/contacto" routerLinkActive="active">TV &amp; Hogar</a>
-      <a class="nav-link" routerLink="/acerca" routerLinkActive="active">Accesorios</a>
-      <a class="nav-link nav-ofertas" routerLink="/promociones" routerLinkActive="active">Ofertas</a>
-      <a class="nav-link nav-account" routerLink="/login" routerLinkActive="active">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
+    <ul class="ot-menu">
+
+      <!-- Acerca de nosotros -->
+      <li class="menu-item" (mouseenter)="openMenu('nosotros')" [class.active]="activeMenu==='nosotros'">
+        <span class="menu-link">Acerca de nosotros</span>
+        @if (activeMenu==='nosotros') {
+          <div class="mega-menu">
+            <div class="mega-grid cols-3">
+              <div class="mega-col">
+                <h4>La empresa</h4>
+                <a routerLink="/nosotros" (click)="closeMenu()">Nuestra historia</a>
+                <a routerLink="/mision-vision" (click)="closeMenu()">Misión y visión</a>
+                <a routerLink="/nosotros" (click)="closeMenu()">Nuestro equipo</a>
+                <a routerLink="/nosotros" (click)="closeMenu()">Socios estratégicos</a>
+              </div>
+              <div class="mega-col">
+                <h4>Recursos</h4>
+                <a routerLink="/home" (click)="closeMenu()">Blog tecnológico</a>
+                <a routerLink="/home" (click)="closeMenu()">Guías en vídeo</a>
+                <a routerLink="/home" (click)="closeMenu()">Eventos 2026</a>
+                <a routerLink="/home" (click)="closeMenu()">Seguridad</a>
+              </div>
+              <div class="mega-col">
+                <h4>Compañía</h4>
+                <a routerLink="/home" (click)="closeMenu()">Acerca de</a>
+                <a routerLink="/home" (click)="closeMenu()">Carreras profesionales</a>
+                <a routerLink="/home" (click)="closeMenu()">Relaciones con inversores</a>
+                <a routerLink="/home" (click)="closeMenu()">Sala de prensa</a>
+              </div>
+            </div>
+          </div>
+        }
+      </li>
+
+      <!-- Mi cuenta -->
+      <li class="menu-item" (mouseenter)="openMenu('cuenta')" [class.active]="activeMenu==='cuenta'">
+        <span class="menu-link">Mi cuenta</span>
+        @if (activeMenu==='cuenta') {
+          <div class="mega-menu">
+            <div class="mega-grid cols-3">
+              <div class="mega-col">
+                <h4>Gestión</h4>
+                <a routerLink="/login" (click)="closeMenu()">Iniciar sesión</a>
+                <a routerLink="/login" (click)="closeMenu()">Crear cuenta</a>
+                <a routerLink="/home" (click)="closeMenu()">Mi perfil</a>
+                <a routerLink="/pedidos" (click)="closeMenu()">Mis pedidos</a>
+              </div>
+              <div class="mega-col">
+                <h4>Preferencias</h4>
+                <a routerLink="/home" (click)="closeMenu()">Lista de deseos</a>
+                <a routerLink="/home" (click)="closeMenu()">Notificaciones</a>
+                <a routerLink="/home" (click)="closeMenu()">Mis direcciones</a>
+                <a routerLink="/home" (click)="closeMenu()">Seguridad</a>
+              </div>
+              <div class="mega-col">
+                <h4>Soporte</h4>
+                <a routerLink="/home" (click)="closeMenu()">Centro de ayuda</a>
+                <a routerLink="/home" (click)="closeMenu()">Garantías</a>
+                <a routerLink="/home" (click)="closeMenu()">Devoluciones</a>
+                <a routerLink="/home" (click)="closeMenu()">Contacto</a>
+              </div>
+            </div>
+          </div>
+        }
+      </li>
+
+      <!-- Pagos -->
+      <li class="menu-item" (mouseenter)="openMenu('pagos')" [class.active]="activeMenu==='pagos'">
+        <span class="menu-link">Pagos</span>
+        @if (activeMenu==='pagos') {
+          <div class="mega-menu">
+            <div class="mega-grid cols-3">
+              <div class="mega-col">
+                <h4>Métodos</h4>
+                <a routerLink="/pagos" (click)="closeMenu()">Tarjetas crédito/débito</a>
+                <a routerLink="/pagos" (click)="closeMenu()">PSE</a>
+                <a routerLink="/pagos" (click)="closeMenu()">Efectivo</a>
+                <a routerLink="/pagos" (click)="closeMenu()">Nequi / Daviplata</a>
+              </div>
+              <div class="mega-col">
+                <h4>Financiación</h4>
+                <a routerLink="/pagos" (click)="closeMenu()">Compra en cuotas</a>
+                <a routerLink="/pagos" (click)="closeMenu()">Financia con ADDI</a>
+                <a routerLink="/pagos" (click)="closeMenu()">Plan Bancolombia 0%</a>
+                <a routerLink="/pagos" (click)="closeMenu()">Leasing tecnológico</a>
+              </div>
+              <div class="mega-col">
+                <h4>Seguridad</h4>
+                <a routerLink="/pagos" (click)="closeMenu()">Pagos seguros SSL</a>
+                <a routerLink="/pagos" (click)="closeMenu()">Facturación electrónica</a>
+                <a routerLink="/pagos" (click)="closeMenu()">Historial de pagos</a>
+                <a routerLink="/pagos" (click)="closeMenu()">Reembolsos</a>
+              </div>
+            </div>
+          </div>
+        }
+      </li>
+
+      <!-- Descubrir -->
+      <li class="menu-item" (mouseenter)="openMenu('descubrir')" [class.active]="activeMenu==='descubrir'">
+        <span class="menu-link">Descubrir</span>
+        @if (activeMenu==='descubrir') {
+          <div class="mega-menu">
+            <div class="mega-grid cols-3">
+              <div class="mega-col">
+                <h4>Lo nuevo 2026</h4>
+                <a routerLink="/iphone" (click)="closeMenu()">iPhone 17e — Nuevo</a>
+                <a routerLink="/mac" (click)="closeMenu()">MacBook Neo — Preventa</a>
+                <a routerLink="/watch" (click)="closeMenu()">Apple Watch Series 11</a>
+                <a routerLink="/ipad" (click)="closeMenu()">iPad Air M3</a>
+              </div>
+              <div class="mega-col">
+                <h4>Ofertas</h4>
+                <a routerLink="/ofertas" (click)="closeMenu()">Orange Days</a>
+                <a routerLink="/ofertas" (click)="closeMenu()">Ofertas destacadas</a>
+                <a routerLink="/ofertas" (click)="closeMenu()">Reacondicionados</a>
+                <a routerLink="/ofertas" (click)="closeMenu()">Combos especiales</a>
+              </div>
+              <div class="mega-col">
+                <h4>Marcas</h4>
+                <a routerLink="/apple" (click)="closeMenu()">Apple</a>
+                <a routerLink="/samsung" (click)="closeMenu()">Samsung</a>
+                <a routerLink="/motorola" (click)="closeMenu()">Motorola</a>
+                <a routerLink="/accesorios" (click)="closeMenu()">Accesorios premium</a>
+              </div>
+            </div>
+          </div>
+        }
+      </li>
+
+      <!-- Servicios -->
+      <li class="menu-item" (mouseenter)="openMenu('servicios')" [class.active]="activeMenu==='servicios'">
+        <span class="menu-link">Servicios</span>
+        @if (activeMenu==='servicios') {
+          <div class="mega-menu">
+            <div class="mega-grid cols-4">
+              <div class="mega-col">
+                <h4>Sistemas y Tecnologías</h4>
+                <a routerLink="/seguridad-forense" (click)="closeMenu()">Seguridad Informática &amp; Forense Digital</a>
+                <a routerLink="/iso27001" (click)="closeMenu()">Auditoría Interna ISO 27001</a>
+              </div>
+              <div class="mega-col">
+                <h4>Software a la medida</h4>
+                <a routerLink="/software-medida" (click)="closeMenu()">Software empresarial</a>
+                <a routerLink="/software-medida" (click)="closeMenu()">Páginas web</a>
+                <a routerLink="/software-medida" (click)="closeMenu()">IA en tu plataforma</a>
+                <a routerLink="/software-medida" (click)="closeMenu()">Integración SAP y ERP</a>
+                <a routerLink="/software-medida" (click)="closeMenu()">Apps para tu negocio</a>
+              </div>
+              <div class="mega-col">
+                <h4>Servicio técnico</h4>
+                <a routerLink="/servicios" (click)="closeMenu()">Reparación de dispositivos</a>
+                <a routerLink="/servicios" (click)="closeMenu()">Diagnóstico gratuito</a>
+                <a routerLink="/servicios" (click)="closeMenu()">Servicio en garantía</a>
+                <a routerLink="/servicios" (click)="closeMenu()">Servicio a domicilio</a>
+              </div>
+              <div class="mega-col">
+                <h4>Empresas</h4>
+                <a routerLink="/servicios" (click)="closeMenu()">Ventas corporativas</a>
+                <a routerLink="/servicios" (click)="closeMenu()">Compras por volumen</a>
+                <a routerLink="/servicios" (click)="closeMenu()">Soporte TI</a>
+                <a routerLink="/servicios" (click)="closeMenu()">Leasing tecnológico</a>
+                <h4 style="margin-top:20px">Localización</h4>
+                <a routerLink="/servicios" (click)="closeMenu()">Encuentra una tienda</a>
+                <a routerLink="/servicios" (click)="closeMenu()">Centros de reparación</a>
+                <a routerLink="/servicios" (click)="closeMenu()">Instaladores certificados</a>
+              </div>
+            </div>
+          </div>
+        }
+      </li>
+
+      <!-- EQUIPOS — estilo Vehículos Tesla con imágenes -->
+      <li class="menu-item" (mouseenter)="openMenu('equipos')" [class.active]="activeMenu==='equipos'">
+        <span class="menu-link">Equipos</span>
+        @if (activeMenu==='equipos') {
+          <div class="mega-menu mega-equipos">
+            <div class="equipos-grid">
+              <a routerLink="/iphone" class="equipo-card" (click)="closeMenu()">
+                <img src="https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=280&q=80" alt="iPhone 17e"/>
+                <p class="eq-name">iPhone 17e</p>
+                <div class="eq-links"><span>Ver</span><span>Comprar</span></div>
+              </a>
+              <a routerLink="/iphone" class="equipo-card" (click)="closeMenu()">
+                <img src="https://images.unsplash.com/photo-1591337676887-a217a6970a8a?w=280&q=80" alt="iPhone 17 Pro"/>
+                <p class="eq-name">iPhone 17 Pro</p>
+                <div class="eq-links"><span>Ver</span><span>Comprar</span></div>
+              </a>
+              <a routerLink="/samsung" class="equipo-card equipo-featured" (click)="closeMenu()">
+                <img src="https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=280&q=80" alt="Galaxy S25 Ultra"/>
+                <p class="eq-name">Galaxy S25 Ultra</p>
+                <div class="eq-links"><span>Ver</span><span>Comprar</span></div>
+              </a>
+              <a routerLink="/samsung" class="equipo-card" (click)="closeMenu()">
+                <img src="https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=280&q=80" alt="Motorola Edge 60"/>
+                <p class="eq-name">Motorola Edge 60</p>
+                <div class="eq-links"><span>Ver</span><span>Comprar</span></div>
+              </a>
+              <a routerLink="/mac" class="equipo-card" (click)="closeMenu()">
+                <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=280&q=80" alt="MacBook Neo"/>
+                <p class="eq-name">MacBook Neo 13"</p>
+                <div class="eq-links"><span>Preventa</span><span>Comprar</span></div>
+              </a>
+              <a routerLink="/ipad" class="equipo-card" (click)="closeMenu()">
+                <img src="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=280&q=80" alt="iPad Air M3"/>
+                <p class="eq-name">iPad Air M3</p>
+                <div class="eq-links"><span>Ver</span><span>Comprar</span></div>
+              </a>
+            </div>
+            <div class="equipos-sidebar">
+              <a routerLink="/ofertas" (click)="closeMenu()">Ofertas actuales</a>
+              <a routerLink="/home" (click)="closeMenu()">Demo y prueba</a>
+              <a routerLink="/home" (click)="closeMenu()">Permuta de equipo</a>
+              <a routerLink="/home" (click)="closeMenu()">Equipos usados</a>
+              <a routerLink="/home" (click)="closeMenu()">Planificador de compra</a>
+              <a routerLink="/home" (click)="closeMenu()">Ayúdame a elegir</a>
+              <a routerLink="/home" (click)="closeMenu()">Comparar equipos</a>
+              <a routerLink="/home" (click)="closeMenu()">Seguridad y privacidad</a>
+              <a routerLink="/home" (click)="closeMenu()">Inventario disponible</a>
+            </div>
+          </div>
+        }
+      </li>
+
+    </ul>
+
+    <div class="ot-actions">
+      <a routerLink="/login" title="Mi Cuenta">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
         </svg>
       </a>
-      <a class="nav-link nav-cart" routerLink="/login">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20">
-          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+      <button class="cart-btn" (click)="toggleCart()" title="Carrito">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 01-8 0"/>
         </svg>
-      </a>
-    </nav>
+        @if (cart.cartCount() > 0) {
+          <span class="cart-badge">{{ cart.cartCount() }}</span>
+        }
+      </button>
+      <button class="ot-hamburger" (click)="toggleMobile()">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
 
-    <!-- Hamburger -->
-    <button class="hamburger" (click)="toggleMenu()" aria-label="Menú">
-      <span></span><span></span><span></span>
-    </button>
-  </div>
+  </nav>
 
-  <!-- Mobile menu -->
-  @if (menuOpen()) {
-    <nav class="mobile-menu">
-      <a class="nav-link" routerLink="/acerca" (click)="toggleMenu()">Mac</a>
-      <a class="nav-link" routerLink="/concesionarios" (click)="toggleMenu()">iPhone</a>
-      <a class="nav-link" routerLink="/planes" (click)="toggleMenu()">iPad</a>
-      <a class="nav-link" routerLink="/promociones" (click)="toggleMenu()">Watch</a>
-      <a class="nav-link" routerLink="/simulador" (click)="toggleMenu()">AirPods</a>
-      <a class="nav-link" routerLink="/contacto" (click)="toggleMenu()">TV &amp; Hogar</a>
-      <a class="nav-link" routerLink="/acerca" (click)="toggleMenu()">Accesorios</a>
-      <a class="nav-link nav-ofertas" routerLink="/promociones" (click)="toggleMenu()">Ofertas del día</a>
-      <a class="nav-link" routerLink="/login" (click)="toggleMenu()">Mi Cuenta</a>
-      <a class="nav-link" routerLink="/login" (click)="toggleMenu()">Carrito</a>
-    </nav>
+  @if (activeMenu) {
+    <div class="nav-overlay" (click)="closeMenu()"></div>
+  }
+
+  <!-- CART SIDEBAR -->
+  @if (cart.isOpen()) {
+    <app-cart-dropdown (close)="closeCart()"></app-cart-dropdown>
   }
 </header>

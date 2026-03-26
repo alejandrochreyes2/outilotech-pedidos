@@ -141,6 +141,15 @@ app.MapPost("/", async (PedidoCreateDto dto, IPedidoRepository repo, ILogger<Pro
     return Results.Created($"/{pedido.Id}", new PedidoResponseDto(pedido.Id, pedido.Cliente, pedido.Total, pedido.Fecha));
 }).RequireAuthorization(p => p.RequireRole("Admin", "Vendedor"));
 
+// POST /checkout — público, registra compras satisfactorias del carrito (sin auth)
+app.MapPost("/checkout", async (PedidoCreateDto dto, IPedidoRepository repo, ILogger<Program> logger) =>
+{
+    logger.LogInformation("[CHECKOUT] Compra registrada: cliente={Cliente} total={Total}", dto.Cliente, dto.Total);
+    var pedido = new Pedido { Cliente = dto.Cliente, Total = dto.Total };
+    await repo.CreateAsync(pedido);
+    return Results.Created($"/{pedido.Id}", new PedidoResponseDto(pedido.Id, pedido.Cliente, pedido.Total, pedido.Fecha));
+});
+
 app.UseSwagger();
 app.UseSwaggerUI();
 app.Run();

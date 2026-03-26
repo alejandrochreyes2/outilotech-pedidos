@@ -111,6 +111,34 @@
   color: #666;
 }
 
+/* Card top row */
+.card-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
+.card-top-row .section-heading { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.btn-refresh { background: #f4f4f4; border: 1px solid #ddd; color: #333; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
+.btn-refresh:hover:not(:disabled) { background: #e8e8e8; }
+.btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+.mini-spin { width: 13px; height: 13px; border: 2px solid #aaa; border-top-color: #EB0A1E; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Empty state */
+.dash-empty { text-align: center; padding: 40px 20px; color: #999; }
+.dash-empty span { font-size: 2.5rem; display: block; margin-bottom: 12px; }
+.dash-empty p { font-size: 14px; max-width: 420px; margin: 0 auto; line-height: 1.6; }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+.toyota-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.toyota-table th { text-align: left; padding: 10px 14px; background: #f9f9f9; font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #eee; }
+.toyota-table td { padding: 13px 14px; border-bottom: 1px solid #f2f2f2; color: #222; vertical-align: middle; }
+.toyota-table tbody tr:hover { background: #fafafa; }
+.td-id { font-weight: 700; color: #999; font-size: 13px; }
+.td-cliente { min-width: 200px; }
+.cliente-cell { display: flex; align-items: center; gap: 10px; }
+.cliente-avatar { width: 32px; height: 32px; border-radius: 50%; background: #EB0A1E; color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.td-total { font-weight: 700; color: #1a1a1a; }
+.td-fecha { color: #666; font-size: 13px; white-space: nowrap; }
+.badge-ok { background: #dcfce7; color: #16a34a; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; white-space: nowrap; }
+
 @media (max-width: 600px) {
   .dash-header { padding: 24px 20px 32px; }
   .dash-body   { padding: 20px 16px; }

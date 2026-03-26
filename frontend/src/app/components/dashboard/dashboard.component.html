@@ -1,4 +1,4 @@
-<!-- Header Toyota rojo -->
+<!-- Header -->
 <div class="dash-header">
   <div class="dash-header-inner">
     <div>
@@ -20,7 +20,7 @@
         <div class="stat-icon">📦</div>
         <div class="stat-info">
           <span class="stat-number">{{ totalPedidos() }}</span>
-          <span class="stat-label">Total Pedidos</span>
+          <span class="stat-label">Compras Registradas</span>
         </div>
       </div>
       <div class="stat-card">
@@ -28,6 +28,13 @@
         <div class="stat-info">
           <span class="stat-number">{{ totalPagos() }}</span>
           <span class="stat-label">Total Pagos</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info">
+          <span class="stat-number">${{ totalVentas() | number }}</span>
+          <span class="stat-label">Total Ventas</span>
         </div>
       </div>
       <div class="stat-card">
@@ -39,34 +46,56 @@
       </div>
     </div>
 
-    <!-- Tabla pedidos recientes -->
-    @if (pedidos().length > 0) {
-      <div class="card">
-        <h2 class="section-heading">Pedidos recientes</h2>
-        <table class="toyota-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Cliente</th>
-              <th>Total</th>
-              <th>Fecha</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (p of pedidos().slice(0, 5); track p.id) {
-              <tr>
-                <td>{{ p.id }}</td>
-                <td>{{ p.cliente }}</td>
-                <td>$ {{ p.total | number }}</td>
-                <td>{{ p.fecha | date:'dd/MM/yyyy' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
+    <!-- Historial de compras -->
+    <div class="card">
+      <div class="card-top-row">
+        <h2 class="section-heading">Historial de compras satisfactorias</h2>
+        <button class="btn-refresh" (click)="refreshPedidos()" [disabled]="cargando()">
+          @if (cargando()) { <span class="mini-spin"></span> }
+          @else { 🔄 }
+          Actualizar
+        </button>
       </div>
-    }
 
-    <!-- Botón demo -->
+      @if (pedidos().length === 0) {
+        <div class="dash-empty">
+          <span>📋</span>
+          <p>No hay compras registradas aún. Aparecerán aquí cuando los clientes realicen compras exitosas.</p>
+        </div>
+      } @else {
+        <div class="table-wrap">
+          <table class="toyota-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Cliente / Email</th>
+                <th>Total de compra</th>
+                <th>Fecha y hora</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of pedidos(); track p.id) {
+                <tr>
+                  <td class="td-id">{{ p.id }}</td>
+                  <td class="td-cliente">
+                    <div class="cliente-cell">
+                      <div class="cliente-avatar">{{ (p.cliente || 'C').charAt(0).toUpperCase() }}</div>
+                      <span>{{ p.cliente }}</span>
+                    </div>
+                  </td>
+                  <td class="td-total">$ {{ p.total | number }}</td>
+                  <td class="td-fecha">{{ p.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td><span class="badge-ok">✔ Completado</span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    <!-- Acciones rápidas -->
     <div class="card">
       <h2 class="section-heading">Acciones rápidas</h2>
       <button class="btn-toyota" (click)="crearPedidoPrueba()" [disabled]="creandoPrueba()">
@@ -84,7 +113,7 @@
       <div class="info-block">
         <div class="info-icon">📦</div>
         <div>
-          <h3>Mis pedidos: {{ totalPedidos() }}</h3>
+          <h3>Mis compras realizadas: {{ totalPedidos() }}</h3>
           <p>Accede al menú lateral para gestionar tus pedidos.</p>
         </div>
       </div>

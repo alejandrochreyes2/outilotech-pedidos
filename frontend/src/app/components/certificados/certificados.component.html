@@ -1,0 +1,140 @@
+<app-navbar></app-navbar>
+
+<div class="cert-page">
+
+  <!-- HERO -->
+  <section class="cert-hero">
+    <video #heroVideo class="cert-hero-video" muted loop playsinline preload="auto"
+      poster="https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=1600&q=85">
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-hands-of-a-person-working-on-a-laptop-computer-23447-large.mp4" type="video/mp4"/>
+    </video>
+    <div class="cert-hero-overlay">
+      <div class="cert-hero-content">
+        <span class="cert-eyebrow">OUTILTECH — Credenciales profesionales</span>
+        <h1>Certificaciones<br>Vigentes</h1>
+        <p class="cert-hero-desc">Respaldo internacional que garantiza la calidad y profundidad técnica de nuestros servicios de seguridad informática.</p>
+        <div class="cert-hero-btns">
+          <a routerLink="/iso27001" class="btn-teal">Ver servicio ISO 27001</a>
+          <a routerLink="/contacto" class="btn-outline-w">Solicitar auditoría</a>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-down">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- INTRO BADGE -->
+  <section class="cert-intro">
+    <div class="cert-intro-inner">
+      <div class="cert-intro-badge">✅ Certificaciones verificadas y vigentes</div>
+      <p>Nuestro equipo cuenta con certificaciones internacionales que avalan nuestra capacidad técnica para realizar auditorías, análisis de riesgos y verificación de controles de seguridad bajo los más altos estándares globales.</p>
+    </div>
+  </section>
+
+  <!-- CERTIFICADOS -->
+  <section class="cert-lista">
+    <div class="cert-lista-inner">
+
+      @for (c of certificados; track c.id) {
+        <div class="cert-item">
+
+          <!-- PANEL IZQUIERDO: Tarjeta estilo certificado -->
+          <div class="cert-card">
+            <div class="cert-card-header">
+              <div class="cert-ent-row">
+                <span class="cert-ent-badge" [style.background]="c.badgeColor">certiprof<sup>®</sup></span>
+                <span class="cert-vigente" [class.vigente]="c.vigente">{{ c.vigente ? '● Vigente' : '○ Vencido' }}</span>
+              </div>
+              <p class="cert-certifica-text">Herewith, Certiprof® certifies that</p>
+              <h2 class="cert-nombre">{{ c.nombre }}</h2>
+              <div class="cert-passed-bar">Has successfully passed the requirements for</div>
+            </div>
+            <div class="cert-card-body">
+              <h3 class="cert-titulo">{{ c.titulo }}</h3>
+              <p class="cert-tipo">{{ c.tipo }}</p>
+              <p class="cert-credencial">{{ c.credencial }}</p>
+            </div>
+            <div class="cert-card-footer">
+              <div class="cert-data-grid">
+                <div class="cert-data-item">
+                  <span class="cert-data-label">Fecha de certificación</span>
+                  <span class="cert-data-val">{{ c.fechaEmision }}</span>
+                </div>
+                <div class="cert-data-item">
+                  <span class="cert-data-label">ID de certificación</span>
+                  <span class="cert-data-val cert-id">{{ c.idCertificacion }}</span>
+                </div>
+                <div class="cert-data-item">
+                  <span class="cert-data-label">Fecha de vencimiento</span>
+                  <span class="cert-data-val">{{ c.fechaVencimiento }}</span>
+                </div>
+                <div class="cert-data-item">
+                  <span class="cert-data-label">Firmado por</span>
+                  <span class="cert-data-val">{{ c.firma }}</span>
+                </div>
+              </div>
+              <div class="cert-tags">
+                @for (tag of c.tags; track tag) {
+                  <span class="cert-tag">{{ tag }}</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL DERECHO: Badge Credly + acciones -->
+          <div class="cert-right">
+            <div class="cert-badge-panel">
+              <p class="cert-badge-title">Credencial verificable en Credly</p>
+              <div class="cert-credly-wrapper">
+                <iframe
+                  [src]="c.credlyEmbed"
+                  width="150"
+                  height="270"
+                  frameborder="0"
+                  allowfullscreen
+                  title="Credly Badge ISO 27001">
+                </iframe>
+              </div>
+              <div class="cert-actions">
+                <a [href]="c.credly" target="_blank" rel="noopener" class="btn-verify">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c0-4.97-4.03-9-9-9S3 7.03 3 12s4.03 9 9 9 9-4.03 9-9z"/></svg>
+                  Verificar en Credly
+                </a>
+                <a routerLink="/iso27001" class="btn-service">Ver servicio →</a>
+              </div>
+            </div>
+
+            <div class="cert-seal">
+              <div class="cert-seal-circle" [style.border-color]="c.badgeColor">
+                <div class="cert-seal-inner">
+                  <span class="cert-seal-top">PROFESSIONAL</span>
+                  <span class="cert-seal-top">CERTIFICATION</span>
+                  <div class="cert-seal-logo" [style.color]="c.badgeColor">certiprof<sup>®</sup></div>
+                  <span class="cert-seal-code" [style.color]="c.badgeColor">{{ c.credencial }}</span>
+                  <span class="cert-seal-bottom">ISO 27001</span>
+                  <span class="cert-seal-bottom">INTERNAL AUDITOR</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      }
+
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cert-cta">
+    <h2>¿Necesitas una auditoría ISO 27001 certificada?</h2>
+    <p>Nuestro auditor cuenta con certificación internacional vigente. Agenda una consulta gratuita.</p>
+    <div class="cert-cta-btns">
+      <a routerLink="/iso27001" class="btn-teal">Ver auditoría ISO 27001</a>
+      <a routerLink="/contacto" class="btn-outline-dark">Contactar ahora</a>
+    </div>
+  </section>
+
+</div>

@@ -1,33 +1,9 @@
-import { Component, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { NavbarComponent } from '../navbar/navbar.component';
 import { CommonModule } from '@angular/common';
-
-export interface Slide {
-  url: string;
-  videoUrl?: string;
-  badge: string;
-  model: string;
-  tagline: string;
-  cta1: string;
-  cta2: string;
-  link1: string;
-  link2: string;
-}
-
-export interface Product {
-  name: string;
-  price: string;
-  img: string;
-  badge?: string;
-  badgeColor?: string;
-}
-
-export interface Category {
-  id: string;
-  label: string;
-  products: Product[];
-}
+import { CartService } from '../../services/cart.service';
 
 @Component({
   selector: 'app-home',
@@ -36,193 +12,96 @@ export interface Category {
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']
 })
-export class HomeComponent implements OnInit, OnDestroy {
+export class HomeComponent implements OnInit, OnDestroy, AfterViewInit {
 
-  slides: Slide[] = [
-    {
-      url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1920&q=80',
-      videoUrl: 'https://videos.pexels.com/video-files/3048742/3048742-hd_1920_1080_24fps.mp4',
-      badge: 'NUEVO',
-      model: 'iPhone 17e',
-      tagline: 'Trae de todo. Toda una oportunidad. Desde $3.499.000',
-      cta1: 'Comprar',
-      cta2: 'Más información',
-      link1: '/login',
-      link2: '#catalogo'
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1920&q=80',
-      badge: 'NUEVO',
-      model: 'MacBook Pro M5',
-      tagline: 'Rendimiento extremo — 14 pulgadas desde $9.399.000',
-      cta1: 'Comprar',
-      cta2: 'Ver todos los Mac',
-      link1: '/login',
-      link2: '#catalogo'
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1544244015-0df4592c3e1e?w=1920&q=80',
-      badge: 'PREVENTA',
-      model: 'MacBook Neo',
-      tagline: 'La próxima generación — muy pronto desde $3.799.000',
-      cta1: 'Registrar interés',
-      cta2: 'Ver más',
-      link1: '/login',
-      link2: '#catalogo'
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1920&q=80',
-      badge: 'OFERTA',
-      model: 'Orange Days',
-      tagline: 'Descuentos hasta $530.000 en iPhone Air + 50% en accesorios',
-      cta1: 'Comprar ahora',
-      cta2: 'Ver ofertas',
-      link1: '/login',
-      link2: '#catalogo'
-    }
+  @ViewChild('heroVideo') heroVideoRef!: ElementRef<HTMLVideoElement>;
+
+  cart = inject(CartService);
+
+  currentSlide = 0;
+  isPlaying = true;
+  private autoplayInterval: any;
+  private readonly INTERVAL_MS = 6000;
+
+  slides = [0, 1, 2, 3, 4, 5, 6, 7];
+
+  heroProducts = [
+    { id: 'macbook-hero',     brand: 'Apple',   name: 'Macbook Pro',        price: '$2.799.000', priceNum: 2799000, img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&q=80' },
+    { id: 'macbook-m5-hero',  brand: 'Apple',   name: 'MacBook Pro M5',     price: '$9.399.000', priceNum: 9399000, img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&q=80' },
+    { id: 'iphone-air-hero',  brand: 'Apple',   name: 'iPhone Air',         price: '$3.499.000', priceNum: 3499000, img: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=500&q=80' },
+    { id: 'watch-ultra-hero', brand: 'Apple',   name: 'Apple Watch Ultra 3',price: '$3.299.000', priceNum: 3299000, img: 'https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=500&q=80' },
+    { id: 'airpods-hero',     brand: 'Apple',   name: 'AirPods Pro 3',      price: '$1.299.000', priceNum: 1299000, img: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=500&q=80' },
+    { id: 'galaxy-s25-hero',  brand: 'Samsung', name: 'Galaxy S25 Ultra',   price: '$5.199.000', priceNum: 5199000, img: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=500&q=80' },
   ];
 
-  categories: Category[] = [
-    {
-      id: 'iphone',
-      label: 'iPhone',
-      products: [
-        { name: 'iPhone 17e', price: '$3.499.000', img: 'https://images.unsplash.com/photo-1512054502232-10a0a035d672?w=400&q=80', badge: 'NUEVO', badgeColor: '#FF6B00' },
-        { name: 'iPhone 17 Pro', price: '$6.449.000', img: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=400&q=80', badge: 'NUEVO', badgeColor: '#FF6B00' },
-        { name: 'iPhone 17', price: '$4.699.000', img: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=400&q=80', badge: 'NUEVO', badgeColor: '#FF6B00' },
-        { name: 'iPhone Air', price: '$5.299.000', img: 'https://images.unsplash.com/photo-1565537222245-6584cb51b4e7?w=400&q=80', badge: 'OFERTA', badgeColor: '#c20018' }
-      ]
-    },
-    {
-      id: 'mac',
-      label: 'Mac',
-      products: [
-        { name: 'MacBook Pro 14" M5', price: '$9.399.000', img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80', badge: 'NUEVO', badgeColor: '#FF6B00' },
-        { name: 'MacBook Air 15" M5', price: '$6.999.000', img: 'https://images.unsplash.com/photo-1611186871525-7b60e2c1c5ee?w=400&q=80', badge: 'NUEVO', badgeColor: '#FF6B00' },
-        { name: 'MacBook Air 13" M5', price: '$5.999.000', img: 'https://images.unsplash.com/photo-1504707748692-419802cf939d?w=400&q=80', badge: 'NUEVO', badgeColor: '#FF6B00' },
-        { name: 'MacBook Pro M5', price: '$8.799.000', img: 'https://images.unsplash.com/photo-1542393545-10f5cde2c810?w=400&q=80' }
-      ]
-    },
-    {
-      id: 'ipad',
-      label: 'iPad',
-      products: [
-        { name: 'iPad Pro M4', price: '$4.999.000', img: 'https://images.unsplash.com/photo-1544244015-0df4592c3e1e?w=400&q=80', badge: 'NUEVO', badgeColor: '#FF6B00' },
-        { name: 'iPad Air M2', price: '$2.999.000', img: 'https://images.unsplash.com/photo-1561154464-82e9adf32764?w=400&q=80' },
-        { name: 'iPad 10ma Gen', price: '$1.999.000', img: 'https://images.unsplash.com/photo-1520338801623-c13894f6c5fe?w=400&q=80' },
-        { name: 'iPad mini M3', price: '$2.499.000', img: 'https://images.unsplash.com/photo-1589739900266-43b2843f4c12?w=400&q=80' }
-      ]
-    },
-    {
-      id: 'watch',
-      label: 'Watch',
-      products: [
-        { name: 'Apple Watch Ultra 2', price: '$3.299.000', img: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&q=80', badge: 'NUEVO', badgeColor: '#FF6B00' },
-        { name: 'Apple Watch Series 10', price: '$1.899.000', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80' },
-        { name: 'Apple Watch SE', price: '$1.199.000', img: 'https://images.unsplash.com/photo-1617625802912-cde586faf749?w=400&q=80' }
-      ]
-    },
-    {
-      id: 'airpods',
-      label: 'AirPods',
-      products: [
-        { name: 'AirPods Pro 2', price: '$1.199.000', img: 'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?w=400&q=80', badge: 'MÁS VENDIDO', badgeColor: '#1a1a1a' },
-        { name: 'AirPods 4', price: '$749.000', img: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&q=80', badge: 'NUEVO', badgeColor: '#FF6B00' },
-        { name: 'AirPods Max', price: '$2.199.000', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80' }
-      ]
-    },
-    {
-      id: 'tv',
-      label: 'TV & Hogar',
-      products: [
-        { name: 'Apple TV 4K', price: '$799.000', img: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400&q=80' },
-        { name: 'HomePod mini', price: '$649.000', img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' },
-        { name: 'HomePod 2da Gen', price: '$1.299.000', img: 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=400&q=80' }
-      ]
-    }
+  products = [
+    { id: 'iphone17e',    brand: 'Apple', name: 'iPhone 17e 128GB',    price: '$3.499.000', priceNum: 3499000, img: 'https://images.unsplash.com/photo-1591337676887-a217a6970a8a?w=500&q=80', badge: 'NUEVO',  badgeColor: '#FF6B00' },
+    { id: 'macbook-m5',   brand: 'Apple', name: 'MacBook Pro 14" M5',  price: '$9.399.000', priceNum: 9399000, img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&q=80', badge: 'NUEVO',  badgeColor: '#FF6B00' },
+    { id: 'ipad-air-m3',  brand: 'Apple', name: 'iPad Air M3 11"',     price: '$2.199.000', priceNum: 2199000, img: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500&q=80', badge: 'OFERTA', badgeColor: '#c20018' },
+    { id: 'watch-ultra3', brand: 'Apple', name: 'Apple Watch Ultra 3', price: '$3.299.000', priceNum: 3299000, img: 'https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=500&q=80', badge: 'NUEVO',  badgeColor: '#FF6B00' },
   ];
 
-  activeCategory = signal('iphone');
-  currentSlide   = signal(0);
-  animating      = signal(false);
-  videoPaused    = signal(false);
-  private timer: any;
-  private _playing = false;
+  constructor(private router: Router) {}
 
-  ngOnInit() { this.scheduleNext(); }
-  ngOnDestroy() { clearTimeout(this.timer); }
+  ngOnInit() { this.startAutoplay(); }
 
-  get visibleProducts(): Product[] {
-    return this.categories.find(c => c.id === this.activeCategory())?.products ?? [];
-  }
+  ngAfterViewInit() { this.forceVideoPlay(); }
 
-  scheduleNext() {
-    clearTimeout(this.timer);
-    const slide = this.slides[this.currentSlide()];
-    if (!slide.videoUrl) {
-      this.timer = setTimeout(() => this.goNext(), 8000);
-    }
-  }
+  ngOnDestroy() { this.stopAutoplay(); }
 
-  forcePlay(video: HTMLVideoElement) {
-    if (!video || this._playing) return;
-    video.muted  = true;
-    video.volume = 0;
-    const p = video.play();
-    if (p !== undefined) {
-      p.then(() => {
-        this._playing = true;
-        this.videoPaused.set(false);
-      }).catch(() => {
-        this.videoPaused.set(true);
+  forceVideoPlay() {
+    const video = this.heroVideoRef?.nativeElement;
+    if (!video) return;
+    video.muted = true;
+    video.autoplay = true;
+
+    const tryPlay = () => {
+      video.play().catch(() => {
+        const resume = () => {
+          video.play().catch(() => {});
+          document.removeEventListener('mousemove', resume);
+          document.removeEventListener('scroll', resume);
+          document.removeEventListener('touchstart', resume);
+          document.removeEventListener('keydown', resume);
+        };
+        document.addEventListener('mousemove', resume, { once: true });
+        document.addEventListener('scroll', resume, { once: true });
+        document.addEventListener('touchstart', resume, { once: true });
+        document.addEventListener('keydown', resume, { once: true });
       });
+    };
+
+    if (video.readyState >= 2) {
+      tryPlay();
+    } else {
+      video.addEventListener('canplay', tryPlay, { once: true });
+      video.addEventListener('loadeddata', tryPlay, { once: true });
     }
   }
 
-  playVideo(video: HTMLVideoElement) {
-    video.muted  = true;
-    video.volume = 0;
-    video.play().then(() => {
-      this._playing = true;
-      this.videoPaused.set(false);
-    });
+  playVideo() {
+    const video = this.heroVideoRef?.nativeElement;
+    if (video) { video.muted = true; video.play().catch(() => {}); }
   }
 
-  onVideoEnded() {
-    this._playing = false;
-    this.videoPaused.set(false);
-    this.goNext();
+  addHeroProduct(index: number) {
+    if (index < this.heroProducts.length) {
+      const p = this.heroProducts[index];
+      this.cart.addItem({ id: p.id, name: p.name, brand: p.brand, price: p.price, priceNum: p.priceNum, img: p.img });
+    }
   }
 
-  prev() {
-    clearTimeout(this.timer);
-    this.goTo((this.currentSlide() - 1 + this.slides.length) % this.slides.length);
+  buyProduct(p: typeof this.products[0]) {
+    this.cart.addItem({ id: p.id, name: p.name, brand: p.brand, price: p.price, priceNum: p.priceNum, img: p.img });
   }
 
-  next() {
-    clearTimeout(this.timer);
-    this.goNext();
+  startAutoplay() {
+    this.autoplayInterval = setInterval(() => this.nextSlide(), this.INTERVAL_MS);
+    this.isPlaying = true;
   }
-
-  goNext() {
-    this.goTo((this.currentSlide() + 1) % this.slides.length);
-  }
-
-  goTo(index: number) {
-    if (this.animating()) return;
-    this.animating.set(true);
-    this._playing = false;
-    this.videoPaused.set(false);
-    this.currentSlide.set(index);
-    setTimeout(() => {
-      this.animating.set(false);
-      this.scheduleNext();
-    }, 800);
-  }
-
-  setCategory(id: string) {
-    this.activeCategory.set(id);
-  }
-
-  get slide(): Slide { return this.slides[this.currentSlide()]; }
+  stopAutoplay() { clearInterval(this.autoplayInterval); this.isPlaying = false; }
+  nextSlide() { this.currentSlide = (this.currentSlide + 1) % this.slides.length; }
+  prevSlide() { this.currentSlide = (this.currentSlide - 1 + this.slides.length) % this.slides.length; }
+  goToSlide(i: number) { this.currentSlide = i; }
+  goLogin() { this.router.navigate(['/login']); }
 }
