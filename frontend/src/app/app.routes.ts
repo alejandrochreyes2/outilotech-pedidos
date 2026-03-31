@@ -43,7 +43,7 @@ export const routes: Routes = [
   { path: 'checkout', loadComponent: () => import('./components/checkout/checkout.component').then(m => m.CheckoutComponent) },
   { path: 'nosotros', loadComponent: () => import('./components/nosotros/nosotros.component').then(m => m.NosotrosComponent) },
   { path: 'mision-vision', loadComponent: () => import('./components/mision-vision/mision-vision.component').then(m => m.MisionVisionComponent) },
-  { path: 'servicios',  redirectTo: 'home', pathMatch: 'full' },
+  { path: 'servicios',  loadComponent: () => import('./components/servicios/servicios.component').then(m => m.ServiciosComponent) },
   { path: 'seguridad-forense', loadComponent: () => import('./components/seguridad-forense/seguridad-forense.component').then(m => m.SeguridadForenseComponent) },
   { path: 'iso27001', loadComponent: () => import('./components/iso27001/iso27001.component').then(m => m.Iso27001Component) },
   { path: 'certificados', loadComponent: () => import('./components/certificados/certificados.component').then(m => m.CertificadosComponent) },

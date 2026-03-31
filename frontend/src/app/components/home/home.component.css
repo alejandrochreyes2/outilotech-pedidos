@@ -1,4 +1,5 @@
-.ot-home { background: #000; color: #fff; min-height: 100vh; overflow-x: hidden; }
+.ot-home { background: #050510; color: #fff; min-height: 100vh; overflow-x: hidden; }
+.sf-page, .iso-page, .sw-page, .ot-nosotros { background: #050510; }
 
 /* ===== HERO ===== */
 .ot-hero { position: relative; width: 100%; height: 100vh; min-height: 600px; overflow: hidden; background: #000; }

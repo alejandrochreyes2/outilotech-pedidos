@@ -18,10 +18,10 @@ export class LoginComponent implements OnInit, OnDestroy {
   showPwd  = false;
 
   slides = [
-    'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=1200&q=80',
-    'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200&q=80',
-    'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1200&q=80',
-    'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=1200&q=80'
+    'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1200&q=85',
+    'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1200&q=85',
+    'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1200&q=85',
+    'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?w=1200&q=85'
   ];
 
   currentSlide = signal(0);
