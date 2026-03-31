@@ -9,7 +9,7 @@
 .menu-item:hover .menu-link, .menu-item.active .menu-link { color: #fff; }
 
 /* MEGA MENÚ BASE */
-.mega-menu { position: fixed; top: 60px; left: 0; right: 0; background: rgba(13,13,13,0.97); backdrop-filter: blur(28px); border-top: 1px solid rgba(255,255,255,0.07); padding: 44px 80px 52px; z-index: 99; animation: megaIn 0.18s ease; }
+.mega-menu { position: fixed; top: 76px; left: 0; right: 0; background: rgba(13,13,13,0.97); backdrop-filter: blur(28px); border-top: 1px solid rgba(255,255,255,0.07); padding: 44px 80px 52px; z-index: 99; animation: megaIn 0.18s ease; }
 @keyframes megaIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 
 .mega-grid { display: grid; gap: 48px; max-width: 860px; margin: 0 auto; }
