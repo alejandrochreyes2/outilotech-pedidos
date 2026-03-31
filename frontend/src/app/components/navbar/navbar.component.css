@@ -2,9 +2,10 @@
 
 .ot-nav { background: rgba(5,0,20,0.96); backdrop-filter: blur(20px); height: 80px; padding: 0 32px; border-bottom: 1px solid rgba(0,229,255,0.15); display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 100; }
 .ot-logo { display: flex; align-items: center; text-decoration: none; flex-shrink: 0; }
-.ot-logo svg { width: 320px; height: 64px; }
-@media (max-width: 1024px) { .ot-logo svg { width: 220px; height: 44px; } }
-@media (max-width: 600px) { .ot-logo svg { width: 160px; height: 32px; } }
+.ot-logo svg { width: 390px !important; height: 75px !important; overflow: visible; }
+@media (max-width: 1200px) { .ot-logo svg { width: 300px !important; height: 58px !important; } }
+@media (max-width: 900px)  { .ot-logo svg { width: 240px !important; height: 46px !important; } }
+@media (max-width: 600px)  { .ot-logo svg { width: 180px !important; height: 35px !important; } }
 
 .ot-menu { display: flex; list-style: none; margin: 0; padding: 0; height: 60px; align-items: center; }
 .menu-item { height: 100%; display: flex; align-items: center; position: static; }
