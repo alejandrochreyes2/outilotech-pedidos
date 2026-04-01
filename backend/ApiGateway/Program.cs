@@ -8,7 +8,9 @@ builder.Services.AddCors(options =>
             "http://localhost",
             "http://localhost:4200",
             "http://localhost:80",
-            "https://gentle-water-0ba98b90f.1.azurestaticapps.net"
+            "https://gentle-water-0ba98b90f.1.azurestaticapps.net",
+            "https://outiltech.co",
+            "https://www.outiltech.co"
         )
         .AllowAnyMethod()
         .AllowAnyHeader());
