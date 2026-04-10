@@ -1,62 +1,160 @@
 <div class="pagos-container">
-  <h2>Pagos</h2>
 
-  @if (isLoading()) {
-    <p class="loading">Cargando...</p>
-  }
+  @if (error()) { <div class="error">{{ error() }}</div> }
 
-  @if (error()) {
-    <div class="error">{{ error() }}</div>
-  }
+  <!-- ===== RESUMEN STATS ===== -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <span class="stat-num">{{ pedidos().length }}</span>
+      <span class="stat-lbl">Compras registradas</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num">{{ formatPrecio(totalVentas) }}</span>
+      <span class="stat-lbl">Total facturado</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num">{{ pagos().length }}</span>
+      <span class="stat-lbl">Transacciones de pago</span>
+    </div>
+  </div>
 
-  @if (success()) {
-    <div class="success">{{ success() }}</div>
-  }
+  <!-- ===== CONTACTO Y ENTREGA DE CLIENTES ===== -->
+  <section class="section-card">
+    <div class="section-header">
+      <h2>Datos de Contacto y Entrega</h2>
+      <p class="section-sub">Información registrada al momento del pago — para coordinar entregas</p>
+      <button class="btn-refresh" (click)="cargarPedidos()" [disabled]="isLoading()">
+        {{ isLoading() ? '⟳ Cargando...' : '🔄 Actualizar' }}
+      </button>
+    </div>
 
-  @if (auth.isAdmin()) {
-    <section class="form-section">
-      <h3>Registrar pago</h3>
-      <form [formGroup]="form" (ngSubmit)="registrarPago()">
-        <div class="form-group">
-          <label>ID del pedido</label>
-          <input formControlName="pedidoId" type="number" min="1">
-        </div>
-        <div class="form-group">
-          <label>Monto</label>
-          <input formControlName="monto" type="number" min="0.01" step="0.01">
-        </div>
-        <button type="submit" [disabled]="form.invalid || isLoading()">
-          {{ isLoading() ? 'Registrando...' : 'Registrar pago' }}
-        </button>
-      </form>
-    </section>
-
-    <section class="list-section">
-      <h3>Lista de pagos ({{ pagos().length }})</h3>
-      <table>
+    <div class="table-wrap">
+      <table class="data-table">
         <thead>
           <tr>
-            <th>#</th><th>Pedido ID</th><th>Monto</th><th>Estado</th><th>Fecha</th>
+            <th>FAC #</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Ciudad</th>
+            <th>Dirección</th>
+            <th>ID</th>
+            <th>Método envío</th>
+            <th>Método pago</th>
+            <th>Total</th>
+            <th>Estado</th>
+            <th>Productos</th>
           </tr>
         </thead>
         <tbody>
-          @for (pago of pagos(); track pago.id) {
-            <tr>
-              <td>{{ pago.id }}</td>
-              <td>{{ pago.pedidoId }}</td>
-              <td>$ {{ pago.monto | number:'1.2-2' }}</td>
-              <td>{{ pago.estado }}</td>
-              <td>{{ pago.fecha | date:'short' }}</td>
+          @for (p of pedidos(); track p.id) {
+            <tr class="pedido-row" (click)="toggleDetalle(p.id)">
+              <td><span class="fac-badge">FAC-{{ p.id }}</span></td>
+              <td class="td-fecha">{{ p.fecha | date:'dd/MM/yy HH:mm' }}</td>
+              <td class="td-cliente">
+                <strong>{{ p.nombre }} {{ p.apellido }}</strong>
+                @if (p.empresa) { <small class="empresa">{{ p.empresa }}</small> }
+              </td>
+              <td class="td-email">{{ p.email || '—' }}</td>
+              <td>{{ p.telefono || '—' }}</td>
+              <td>{{ p.ciudad || '—' }}</td>
+              <td class="td-dir">
+                {{ p.direccion }}
+                @if (p.barrio) { <small>· {{ p.barrio }}</small> }
+              </td>
+              <td class="td-id-doc">
+                <small>{{ p.tipoId }}</small><br>{{ p.numeroId || '—' }}
+              </td>
+              <td>
+                <span class="envio-badge" [class.tienda]="p.metodoEnvio === 'tienda'">
+                  {{ p.metodoEnvio === 'tienda' ? '🏪 Tienda' : '🚚 Domicilio' }}
+                </span>
+              </td>
+              <td>
+                <span class="pago-method">{{ p.metodoPago | titlecase }}</span>
+              </td>
+              <td class="td-total">{{ formatPrecio(p.total) }}</td>
+              <td><span class="badge-ok">✔ {{ p.estado || 'Completado' }}</span></td>
+              <td class="td-expand">
+                <span class="expand-icon" [class.open]="pedidoExpandido() === p.id">▸</span>
+              </td>
             </tr>
+            @if (pedidoExpandido() === p.id) {
+              <tr class="detalle-row">
+                <td colspan="13">
+                  <div class="detalle-items">
+                    <strong>Productos comprados:</strong>
+                    @if (parseItems(p.itemsJson).length > 0) {
+                      <table class="items-table">
+                        <thead>
+                          <tr><th>Producto</th><th>Marca</th><th>Variante</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th></tr>
+                        </thead>
+                        <tbody>
+                          @for (item of parseItems(p.itemsJson); track item.id) {
+                            <tr>
+                              <td>{{ item.nombre }}</td>
+                              <td>{{ item.marca || '—' }}</td>
+                              <td>{{ item.variante || '—' }}</td>
+                              <td class="td-center">{{ item.cantidad }}</td>
+                              <td>{{ formatPrecio(item.precioUnitario) }}</td>
+                              <td class="td-total">{{ formatPrecio(item.subtotal) }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    } @else {
+                      <span class="td-empty">Sin detalle de productos</span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
           } @empty {
-            <tr><td colspan="5" class="empty">No hay pagos registrados</td></tr>
+            <tr><td colspan="13" class="td-empty">
+              @if (isLoading()) { Cargando datos... }
+              @else { No hay compras registradas aún. Las compras del carrito aparecen aquí automáticamente. }
+            </td></tr>
           }
         </tbody>
+        @if (pedidos().length > 0) {
+          <tfoot>
+            <tr class="totals-row">
+              <td colspan="10">Total facturado ({{ pedidos().length }} pedidos)</td>
+              <td class="td-total">{{ formatPrecio(totalVentas) }}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        }
       </table>
-    </section>
-  } @else {
-    <div class="info-card">
-      <p>Solo administradores pueden ver pagos.</p>
     </div>
+  </section>
+
+  <!-- ===== TRANSACCIONES DE PAGO ===== -->
+  @if (auth.isAdmin() && pagos().length > 0) {
+    <section class="section-card">
+      <h2>Transacciones de pago registradas</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>#</th><th>Pedido ID</th><th>Monto</th><th>Estado</th><th>Fecha</th></tr>
+          </thead>
+          <tbody>
+            @for (pago of pagos(); track pago.id) {
+              <tr>
+                <td>{{ pago.id }}</td>
+                <td>FAC-{{ pago.pedidoId }}</td>
+                <td class="td-total">{{ formatPrecio(pago.monto) }}</td>
+                <td><span class="badge-ok">{{ pago.estado }}</span></td>
+                <td class="td-fecha">{{ pago.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="td-empty">No hay transacciones</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
   }
+
 </div>

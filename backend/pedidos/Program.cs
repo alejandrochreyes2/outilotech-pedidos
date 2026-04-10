@@ -10,14 +10,12 @@ using PedidosAPI.DTOs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Leer JWT config antes de registrar servicios (evita null con UseSecurityTokenValidators)
 var jwtKey      = builder.Configuration["Jwt:Key"]      ?? "ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!";
 var jwtIssuer   = builder.Configuration["Jwt:Issuer"]   ?? "toyota-pedidos-api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "toyota-pedidos-client";
 
 Console.WriteLine($"[JWT CONFIG] Key len={jwtKey.Length} Issuer={jwtIssuer} Audience={jwtAudience}");
 
-// DbContext — PostgreSQL local o InMemory para cloud demo
 var useInMemory = builder.Configuration["USE_INMEMORY"] == "true";
 if (useInMemory)
 {
@@ -32,10 +30,8 @@ else
         options.UseNpgsql(connectionString));
 }
 
-// Repositories
 builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
 
-// JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -93,19 +89,76 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// Crear/migrar tablas al iniciar (agrega columnas nuevas si no existen)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PedidosDbContext>();
-    db.Database.EnsureCreated();
-}
-
-// Middleware global de excepciones
-app.Use(async (context, next) =>
-{
     try
     {
-        await next(context);
+        db.Database.EnsureCreated();
+        // Agregar columnas nuevas si la tabla ya existe (ALTER TABLE seguro)
+        var conn = db.Database.GetDbConnection();
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            DO $$ BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='Email') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""Email"" VARCHAR(200) NOT NULL DEFAULT '';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='Telefono') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""Telefono"" VARCHAR(50) NOT NULL DEFAULT '';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='Nombre') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""Nombre"" VARCHAR(100) NOT NULL DEFAULT '';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='Apellido') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""Apellido"" VARCHAR(100) NOT NULL DEFAULT '';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='Empresa') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""Empresa"" VARCHAR(200) NOT NULL DEFAULT '';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='Ciudad') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""Ciudad"" VARCHAR(100) NOT NULL DEFAULT '';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='Direccion') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""Direccion"" VARCHAR(300) NOT NULL DEFAULT '';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='Barrio') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""Barrio"" VARCHAR(100) NOT NULL DEFAULT '';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='TipoId') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""TipoId"" VARCHAR(10) NOT NULL DEFAULT '';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='NumeroId') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""NumeroId"" VARCHAR(50) NOT NULL DEFAULT '';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='MetodoEnvio') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""MetodoEnvio"" VARCHAR(50) NOT NULL DEFAULT 'domicilio';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='MetodoPago') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""MetodoPago"" VARCHAR(50) NOT NULL DEFAULT 'tarjeta';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='ItemsJson') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""ItemsJson"" TEXT NOT NULL DEFAULT '[]';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Pedidos' AND column_name='Estado') THEN
+                    ALTER TABLE ""Pedidos"" ADD COLUMN ""Estado"" VARCHAR(50) NOT NULL DEFAULT 'Completado';
+                END IF;
+            END $$;
+        ";
+        cmd.ExecuteNonQuery();
+        conn.Close();
+        Console.WriteLine("[DB] Columnas verificadas/agregadas correctamente.");
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[DB WARNING] {ex.Message}");
+    }
+}
+
+app.Use(async (context, next) =>
+{
+    try { await next(context); }
     catch (Exception ex)
     {
         var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
@@ -124,15 +177,21 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapHealthChecks("/health");
 
-// GET / — Admin, Vendedor, User
+// GET / — devuelve lista completa con todos los campos
 app.MapGet("/", async (IPedidoRepository repo, ILogger<Program> logger) =>
 {
     logger.LogInformation("[PEDIDOS] GET all pedidos");
     var pedidos = await repo.GetAllAsync();
-    return Results.Ok(pedidos.Select(p => new PedidoResponseDto(p.Id, p.Cliente, p.Total, p.Fecha)));
+    return Results.Ok(pedidos.Select(p => new PedidoDetalleDto(
+        p.Id, p.Cliente, p.Total, p.Fecha,
+        p.Email, p.Telefono, p.Nombre, p.Apellido,
+        p.Empresa, p.Ciudad, p.Direccion, p.Barrio,
+        p.TipoId, p.NumeroId, p.MetodoEnvio, p.MetodoPago,
+        p.ItemsJson, p.Estado
+    )));
 }).RequireAuthorization(p => p.RequireRole("Admin", "Vendedor", "User"));
 
-// POST / — Admin y Vendedor
+// POST / — Admin y Vendedor (manual)
 app.MapPost("/", async (PedidoCreateDto dto, IPedidoRepository repo, ILogger<Program> logger) =>
 {
     logger.LogInformation("[PEDIDOS] POST cliente={Cliente} total={Total}", dto.Cliente, dto.Total);
@@ -141,13 +200,39 @@ app.MapPost("/", async (PedidoCreateDto dto, IPedidoRepository repo, ILogger<Pro
     return Results.Created($"/{pedido.Id}", new PedidoResponseDto(pedido.Id, pedido.Cliente, pedido.Total, pedido.Fecha));
 }).RequireAuthorization(p => p.RequireRole("Admin", "Vendedor"));
 
-// POST /checkout — público, registra compras satisfactorias del carrito (sin auth)
-app.MapPost("/checkout", async (PedidoCreateDto dto, IPedidoRepository repo, ILogger<Program> logger) =>
+// POST /checkout — público, guarda compra con todos los datos del formulario
+app.MapPost("/checkout", async (PedidoCheckoutDto dto, IPedidoRepository repo, ILogger<Program> logger) =>
 {
-    logger.LogInformation("[CHECKOUT] Compra registrada: cliente={Cliente} total={Total}", dto.Cliente, dto.Total);
-    var pedido = new Pedido { Cliente = dto.Cliente, Total = dto.Total };
+    logger.LogInformation("[CHECKOUT] cliente={Cliente} total={Total} email={Email} ciudad={Ciudad} pago={Pago}",
+        dto.Cliente, dto.Total, dto.Email, dto.Ciudad, dto.MetodoPago);
+
+    var pedido = new Pedido
+    {
+        Cliente     = string.IsNullOrEmpty(dto.Cliente) ? $"{dto.Nombre} {dto.Apellido}".Trim() : dto.Cliente,
+        Total       = dto.Total,
+        Email       = dto.Email ?? string.Empty,
+        Telefono    = dto.Telefono ?? string.Empty,
+        Nombre      = dto.Nombre ?? string.Empty,
+        Apellido    = dto.Apellido ?? string.Empty,
+        Empresa     = dto.Empresa ?? string.Empty,
+        Ciudad      = dto.Ciudad ?? string.Empty,
+        Direccion   = dto.Direccion ?? string.Empty,
+        Barrio      = dto.Barrio ?? string.Empty,
+        TipoId      = dto.TipoId ?? string.Empty,
+        NumeroId    = dto.NumeroId ?? string.Empty,
+        MetodoEnvio = dto.MetodoEnvio ?? "domicilio",
+        MetodoPago  = dto.MetodoPago ?? "tarjeta",
+        ItemsJson   = dto.ItemsJson ?? "[]",
+        Estado      = "Completado"
+    };
     await repo.CreateAsync(pedido);
-    return Results.Created($"/{pedido.Id}", new PedidoResponseDto(pedido.Id, pedido.Cliente, pedido.Total, pedido.Fecha));
+    return Results.Created($"/{pedido.Id}", new PedidoDetalleDto(
+        pedido.Id, pedido.Cliente, pedido.Total, pedido.Fecha,
+        pedido.Email, pedido.Telefono, pedido.Nombre, pedido.Apellido,
+        pedido.Empresa, pedido.Ciudad, pedido.Direccion, pedido.Barrio,
+        pedido.TipoId, pedido.NumeroId, pedido.MetodoEnvio, pedido.MetodoPago,
+        pedido.ItemsJson, pedido.Estado
+    ));
 });
 
 app.UseSwagger();

@@ -1,4 +1,17 @@
-<div class="checkout-page">
+<!-- ===== PANTALLA ÉXITO ===== -->
+<div class="checkout-success" *ngIf="pagoExitoso">
+  <div class="success-card">
+    <div class="success-icon">✅</div>
+    <h2>¡Pago realizado con éxito!</h2>
+    <p>
+      Tu pedido <strong>#{{ pedidoId || '—' }}</strong> ha sido procesado correctamente.<br>
+      Recibirás una confirmación a tu correo electrónico.
+    </p>
+    <button class="btn-back-home" routerLink="/home">Volver al inicio</button>
+  </div>
+</div>
+
+<div class="checkout-page" *ngIf="!pagoExitoso">
 
   <!-- HEADER -->
   <header class="checkout-header">
