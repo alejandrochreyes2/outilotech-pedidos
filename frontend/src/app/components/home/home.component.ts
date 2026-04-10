@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { NavbarComponent } from '../navbar/navbar.component';
 import { CommonModule } from '@angular/common';
 import { CartService } from '../../services/cart.service';
+import { ProductosService } from '../../services/productos.service';
 
 @Component({
   selector: 'app-home',
@@ -16,7 +17,20 @@ export class HomeComponent implements OnInit, OnDestroy, AfterViewInit {
 
   @ViewChild('heroVideo') heroVideoRef!: ElementRef<HTMLVideoElement>;
 
-  cart = inject(CartService);
+  cantidades: {[key: string]: number} = {};
+
+  getCantidad(id: string): number { return this.cantidades[id] || 1; }
+  cambiarCantidad(id: string, delta: number) {
+    this.cantidades[id] = Math.max(1, (this.cantidades[id] || 1) + delta);
+  }
+
+  agregarAlCarrito(producto: any) {
+    this.cartService.agregarItem(producto, undefined, this.getCantidad(producto.id));
+  }
+
+  formatPrecio(p: number): string {
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(p);
+  }
 
   currentSlide = 0;
   isPlaying = true;
@@ -41,7 +55,11 @@ export class HomeComponent implements OnInit, OnDestroy, AfterViewInit {
     { id: 'watch-ultra3', brand: 'Apple', name: 'Apple Watch Ultra 3', price: '$3.299.000', priceNum: 3299000, img: 'https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=500&q=80', badge: 'NUEVO',  badgeColor: '#FF6B00' },
   ];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    public productosService: ProductosService,
+    public cartService: CartService
+  ) {}
 
   ngOnInit() { this.startAutoplay(); }
 
@@ -87,12 +105,22 @@ export class HomeComponent implements OnInit, OnDestroy, AfterViewInit {
   addHeroProduct(index: number) {
     if (index < this.heroProducts.length) {
       const p = this.heroProducts[index];
-      this.cart.addItem({ id: p.id, name: p.name, brand: p.brand, price: p.price, priceNum: p.priceNum, img: p.img });
+      const prod: any = { 
+        id: p.id, nombre: p.name, marca: p.brand, precio: p.priceNum, 
+        imagen: p.img, categoria: 'Promoción', subcategoria: '', imagenes: [p.img], 
+        descripcion: '', specs: [], garantia: '', destacado: false, nuevo: false, oferta: true, slug: p.id 
+      };
+      this.cartService.agregarItem(prod, undefined, 1);
     }
   }
 
   buyProduct(p: typeof this.products[0]) {
-    this.cart.addItem({ id: p.id, name: p.name, brand: p.brand, price: p.price, priceNum: p.priceNum, img: p.img });
+     const prod: any = { 
+        id: p.id, nombre: p.name, marca: p.brand, precio: p.priceNum, 
+        imagen: p.img, categoria: 'Promoción', subcategoria: '', imagenes: [p.img], 
+        descripcion: '', specs: [], garantia: '', destacado: false, nuevo: false, oferta: true, slug: p.id 
+      };
+      this.cartService.agregarItem(prod, undefined, 1);
   }
 
   startAutoplay() {

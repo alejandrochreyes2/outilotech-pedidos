@@ -1,0 +1,50 @@
+.pd-page { min-height: 100vh; background: #fff; padding: 20px; }
+.pd-breadcrumb { font-size: 13px; color: #666; margin-bottom: 20px; }
+.pd-breadcrumb a { color: #0071e3; text-decoration: none; }
+.pd-container { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1200px; margin: 0 auto; }
+.pd-gallery { display: flex; gap: 12px; }
+.pd-thumbnails { display: flex; flex-direction: column; gap: 8px; }
+.pd-thumb { width: 60px; height: 60px; object-fit: cover; border: 2px solid transparent; border-radius: 8px; cursor: pointer; transition: border-color .2s; }
+.pd-thumb.active, .pd-thumb:hover { border-color: #0071e3; }
+.pd-main-img { position: relative; flex: 1; }
+.pd-img-principal { width: 100%; max-height: 500px; object-fit: contain; border-radius: 16px; background: #f5f5f7; }
+.pd-badge { position: absolute; top: 12px; left: 12px; background: #ff3b30; color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.pd-info { padding: 10px 0; }
+.pd-marca { color: #888; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px; }
+.pd-nombre { font-size: 28px; font-weight: 700; color: #1d1d1f; margin: 0 0 8px; }
+.pd-garantia { color: #2e7d32; font-size: 13px; margin: 0 0 12px; }
+.pd-precio { font-size: 32px; font-weight: 700; color: #1d1d1f; margin-bottom: 20px; }
+.pd-label { font-size: 13px; font-weight: 600; color: #1d1d1f; margin-bottom: 8px; }
+.pd-variante-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.pd-variante-btn { padding: 8px 14px; border: 1.5px solid #d1d1d6; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; transition: all .2s; text-align: center; }
+.pd-variante-btn:hover, .pd-variante-btn.selected { border-color: #0071e3; background: #e8f0fe; color: #0071e3; }
+.pd-cantidad-section { margin-bottom: 16px; }
+.pd-cantidad { display: flex; align-items: center; gap: 16px; }
+.pd-qty-btn { width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid #d1d1d6; background: #f5f5f7; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+.pd-qty-btn:hover { background: #0071e3; color: #fff; border-color: #0071e3; }
+.pd-qty-num { font-size: 18px; font-weight: 600; min-width: 30px; text-align: center; }
+.pd-total-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-top: 1px solid #e5e5e5; border-bottom: 1px solid #e5e5e5; margin-bottom: 20px; font-size: 16px; }
+.pd-total-row strong { font-size: 22px; color: #1d1d1f; }
+.pd-acciones { display: flex; gap: 12px; margin-bottom: 20px; }
+.pd-btn-carrito { flex: 1; padding: 14px; background: #1d1d1f; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s; }
+.pd-btn-carrito:hover { background: #333; }
+.pd-btn-carrito.added { background: #2e7d32; }
+.pd-btn-comprar { flex: 1; padding: 14px; background: #0071e3; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s; }
+.pd-btn-comprar:hover { background: #0058b3; }
+.pd-pagos { margin-bottom: 20px; }
+.pd-pago-icons { display: flex; gap: 8px; flex-wrap: wrap; }
+.pago-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.visa { background: #1a1f71; color: #fff; }
+.mc { background: #eb001b; color: #fff; }
+.pse { background: #00a0e3; color: #fff; }
+.nequi { background: #6f1be4; color: #fff; }
+.efecty { background: #ffd700; color: #000; }
+.pd-specs { margin-bottom: 20px; }
+.pd-specs h3, .pd-desc h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; color: #1d1d1f; }
+.pd-spec-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+.spec-label { color: #888; }
+.spec-value { font-weight: 500; color: #1d1d1f; }
+.pd-desc { margin-bottom: 20px; font-size: 14px; line-height: 1.6; color: #444; }
+.pd-extras { display: flex; flex-direction: column; gap: 8px; }
+.pd-extra { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #555; }
+@media (max-width: 768px) { .pd-container { grid-template-columns: 1fr; } .pd-gallery { flex-direction: column; } }

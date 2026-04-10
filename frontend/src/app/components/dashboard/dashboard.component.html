@@ -64,28 +64,38 @@
         </div>
       } @else {
         <div class="table-wrap">
-          <table class="toyota-table">
+          <table class="toyota-table factura-table">
             <thead>
               <tr>
-                <th>#</th>
-                <th>Cliente / Email</th>
-                <th>Total de compra</th>
-                <th>Fecha y hora</th>
+                <th>FAC #</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Cliente</th>
+                <th>Descripción / Producto</th>
+                <th>Cant.</th>
+                <th>V. Unitario</th>
+                <th>Valor Total</th>
+                <th>IMEI / Serial</th>
                 <th>Estado</th>
               </tr>
             </thead>
             <tbody>
               @for (p of pedidos(); track p.id) {
                 <tr>
-                  <td class="td-id">{{ p.id }}</td>
+                  <td class="td-id"><span class="fac-num">FAC-{{ p.id }}</span></td>
+                  <td class="td-fecha">{{ p.fecha | date:'dd/MM/yyyy' }}</td>
+                  <td class="td-hora">{{ p.fecha | date:'HH:mm' }}</td>
                   <td class="td-cliente">
                     <div class="cliente-cell">
                       <div class="cliente-avatar">{{ (p.cliente || 'C').charAt(0).toUpperCase() }}</div>
                       <span>{{ p.cliente }}</span>
                     </div>
                   </td>
+                  <td class="td-desc">Venta de equipo / servicio técnico</td>
+                  <td class="td-center">1</td>
                   <td class="td-total">$ {{ p.total | number }}</td>
-                  <td class="td-fecha">{{ p.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td class="td-total-bold">$ {{ p.total | number }}</td>
+                  <td class="td-imei">—</td>
                   <td><span class="badge-ok">✔ Completado</span></td>
                 </tr>
               }

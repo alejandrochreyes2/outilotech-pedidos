@@ -12,10 +12,11 @@ import { CartDropdownComponent } from '../cart-dropdown/cart-dropdown.component'
   styleUrls: ['./navbar.component.css']
 })
 export class NavbarComponent {
-  cart = inject(CartService);
   activeMenu: string | null = null;
   mobileOpen = signal(false);
   mobileSection = signal<string | null>(null);
+
+  constructor(public cartService: CartService) {}
 
   openMenu(name: string) { this.activeMenu = name; }
   closeMenu() { this.activeMenu = null; }
@@ -24,6 +25,4 @@ export class NavbarComponent {
   toggleMobileSection(name: string) {
     this.mobileSection.update(v => v === name ? null : name);
   }
-  toggleCart() { this.cart.toggleCart(); }
-  closeCart() { this.cart.closeCart(); }
 }

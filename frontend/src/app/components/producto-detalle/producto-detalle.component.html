@@ -1,0 +1,100 @@
+<div class="pd-page" *ngIf="producto">
+  <app-cart-dropdown></app-cart-dropdown>
+
+  <!-- Breadcrumb -->
+  <nav class="pd-breadcrumb">
+    <a routerLink="/home">Inicio</a> / <a routerLink="/home">{{producto.categoria}}</a> / <span>{{producto.nombre}}</span>
+  </nav>
+
+  <div class="pd-container">
+    <!-- Galería izquierda -->
+    <div class="pd-gallery">
+      <div class="pd-thumbnails">
+        <img *ngFor="let img of producto.imagenes" [src]="img" [class.active]="imagenActual() === img" (click)="seleccionarImagen(img)" class="pd-thumb"/>
+      </div>
+      <div class="pd-main-img">
+        <span class="pd-badge" *ngIf="producto.badge">{{producto.badge}}</span>
+        <img [src]="imagenActual()" [alt]="producto.nombre" class="pd-img-principal"/>
+      </div>
+    </div>
+
+    <!-- Info derecha -->
+    <div class="pd-info">
+      <p class="pd-marca">{{producto.marca}}</p>
+      <h1 class="pd-nombre">{{producto.nombre}}</h1>
+      <p class="pd-garantia">🛡️ {{producto.garantia}} de garantía</p>
+      <div class="pd-precio">{{formatPrecio(precioActual)}}</div>
+
+      <!-- Variantes -->
+      <div class="pd-variantes" *ngIf="producto.variantes && producto.variantes.length > 1">
+        <p class="pd-label">Selecciona opción:</p>
+        <div class="pd-variante-btns">
+          <button *ngFor="let v of producto.variantes"
+            [class.selected]="varianteSeleccionada() === v"
+            (click)="seleccionarVariante(v)"
+            class="pd-variante-btn">
+            {{v.storage || v.color}}<br><small>{{formatPrecio(v.precio)}}</small>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cantidad -->
+      <div class="pd-cantidad-section">
+        <p class="pd-label">Cantidad:</p>
+        <div class="pd-cantidad">
+          <button (click)="cambiarCantidad(-1)" class="pd-qty-btn">−</button>
+          <span class="pd-qty-num">{{cantidad()}}</span>
+          <button (click)="cambiarCantidad(1)" class="pd-qty-btn">+</button>
+        </div>
+      </div>
+
+      <!-- Total -->
+      <div class="pd-total-row">
+        <span>Total:</span>
+        <strong>{{formatPrecio(precioActual * cantidad())}}</strong>
+      </div>
+
+      <!-- Botones -->
+      <div class="pd-acciones">
+        <button class="pd-btn-carrito" (click)="agregarAlCarrito()" [class.added]="agregado()">
+          {{agregado() ? '✓ Agregado al carrito' : '🛒 Agregar al carrito'}}
+        </button>
+        <button class="pd-btn-comprar" [routerLink]="['/checkout']">⚡ Comprar ahora</button>
+      </div>
+
+      <!-- Métodos de pago -->
+      <div class="pd-pagos">
+        <p class="pd-label">Métodos de pago:</p>
+        <div class="pd-pago-icons">
+          <span class="pago-badge visa">VISA</span>
+          <span class="pago-badge mc">MC</span>
+          <span class="pago-badge pse">PSE</span>
+          <span class="pago-badge nequi">Nequi</span>
+          <span class="pago-badge efecty">Efecty</span>
+        </div>
+      </div>
+
+      <!-- Specs -->
+      <div class="pd-specs">
+        <h3>Especificaciones</h3>
+        <div class="pd-spec-row" *ngFor="let spec of producto.specs">
+          <span class="spec-label">{{spec.label}}</span>
+          <span class="spec-value">{{spec.value}}</span>
+        </div>
+      </div>
+
+      <!-- Descripción -->
+      <div class="pd-desc">
+        <h3>Descripción</h3>
+        <p>{{producto.descripcion}}</p>
+      </div>
+
+      <!-- Info adicional -->
+      <div class="pd-extras">
+        <div class="pd-extra"><span>🚚</span><span>Envío a domicilio disponible</span></div>
+        <div class="pd-extra"><span>🏪</span><span>Recoge en tienda: Cra 2A No 18A-52, Bogotá</span></div>
+        <div class="pd-extra"><span>📞</span><span>304 592 8793 / 305 780 4236</span></div>
+      </div>
+    </div>
+  </div>
+</div>

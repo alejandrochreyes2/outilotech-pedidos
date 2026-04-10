@@ -1,0 +1,67 @@
+.pedidos-container { padding: 24px; max-width: 1400px; }
+
+/* Mensajes */
+.error { background: #fde8e8; color: #c0392b; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #c0392b; }
+.success { background: #e8f5e9; color: #2e7d32; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #2e7d32; }
+.loading-inline { color: #888; font-size: 13px; }
+
+/* RELACIÓN DE VENTAS */
+.rv-section { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 24px; margin-bottom: 32px; }
+.rv-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+.rv-header h2 { font-size: 20px; font-weight: 700; color: #1d1d1f; margin: 0 0 4px; }
+.rv-subtitle { font-size: 13px; color: #888; margin: 0; }
+.btn-nueva-venta { padding: 10px 20px; background: #0071e3; color: #fff; border: none; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.btn-nueva-venta:hover { background: #005bb5; }
+
+/* Form nueva venta */
+.rv-form { background: #f5f5f7; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+.rv-form h3 { font-size: 15px; font-weight: 600; margin: 0 0 16px; color: #1d1d1f; }
+.rv-form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.rv-field { display: flex; flex-direction: column; gap: 4px; }
+.rv-field.rv-wide { grid-column: span 2; }
+.rv-field label { font-size: 12px; font-weight: 600; color: #555; }
+.rv-field input { padding: 8px 12px; border: 1px solid #d1d1d6; border-radius: 8px; font-size: 14px; background: #fff; }
+.rv-field input:focus { outline: none; border-color: #0071e3; }
+.btn-guardar-venta { padding: 10px 24px; background: #1d1d1f; color: #fff; border: none; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.btn-guardar-venta:hover { background: #333; }
+
+/* Tabla */
+.rv-table-wrap { overflow-x: auto; }
+.rv-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
+.rv-table th { background: #f5f5f7; padding: 10px 12px; text-align: left; font-weight: 600; color: #555; font-size: 12px; border-bottom: 2px solid #e5e5e5; white-space: nowrap; }
+.rv-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; color: #1d1d1f; vertical-align: middle; }
+.rv-table tbody tr:hover { background: #fafafa; }
+.td-desc { max-width: 200px; }
+.td-center { text-align: center; }
+.td-total { font-weight: 700; color: #0071e3; }
+.td-obs { max-width: 160px; font-size: 12px; color: #666; }
+.td-empty { text-align: center; color: #888; padding: 32px; font-size: 14px; }
+.fac-badge { background: #e8f0fe; color: #1a73e8; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.btn-del { background: none; border: none; cursor: pointer; font-size: 16px; opacity: 0.6; }
+.btn-del:hover { opacity: 1; }
+
+.rv-totals { background: #f5f5f7; font-weight: 700; }
+.rv-totals td { padding: 12px; }
+
+/* PEDIDOS DEL SISTEMA */
+.list-section { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 24px; }
+.list-section h2 { font-size: 20px; font-weight: 700; color: #1d1d1f; margin: 0 0 20px; }
+.form-section { background: #f5f5f7; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+.form-section h3 { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
+.pedido-form { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 12px; font-weight: 600; color: #555; }
+.form-group input { padding: 8px 12px; border: 1px solid #d1d1d6; border-radius: 8px; font-size: 14px; }
+.form-section button[type=submit] { padding: 9px 20px; background: #0071e3; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.form-section button[type=submit]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pedidos-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.pedidos-table th { background: #f5f5f7; padding: 10px 12px; text-align: left; font-weight: 600; color: #555; font-size: 12px; border-bottom: 2px solid #e5e5e5; }
+.pedidos-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+.pedidos-table tbody tr:hover { background: #fafafa; }
+
+@media (max-width: 768px) {
+  .rv-form-grid { grid-template-columns: repeat(2, 1fr); }
+  .rv-field.rv-wide { grid-column: span 2; }
+  .pedido-form { flex-direction: column; }
+}

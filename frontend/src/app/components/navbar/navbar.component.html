@@ -240,15 +240,9 @@
           <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
         </svg>
       </a>
-      <button class="cart-btn" (click)="toggleCart()" title="Carrito">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
-          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <path d="M16 10a4 4 0 01-8 0" />
-        </svg>
-        @if (cart.cartCount() > 0) {
-        <span class="cart-badge">{{ cart.cartCount() }}</span>
-        }
+      <button class="ot-cart-btn" (click)="cartService.toggleCarrito()">
+        🛒
+        <span class="cart-count" *ngIf="cartService.totalItems() > 0">{{cartService.totalItems()}}</span>
       </button>
       <button class="ot-hamburger" (click)="toggleMobile()">
         <span></span><span></span><span></span>
@@ -261,10 +255,8 @@
   <div class="nav-overlay" (click)="closeMenu()"></div>
   }
 
-  <!-- CART SIDEBAR -->
-  @if (cart.isOpen()) {
-  <app-cart-dropdown (close)="closeCart()"></app-cart-dropdown>
-  }
+  <!-- CART SIDEBAR (always mounted for CSS slide transition) -->
+  <app-cart-dropdown></app-cart-dropdown>
 
   <!-- MENÚ MÓVIL -->
   @if (mobileOpen()) {
@@ -404,9 +396,9 @@
 
     <div class="mobile-drawer-footer">
       <a routerLink="/login" class="mob-btn-login" (click)="closeMobile()">Iniciar sesión</a>
-      <button class="mob-btn-cart" (click)="closeMobile(); toggleCart()">
+      <button class="mob-btn-cart" (click)="closeMobile(); cartService.toggleCarrito()">
         🛒 Mi carrito
-        @if (cart.cartCount() > 0) { <span class="mob-cart-count">{{ cart.cartCount() }}</span> }
+        @if (cartService.totalItems() > 0) { <span class="mob-cart-count">{{ cartService.totalItems() }}</span> }
       </button>
     </div>
   </div>

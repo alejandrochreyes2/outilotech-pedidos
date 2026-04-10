@@ -1,0 +1,26 @@
+.carrito-page { min-height: 100vh; background: #f5f5f7; padding: 40px 20px; }
+.carrito-container { max-width: 1100px; margin: 0 auto; }
+.carrito-container h1 { font-size: 28px; font-weight: 700; margin-bottom: 30px; color: #1d1d1f; }
+.carrito-empty { text-align: center; padding: 60px; }
+.carrito-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+.carrito-items { display: flex; flex-direction: column; gap: 16px; }
+.carrito-item { display: flex; align-items: center; gap: 16px; background: #fff; padding: 20px; border-radius: 16px; }
+.carrito-item img { width: 80px; height: 80px; object-fit: contain; }
+.carrito-item-info { flex: 1; }
+.carrito-item-info h3 { font-size: 15px; font-weight: 600; color: #1d1d1f; margin: 0 0 4px; }
+.carrito-garantia { font-size: 12px; color: #2e7d32; }
+.carrito-item-qty { display: flex; align-items: center; gap: 12px; }
+.carrito-item-qty button { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #d1d1d6; background: #f5f5f7; cursor: pointer; font-size: 16px; }
+.carrito-item-qty span { font-size: 16px; font-weight: 600; min-width: 24px; text-align: center; }
+.carrito-item-precio { text-align: right; }
+.carrito-item-precio p { font-size: 16px; font-weight: 700; color: #1d1d1f; margin: 0 0 8px; }
+.btn-eliminar { background: none; border: none; color: #ff3b30; cursor: pointer; font-size: 13px; }
+.carrito-resumen { background: #fff; border-radius: 16px; padding: 24px; height: fit-content; position: sticky; top: 20px; }
+.carrito-resumen h2 { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+.resumen-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+.gratis { color: #2e7d32; font-weight: 600; }
+.resumen-total { display: flex; justify-content: space-between; padding: 16px 0; font-size: 16px; }
+.resumen-total strong { font-size: 22px; color: #1d1d1f; }
+.btn-checkout { display: block; padding: 14px; background: #0071e3; color: #fff; text-align: center; border-radius: 12px; text-decoration: none; font-weight: 600; margin-bottom: 10px; }
+.btn-seguir, .btn-volver { display: block; padding: 12px; background: #f5f5f7; color: #1d1d1f; text-align: center; border-radius: 12px; text-decoration: none; font-size: 14px; }
+@media (max-width: 768px) { .carrito-layout { grid-template-columns: 1fr; } }

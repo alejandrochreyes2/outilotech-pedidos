@@ -171,37 +171,9 @@
   <section class="ot-categories" id="categorias">
     <h2>Explora nuestra línea</h2>
     <div class="cat-scroll">
-      <a routerLink="/login" class="cat-pill">
-        <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200&q=80" alt="Mac" />
-        <span>Mac</span><small>Desde $3.799.000</small>
-      </a>
-      <a routerLink="/login" class="cat-pill">
-        <img src="https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=200&q=80" alt="iPhone" />
-        <span>iPhone</span><small>Desde $3.499.000</small>
-      </a>
-      <a routerLink="/login" class="cat-pill">
-        <img src="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=200&q=80" alt="iPad" />
-        <span>iPad</span><small>Desde $1.899.000</small>
-      </a>
-      <a routerLink="/login" class="cat-pill">
-        <img src="https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=200&q=80" alt="Watch" />
-        <span>Watch</span><small>Desde $1.299.000</small>
-      </a>
-      <a routerLink="/login" class="cat-pill">
-        <img src="https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=200&q=80" alt="AirPods" />
-        <span>AirPods</span><small>Desde $699.000</small>
-      </a>
-      <a routerLink="/login" class="cat-pill">
-        <img src="https://images.unsplash.com/photo-1593359677879-a4bb92f829e1?w=200&q=80" alt="TV y Hogar" />
-        <span>TV &amp; Hogar</span><small>Desde $899.000</small>
-      </a>
-      <a routerLink="/login" class="cat-pill">
-        <img src="https://images.unsplash.com/photo-1586495777744-4e6232bf4e91?w=200&q=80" alt="Accesorios" />
-        <span>Accesorios</span><small>Desde $149.000</small>
-      </a>
-      <a routerLink="/login" class="cat-pill ofertas-pill">
-        <img src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=200&q=80" alt="Ofertas" />
-        <span>🔥 Ofertas</span><small>Hasta 50% OFF</small>
+      <a routerLink="/home" fragment="destacados" class="cat-pill" *ngFor="let cat of productosService.getCategorias()">
+        <img src="https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=200&q=80" alt="{{cat}}" />
+        <span>{{cat}}</span>
       </a>
     </div>
   </section>
@@ -211,22 +183,20 @@
     <h2>Productos destacados</h2>
     <div class="products-grid">
 
-      @for (p of products; track p.id) {
-        <div class="product-card">
-          <div class="product-img-wrap">
-            <img [src]="p.img" [alt]="p.name" />
-            <span class="product-badge" [style.background]="p.badgeColor">{{ p.badge }}</span>
-          </div>
-          <div class="product-info">
-            <p class="product-brand">{{ p.brand }}</p>
-            <h4>{{ p.name }}</h4>
-            <div class="product-prices">
-              <span class="new-price">{{ p.price }}</span>
-            </div>
-            <button class="btn-buy" (click)="buyProduct(p)">Agregar al carrito</button>
-          </div>
+      <div class="prod-card" *ngFor="let p of productosService.getDestacados()">
+        <a [routerLink]="['/productos', p.slug]">
+          <span class="prod-badge" *ngIf="p.badge">{{p.badge}}</span>
+          <img [src]="p.imagen" [alt]="p.nombre" class="prod-img"/>
+          <h3 class="prod-nombre">{{p.nombre}}</h3>
+          <p class="prod-precio">{{formatPrecio(p.precio)}}</p>
+        </a>
+        <div class="prod-cantidad">
+          <button (click)="cambiarCantidad(p.id, -1)">−</button>
+          <span>{{getCantidad(p.id)}}</span>
+          <button (click)="cambiarCantidad(p.id, 1)">+</button>
         </div>
-      }
+        <button class="prod-btn-carrito" (click)="agregarAlCarrito(p)">🛒 Agregar al carrito</button>
+      </div>
 
     </div>
   </section>

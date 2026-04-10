@@ -1,40 +1,145 @@
 <div class="pedidos-container">
-  <h2>Pedidos</h2>
 
-  @if (isLoading()) {
-    <p class="loading">Cargando...</p>
-  }
+  @if (error()) { <div class="error">{{ error() }}</div> }
+  @if (success()) { <div class="success">{{ success() }}</div> }
 
-  @if (error()) {
-    <div class="error">{{ error() }}</div>
-  }
-
-  @if (success()) {
-    <div class="success">{{ success() }}</div>
-  }
-
-  @if (auth.isAdmin() || auth.role() === 'Vendedor') {
-    <section class="form-section">
-      <h3>Nuevo pedido</h3>
-      <form [formGroup]="form" (ngSubmit)="crearPedido()">
-        <div class="form-group">
-          <label>Cliente</label>
-          <input formControlName="cliente" type="text" placeholder="Nombre del cliente">
-        </div>
-        <div class="form-group">
-          <label>Total</label>
-          <input formControlName="total" type="number" min="1" step="0.01">
-        </div>
-        <button type="submit" [disabled]="form.invalid || isLoading()">
-          {{ isLoading() ? 'Guardando...' : 'Crear pedido' }}
+  <!-- ===== RELACIÓN DE VENTAS SEMANAL ===== -->
+  <section class="rv-section">
+    <div class="rv-header">
+      <div>
+        <h2>Relación de Ventas Semanal</h2>
+        <p class="rv-subtitle">Registro de transacciones · Semana {{ today | date:'w' }}/{{ today | date:'yyyy' }}</p>
+      </div>
+      @if (auth.isAdmin() || auth.role() === 'Vendedor') {
+        <button class="btn-nueva-venta" (click)="mostrarFormVenta.set(!mostrarFormVenta())">
+          {{ mostrarFormVenta() ? '✕ Cancelar' : '+ Nueva venta' }}
         </button>
-      </form>
-    </section>
-  }
+      }
+    </div>
 
+    @if (mostrarFormVenta()) {
+      <div class="rv-form">
+        <h3>Registrar venta</h3>
+        <div class="rv-form-grid">
+          <div class="rv-field">
+            <label>Fecha</label>
+            <input type="date" [(ngModel)]="nuevaVenta.fecha" />
+          </div>
+          <div class="rv-field">
+            <label>Hora</label>
+            <input type="time" [(ngModel)]="nuevaVenta.hora" />
+          </div>
+          <div class="rv-field rv-wide">
+            <label>Descripción del servicio / producto</label>
+            <input type="text" [(ngModel)]="nuevaVenta.descripcion" placeholder="Ej: iPhone 17 256GB - Sim Física" />
+          </div>
+          <div class="rv-field">
+            <label>Costo unitario ($)</label>
+            <input type="number" [(ngModel)]="nuevaVenta.costo" min="0" />
+          </div>
+          <div class="rv-field">
+            <label>Cantidad</label>
+            <input type="number" [(ngModel)]="nuevaVenta.compras" min="1" />
+          </div>
+          <div class="rv-field">
+            <label>N° Factura (FAC)</label>
+            <input type="text" [(ngModel)]="nuevaVenta.fac" placeholder="FAC-1001" />
+          </div>
+          <div class="rv-field">
+            <label>Cliente</label>
+            <input type="text" [(ngModel)]="nuevaVenta.cliente" placeholder="Nombre del cliente" />
+          </div>
+          <div class="rv-field">
+            <label>Celular</label>
+            <input type="tel" [(ngModel)]="nuevaVenta.celular" placeholder="300 000 0000" />
+          </div>
+          <div class="rv-field rv-wide">
+            <label>Observaciones</label>
+            <input type="text" [(ngModel)]="nuevaVenta.observaciones" placeholder="Color, IMEI, estado, garantía..." />
+          </div>
+        </div>
+        <button class="btn-guardar-venta" (click)="agregarVenta()">Guardar venta</button>
+      </div>
+    }
+
+    <div class="rv-table-wrap">
+      <table class="rv-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Descripción servicio / producto</th>
+            <th>Costo unit.</th>
+            <th>Compras</th>
+            <th>Total</th>
+            <th>FAC</th>
+            <th>Cliente</th>
+            <th>Celular</th>
+            <th>Observaciones</th>
+            @if (auth.isAdmin() || auth.role() === 'Vendedor') { <th></th> }
+          </tr>
+        </thead>
+        <tbody>
+          @for (v of relacionVentas(); track v.id) {
+            <tr>
+              <td>{{ v.fecha }}</td>
+              <td>{{ v.hora }}</td>
+              <td class="td-desc">{{ v.descripcion }}</td>
+              <td>{{ formatPrecio(v.costo) }}</td>
+              <td class="td-center">{{ v.compras }}</td>
+              <td class="td-total">{{ formatPrecio(v.costo * v.compras) }}</td>
+              <td><span class="fac-badge">{{ v.fac }}</span></td>
+              <td>{{ v.cliente }}</td>
+              <td>{{ v.celular }}</td>
+              <td class="td-obs">{{ v.observaciones }}</td>
+              @if (auth.isAdmin() || auth.role() === 'Vendedor') {
+                <td><button class="btn-del" (click)="eliminarVenta(v.id)">🗑️</button></td>
+              }
+            </tr>
+          } @empty {
+            <tr><td colspan="11" class="td-empty">No hay ventas registradas esta semana. Usa "+ Nueva venta" para agregar.</td></tr>
+          }
+        </tbody>
+        @if (relacionVentas().length > 0) {
+          <tfoot>
+            <tr class="rv-totals">
+              <td colspan="5">Total semana</td>
+              <td class="td-total">{{ formatPrecio(totalCostoSemana) }}</td>
+              <td colspan="5"></td>
+            </tr>
+          </tfoot>
+        }
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== PEDIDOS DEL SISTEMA ===== -->
   <section class="list-section">
-    <h3>Lista de pedidos ({{ pedidos().length }})</h3>
-    <table>
+    <div class="rv-header">
+      <h2>Pedidos del sistema ({{ pedidos().length }})</h2>
+      @if (isLoading()) { <span class="loading-inline">Cargando...</span> }
+    </div>
+
+    @if (auth.isAdmin() || auth.role() === 'Vendedor') {
+      <div class="form-section">
+        <h3>Nuevo pedido manual</h3>
+        <form [formGroup]="form" (ngSubmit)="crearPedido()" class="pedido-form">
+          <div class="form-group">
+            <label>Cliente</label>
+            <input formControlName="cliente" type="text" placeholder="Nombre del cliente">
+          </div>
+          <div class="form-group">
+            <label>Total ($)</label>
+            <input formControlName="total" type="number" min="1" step="0.01">
+          </div>
+          <button type="submit" [disabled]="form.invalid || isLoading()">
+            {{ isLoading() ? 'Guardando...' : 'Crear pedido' }}
+          </button>
+        </form>
+      </div>
+    }
+
+    <table class="pedidos-table">
       <thead>
         <tr>
           <th>#</th><th>Cliente</th><th>Total</th><th>Fecha</th>
@@ -45,13 +150,14 @@
           <tr>
             <td>{{ pedido.id }}</td>
             <td>{{ pedido.cliente }}</td>
-            <td>$ {{ pedido.total | number:'1.2-2' }}</td>
-            <td>{{ pedido.fecha | date:'short' }}</td>
+            <td>{{ formatPrecio(pedido.total) }}</td>
+            <td>{{ pedido.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
           </tr>
         } @empty {
-          <tr><td colspan="4" class="empty">No hay pedidos registrados</td></tr>
+          <tr><td colspan="4" class="td-empty">No hay pedidos registrados</td></tr>
         }
       </tbody>
     </table>
   </section>
+
 </div>

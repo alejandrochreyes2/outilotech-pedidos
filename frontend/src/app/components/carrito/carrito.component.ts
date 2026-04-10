@@ -4,13 +4,13 @@ import { RouterModule } from '@angular/router';
 import { CartService } from '../../services/cart.service';
 
 @Component({
-  selector: 'app-cart-dropdown',
+  selector: 'app-carrito',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  templateUrl: './cart-dropdown.component.html',
-  styleUrls: ['./cart-dropdown.component.css']
+  templateUrl: './carrito.component.html',
+  styleUrls: ['./carrito.component.css']
 })
-export class CartDropdownComponent {
+export class CarritoComponent {
   constructor(public cartService: CartService) {}
   formatPrecio(p: number): string {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(p);

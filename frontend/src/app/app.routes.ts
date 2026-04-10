@@ -13,9 +13,13 @@ import { ContactoComponent } from './components/contacto/contacto.component';
 import { SimuladorComponent } from './components/simulador/simulador.component';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
+import { ProductoDetalleComponent } from './components/producto-detalle/producto-detalle.component';
+import { CarritoComponent } from './components/carrito/carrito.component';
 
 export const routes: Routes = [
   { path: '',        redirectTo: '/home',      pathMatch: 'full' },
+  { path: 'productos/:slug', component: ProductoDetalleComponent },
+  { path: 'carrito', component: CarritoComponent },
   { path: 'home',   component: HomeComponent },
   { path: 'login',  component: LoginComponent },
   { path: 'acerca', component: AcercaComponent },
@@ -39,7 +43,7 @@ export const routes: Routes = [
   { path: 'apple',      redirectTo: 'home', pathMatch: 'full' },
   { path: 'samsung',    redirectTo: 'home', pathMatch: 'full' },
   { path: 'motorola',   redirectTo: 'home', pathMatch: 'full' },
-  { path: 'carrito',    redirectTo: 'home', pathMatch: 'full' },
+
   { path: 'checkout', loadComponent: () => import('./components/checkout/checkout.component').then(m => m.CheckoutComponent) },
   { path: 'nosotros', loadComponent: () => import('./components/nosotros/nosotros.component').then(m => m.NosotrosComponent) },
   { path: 'mision-vision', loadComponent: () => import('./components/mision-vision/mision-vision.component').then(m => m.MisionVisionComponent) },

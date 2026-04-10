@@ -138,6 +138,13 @@
 .td-total { font-weight: 700; color: #1a1a1a; }
 .td-fecha { color: #666; font-size: 13px; white-space: nowrap; }
 .badge-ok { background: #dcfce7; color: #16a34a; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; white-space: nowrap; }
+.factura-table { min-width: 1000px; }
+.fac-num { background: #e8f0fe; color: #1a73e8; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.td-hora { color: #888; font-size: 12px; white-space: nowrap; }
+.td-center { text-align: center; }
+.td-desc { font-size: 13px; color: #555; max-width: 200px; }
+.td-imei { font-size: 12px; color: #aaa; }
+.td-total-bold { font-weight: 800; color: #0071e3; font-size: 15px; }
 
 @media (max-width: 600px) {
   .dash-header { padding: 24px 20px 32px; }

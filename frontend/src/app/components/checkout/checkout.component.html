@@ -1,287 +1,165 @@
-<app-navbar></app-navbar>
+<div class="co-page">
+  <div class="co-container">
+    <!-- Izquierda: Formulario -->
+    <div class="co-form">
+      <div class="co-logo">
+        <a routerLink="/home">← Volver a la tienda</a>
+      </div>
 
-<!-- PANTALLA DE ÉXITO -->
-@if (pagado()) {
-  <div class="checkout-success">
-    <div class="success-card">
-      <div class="success-icon">✅</div>
-      <h2>¡Pago realizado con éxito!</h2>
-      <p>Tu pedido ha sido procesado correctamente. Recibirás una confirmación a tu correo electrónico.</p>
-      <button class="btn-back-home" (click)="volverHome()">Volver al inicio</button>
-    </div>
-  </div>
-}
+      <!-- CONTACTO -->
+      <div class="co-section">
+        <h2>Contacto</h2>
+        <input [(ngModel)]="form.email" type="email" placeholder="Correo electrónico" class="co-input" required/>
+        <input [(ngModel)]="form.telefono" type="tel" placeholder="Teléfono / Celular" class="co-input" required/>
+      </div>
 
-@if (!pagado()) {
-<div class="checkout-page">
+      <!-- ENTREGA -->
+      <div class="co-section">
+        <h2>Entrega</h2>
+        <div class="co-row">
+          <input [(ngModel)]="form.nombre" type="text" placeholder="Nombre" class="co-input" required/>
+          <input [(ngModel)]="form.apellido" type="text" placeholder="Apellido" class="co-input" required/>
+        </div>
+        <input [(ngModel)]="form.empresa" type="text" placeholder="Empresa (opcional)" class="co-input"/>
+        <select [(ngModel)]="form.ciudad" class="co-input" required>
+          <option value="">Selecciona tu ciudad</option>
+          <option value="Bogotá">Bogotá</option>
+          <option value="Medellín">Medellín</option>
+          <option value="Cali">Cali</option>
+          <option value="Barranquilla">Barranquilla</option>
+          <option value="Cartagena">Cartagena</option>
+          <option value="Bucaramanga">Bucaramanga</option>
+          <option value="Otra">Otra ciudad</option>
+        </select>
+        <input [(ngModel)]="form.direccion" type="text" placeholder="Dirección" class="co-input" required/>
+        <input [(ngModel)]="form.barrio" type="text" placeholder="Barrio / Apto / Casa (opcional)" class="co-input"/>
+        <div class="co-row">
+          <select [(ngModel)]="form.tipoId" class="co-input" required>
+            <option value="">Tipo de identificación</option>
+            <option value="CC">Cédula de Ciudadanía</option>
+            <option value="NIT">NIT</option>
+            <option value="CE">Cédula Extranjería</option>
+            <option value="PA">Pasaporte</option>
+          </select>
+          <input [(ngModel)]="form.numeroId" type="text" placeholder="N° de identificación" class="co-input" required/>
+        </div>
+      </div>
 
-  <!-- HEADER CHECKOUT -->
-  <div class="checkout-header">
-    <a routerLink="/home" class="co-brand">
-      <svg viewBox="0 0 260 52" width="140" height="30" xmlns="http://www.w3.org/2000/svg">
-        <polyline points="0,32 12,32 17,18 22,42 27,10 32,32 46,32" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="62" cy="24" r="13" fill="none" stroke="white" stroke-width="2.5" stroke-dasharray="60 20" stroke-dashoffset="10"/>
-        <line x1="62" y1="11" x2="62" y2="24" stroke="white" stroke-width="3" stroke-linecap="round"/>
-        <text x="78" y="36" font-family="Arial Black,sans-serif" font-weight="900" font-size="28" fill="white" letter-spacing="-0.5">UTIL</text>
-        <text x="148" y="36" font-family="Arial Black,sans-serif" font-weight="900" font-size="28" fill="white" letter-spacing="-0.5">TECH</text>
-        <polyline points="214,32 222,32 227,18 232,42 237,10 242,32 260,32" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </a>
-    <div class="co-steps">
-      <span class="co-step active">Carrito</span>
-      <span class="co-sep">›</span>
-      <span class="co-step active">Pago</span>
-      <span class="co-sep">›</span>
-      <span class="co-step">Confirmación</span>
-    </div>
-    <div class="co-secure">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-      Pago seguro SSL
-    </div>
-  </div>
-
-  <div class="checkout-body">
-
-    <!-- ===== COLUMNA IZQUIERDA ===== -->
-    <div class="co-left">
-
-      <h2 class="co-section-title">Método de pago</h2>
-      <p class="co-section-sub">Todas las transacciones son seguras y están encriptadas.</p>
-
-      <!-- SELECTOR MÉTODOS -->
-      <div class="co-metodos">
-
-        <!-- TARJETA -->
-        <label class="co-metodo" [class.selected]="metodoPago()==='tarjeta'" (click)="setMetodo('tarjeta')">
-          <div class="co-metodo-left">
-            <div class="co-radio" [class.active]="metodoPago()==='tarjeta'"></div>
-            <span class="co-metodo-label">Tarjetas de Crédito y Débito</span>
-          </div>
-          <div class="co-card-logos">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/200px-Visa_Inc._logo.svg.png" alt="Visa" class="card-logo"/>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/200px-Mastercard-logo.svg.png" alt="Mastercard" class="card-logo"/>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/American_Express_logo_%282018%29.svg/200px-American_Express_logo_%282018%29.svg.png" alt="Amex" class="card-logo amex"/>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Diners_Club_Logo3.svg/200px-Diners_Club_Logo3.svg.png" alt="Diners" class="card-logo"/>
-          </div>
+      <!-- MÉTODO DE ENVÍO -->
+      <div class="co-section">
+        <h2>Método de envío</h2>
+        <label class="co-radio-card">
+          <input type="radio" [(ngModel)]="form.envio" value="domicilio"/>
+          <span><strong>Envío a domicilio</strong> — GRATIS (1-3 días hábiles)</span>
         </label>
-
-        @if (metodoPago()==='tarjeta') {
-          <div class="co-form-section">
-            <div class="co-field-group">
-              <input class="co-input" type="text" placeholder="Número de tarjeta" maxlength="19"
-                [value]="cardNumber" (input)="onCardInput($event)"/>
-              <span class="co-input-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-              </span>
-            </div>
-            <div class="co-row-2">
-              <input class="co-input" type="text" placeholder="Fecha de vencimiento (MM / AA)" maxlength="9"
-                [value]="cardExpiry" (input)="onExpiryInput($event)"/>
-              <div class="co-field-group">
-                <input class="co-input" type="text" placeholder="Código de seguridad" maxlength="4" [(ngModel)]="cardCvv"/>
-                <span class="co-input-icon">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
-                </span>
-              </div>
-            </div>
-            <input class="co-input" type="text" placeholder="Nombre del titular" [(ngModel)]="cardName"/>
-            <div class="co-row-2">
-              <select class="co-input co-select" [(ngModel)]="docTipo">
-                <option value="CC">C.C.</option>
-                <option value="CE">C.E.</option>
-                <option value="NIT">NIT</option>
-                <option value="PP">Pasaporte</option>
-              </select>
-              <input class="co-input" type="text" placeholder="Número de documento" [(ngModel)]="docNumero"/>
-            </div>
-            <select class="co-input co-select" [(ngModel)]="cuotas">
-              <option value="1">1 cuota (sin intereses)</option>
-              <option value="3">3 cuotas</option>
-              <option value="6">6 cuotas</option>
-              <option value="12">12 cuotas</option>
-              <option value="24">24 cuotas</option>
-              <option value="36">36 cuotas</option>
-            </select>
-            <p class="co-cuotas-note">Si hay intereses, los aplicará y cobrará tu banco.</p>
-          </div>
-        }
-
-        <!-- PSE -->
-        <label class="co-metodo" [class.selected]="metodoPago()==='pse'" (click)="setMetodo('pse')">
-          <div class="co-metodo-left">
-            <div class="co-radio" [class.active]="metodoPago()==='pse'"></div>
-            <span class="co-metodo-label">PSE y billetera Mercado Pago</span>
-          </div>
-          <div class="co-card-logos">
-            <span class="co-pse-badge">PSE</span>
-            <span class="co-mp-badge">MP</span>
-          </div>
+        <label class="co-radio-card">
+          <input type="radio" [(ngModel)]="form.envio" value="tienda"/>
+          <span><strong>Recoger en tienda</strong> — Cra 2A No 18A-52, Bogotá</span>
         </label>
+      </div>
 
-        @if (metodoPago()==='pse') {
-          <div class="co-form-section">
-            <select class="co-input co-select" [(ngModel)]="banco">
-              <option value="" disabled>Selecciona tu banco</option>
-              @for (b of bancos; track b) {
-                <option [value]="b">{{b}}</option>
-              }
-            </select>
-            <div class="co-row-2">
-              <select class="co-input co-select" [(ngModel)]="tipoCuentaPse">
-                <option value="CC">Cuenta corriente</option>
-                <option value="CA">Cuenta de ahorros</option>
-              </select>
-              <input class="co-input" type="text" placeholder="Número de documento" [(ngModel)]="docPse"/>
-            </div>
-            <div class="co-pse-info">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
-              Serás redirigido a tu banco para completar el pago de forma segura.
-            </div>
-          </div>
-        }
-
-        <!-- PAYPAL -->
-        <label class="co-metodo" [class.selected]="metodoPago()==='paypal'" (click)="setMetodo('paypal')">
-          <div class="co-metodo-left">
-            <div class="co-radio" [class.active]="metodoPago()==='paypal'"></div>
-            <span class="co-metodo-label">PayPal</span>
-          </div>
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PayPal.svg/200px-PayPal.svg.png" alt="PayPal" class="card-logo paypal-logo"/>
+      <!-- MÉTODO DE PAGO -->
+      <div class="co-section">
+        <h2>Método de pago</h2>
+        <label class="co-radio-card" [class.selected]="form.metodoPago === 'tarjeta'">
+          <input type="radio" [(ngModel)]="form.metodoPago" value="tarjeta"/>
+          <span><strong>Tarjetas de Crédito y Débito</strong></span>
+          <div class="pago-badges"><span class="pago-badge visa">VISA</span><span class="pago-badge mc">MC</span></div>
         </label>
-
-        @if (metodoPago()==='paypal') {
-          <div class="co-form-section">
-            <div class="co-paypal-info">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#009cde" stroke-width="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
-              <p>Al hacer clic en <strong>"Pagar ahora"</strong> serás redirigido a PayPal para completar tu pago de forma segura. No es necesario tener cuenta PayPal — puedes pagar con tu tarjeta.</p>
-            </div>
+        <div class="co-tarjeta" *ngIf="form.metodoPago === 'tarjeta'">
+          <input [(ngModel)]="form.numTarjeta" type="text" placeholder="Número de tarjeta" class="co-input" maxlength="19"/>
+          <div class="co-row">
+            <input [(ngModel)]="form.fechaTarjeta" type="text" placeholder="MM / AA" class="co-input"/>
+            <input [(ngModel)]="form.cvv" type="text" placeholder="CVV" class="co-input" maxlength="4"/>
           </div>
-        }
-
-        <!-- NEQUI / DAVIPLATA -->
-        <label class="co-metodo" [class.selected]="metodoPago()==='nequi'" (click)="setMetodo('nequi')">
-          <div class="co-metodo-left">
-            <div class="co-radio" [class.active]="metodoPago()==='nequi'"></div>
-            <span class="co-metodo-label">Nequi / Daviplata</span>
-          </div>
-          <div class="co-card-logos">
-            <span class="co-nequi-badge">Nequi</span>
-            <span class="co-davi-badge">Daviplata</span>
-          </div>
+          <input [(ngModel)]="form.titularTarjeta" type="text" placeholder="Nombre del titular" class="co-input"/>
+          <select [(ngModel)]="form.cuotas" class="co-input">
+            <option value="1">1 cuota (sin intereses)</option>
+            <option value="3">3 cuotas</option>
+            <option value="6">6 cuotas</option>
+            <option value="12">12 cuotas</option>
+            <option value="18">18 cuotas</option>
+          </select>
+        </div>
+        <label class="co-radio-card" [class.selected]="form.metodoPago === 'pse'">
+          <input type="radio" [(ngModel)]="form.metodoPago" value="pse"/>
+          <span><strong>PSE y billetera Mercado Pago</strong></span>
+          <span class="pago-badge pse">PSE</span>
         </label>
+        <div class="co-pse" *ngIf="form.metodoPago === 'pse'">
+          <select [(ngModel)]="form.banco" class="co-input">
+            <option value="">Selecciona tu banco</option>
+            <option>Bancolombia</option><option>Davivienda</option><option>Banco de Bogotá</option>
+            <option>BBVA</option><option>Banco Popular</option><option>Colpatria</option>
+          </select>
+          <select [(ngModel)]="form.tipoCuenta" class="co-input">
+            <option value="">Tipo de cuenta</option>
+            <option value="ahorros">Ahorros</option><option value="corriente">Corriente</option>
+          </select>
+        </div>
+        <label class="co-radio-card" [class.selected]="form.metodoPago === 'nequi'">
+          <input type="radio" [(ngModel)]="form.metodoPago" value="nequi"/>
+          <span><strong>Nequi / Daviplata</strong></span>
+          <div class="pago-badges"><span class="pago-badge nequi">Nequi</span><span class="pago-badge daviplata">Daviplata</span></div>
+        </label>
+        <label class="co-radio-card" [class.selected]="form.metodoPago === 'efectivo'">
+          <input type="radio" [(ngModel)]="form.metodoPago" value="efectivo"/>
+          <span><strong>Pago en efectivo</strong> (Efecty / Baloto)</span>
+        </label>
+      </div>
 
-        @if (metodoPago()==='nequi') {
-          <div class="co-form-section">
-            <div class="co-nequi-switch">
-              <button class="co-nequi-btn" [class.active]="operador==='nequi'" (click)="operador='nequi'">Nequi</button>
-              <button class="co-nequi-btn" [class.active]="operador==='daviplata'" (click)="operador='daviplata'">Daviplata</button>
-            </div>
-            <input class="co-input" type="tel" placeholder="Número de celular" maxlength="10" [(ngModel)]="celular"/>
-            <div class="co-pse-info">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
-              Recibirás una notificación push en tu app {{operador === 'nequi' ? 'Nequi' : 'Daviplata'}} para aprobar el pago.
-            </div>
-          </div>
-        }
-
-      </div><!-- /co-metodos -->
-
-      <!-- DIRECCIÓN FACTURACIÓN -->
-      <div class="co-billing">
-        <label class="co-checkbox-row">
-          <input type="checkbox" checked/>
-          <span>Usar la dirección de Entrega <span class="co-rec">(RECOMENDADO)</span></span>
+      <!-- DATOS DE FACTURACIÓN -->
+      <div class="co-section">
+        <h2>Datos de Facturación</h2>
+        <label class="co-radio-card">
+          <input type="radio" [(ngModel)]="form.facturacion" value="misma"/>
+          <span>La misma dirección de entrega (RECOMENDADO)</span>
+        </label>
+        <label class="co-radio-card">
+          <input type="radio" [(ngModel)]="form.facturacion" value="otra"/>
+          <span>Usar datos de facturación distintos</span>
         </label>
       </div>
 
       <!-- TÉRMINOS -->
-      <label class="co-checkbox-row co-terminos">
-        <input type="checkbox" [(ngModel)]="aceptaTerminos"/>
-        <span>Acepto los <a href="#" class="co-link">Términos y Condiciones</a> y <a href="#" class="co-link">Política de Garantías</a></span>
-      </label>
+      <div class="co-section">
+        <label class="co-check">
+          <input type="checkbox" [(ngModel)]="form.terminos"/>
+          <span>Acepto los <a href="#" class="co-link">Términos y Condiciones</a> y <a href="#" class="co-link">Política de Garantías</a></span>
+        </label>
+      </div>
 
       <!-- BOTÓN PAGAR -->
-      <button class="btn-pagar" (click)="pagar()" [disabled]="!aceptaTerminos || procesando()">
-        @if (procesando()) {
-          <span class="co-spinner"></span> Procesando pago...
-        } @else {
-          🔒 Pagar ahora — {{ formatCOP(total) }}
-        }
+      <button class="co-btn-pagar" (click)="procesarPago()" [disabled]="procesando || !form.terminos">
+        <span *ngIf="!procesando">🔒 Completar pago — {{formatPrecio(cartService.total())}}</span>
+        <span *ngIf="procesando">Procesando pago...</span>
       </button>
+    </div>
 
-    </div><!-- /co-left -->
-
-    <!-- ===== COLUMNA DERECHA ===== -->
-    <div class="co-right">
-
-      <!-- PRODUCTOS DEL CARRITO -->
-      <div class="co-order-items">
-        @if (cart.cartCount() === 0) {
-          <div class="co-empty-cart">
-            <p>Tu carrito está vacío.</p>
-            <a routerLink="/home" class="co-link">← Seguir comprando</a>
+    <!-- Derecha: Resumen -->
+    <div class="co-resumen">
+      <div class="co-resumen-items">
+        <div class="co-resumen-item" *ngFor="let item of cartService.items()">
+          <div class="co-resumen-img-wrap">
+            <img [src]="item.producto.imagen" [alt]="item.producto.nombre"/>
+            <span class="co-qty-badge">{{item.cantidad}}</span>
           </div>
-        }
-        @for (item of cart.cartItems(); track item.id) {
-          <div class="co-order-item">
-            <div class="co-item-img-wrap">
-              <img [src]="item.img" [alt]="item.name"/>
-              <span class="co-qty-badge">{{item.quantity}}</span>
-            </div>
-            <div class="co-item-detail">
-              <p class="co-item-brand">{{item.brand}}</p>
-              <p class="co-item-name">{{item.name}}</p>
-            </div>
-            <span class="co-item-price">{{ formatCOP(item.priceNum * item.quantity) }}</span>
+          <div class="co-resumen-info">
+            <p>{{item.producto.nombre}}</p>
+            <small *ngIf="item.variante">{{item.variante.storage || item.variante.color}}</small>
           </div>
-        }
-      </div>
-
-      <!-- DESCUENTO -->
-      <div class="co-discount">
-        <input class="co-input" type="text" placeholder="Código de descuento" [(ngModel)]="codigoDesc"/>
-        <button class="btn-apply">Aplicar</button>
-      </div>
-
-      <!-- UPSELL -->
-      <div class="co-upsell">
-        <p class="co-upsell-title">Complementa tu compra</p>
-        @for (c of complementos; track c.name) {
-          <div class="co-upsell-item">
-            <img [src]="c.img" [alt]="c.name"/>
-            <div class="co-upsell-info">
-              <p>{{c.name}}</p>
-              <span>{{c.price}}</span>
-            </div>
-            <button class="btn-agregar">Agregar</button>
-          </div>
-        }
-      </div>
-
-      <!-- TOTALES -->
-      <div class="co-totals">
-        <div class="co-total-row">
-          <span>Subtotal</span>
-          <span>{{ formatCOP(subtotal) }}</span>
+          <p class="co-resumen-precio">{{formatPrecio(item.subtotal)}}</p>
         </div>
-        <div class="co-total-row">
-          <span>Envío <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg></span>
-          <span class="co-gratis">GRATIS</span>
-        </div>
-        <div class="co-total-row co-total-final">
-          <span>Total</span>
-          <div class="co-total-right">
-            <span class="co-cop">COP</span>
-            <strong>{{ formatCOP(total) }}</strong>
-          </div>
-        </div>
-        @if (metodoPago()==='tarjeta' && cuotas !== '1') {
-          <p class="co-impuesto">Incluye IVA. Cuotas sujetas a aprobación del banco.</p>
-        }
       </div>
-
-    </div><!-- /co-right -->
-
-  </div><!-- /checkout-body -->
+      <div class="co-resumen-discount">
+        <input [(ngModel)]="codigoDescuento" placeholder="Código de descuento" class="co-input-sm"/>
+        <button (click)="aplicarDescuento()">Aplicar</button>
+      </div>
+      <div class="co-resumen-totales">
+        <div class="co-total-row"><span>Subtotal</span><span>{{formatPrecio(cartService.subtotal())}}</span></div>
+        <div class="co-total-row"><span>Envío</span><span class="gratis">GRATIS</span></div>
+        <div class="co-total-final"><span>Total</span><strong>COP {{formatPrecio(cartService.total())}}</strong></div>
+      </div>
+    </div>
+  </div>
 </div>
-}

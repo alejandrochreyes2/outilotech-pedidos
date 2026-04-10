@@ -1,0 +1,38 @@
+<div class="carrito-page">
+  <div class="carrito-container">
+    <h1>Tu carrito</h1>
+    <div class="carrito-empty" *ngIf="cartService.items().length === 0">
+      <p>Tu carrito está vacío</p>
+      <a routerLink="/home" class="btn-volver">← Seguir comprando</a>
+    </div>
+    <div class="carrito-layout" *ngIf="cartService.items().length > 0">
+      <div class="carrito-items">
+        <div class="carrito-item" *ngFor="let item of cartService.items(); let i = index">
+          <img [src]="item.producto.imagen" [alt]="item.producto.nombre"/>
+          <div class="carrito-item-info">
+            <h3>{{item.producto.nombre}}</h3>
+            <p *ngIf="item.variante">{{item.variante.storage || item.variante.color}}</p>
+            <p class="carrito-garantia">🛡️ {{item.producto.garantia}}</p>
+          </div>
+          <div class="carrito-item-qty">
+            <button (click)="cartService.actualizarCantidad(i, item.cantidad - 1)">−</button>
+            <span>{{item.cantidad}}</span>
+            <button (click)="cartService.actualizarCantidad(i, item.cantidad + 1)">+</button>
+          </div>
+          <div class="carrito-item-precio">
+            <p>{{formatPrecio(item.subtotal)}}</p>
+            <button (click)="cartService.eliminarItem(i)" class="btn-eliminar">Eliminar</button>
+          </div>
+        </div>
+      </div>
+      <div class="carrito-resumen">
+        <h2>Resumen del pedido</h2>
+        <div class="resumen-row"><span>Subtotal</span><span>{{formatPrecio(cartService.subtotal())}}</span></div>
+        <div class="resumen-row"><span>Envío</span><span class="gratis">GRATIS</span></div>
+        <div class="resumen-total"><span>Total</span><strong>{{formatPrecio(cartService.total())}}</strong></div>
+        <a routerLink="/checkout" class="btn-checkout">Finalizar pedido →</a>
+        <a routerLink="/home" class="btn-seguir">← Seguir comprando</a>
+      </div>
+    </div>
+  </div>
+</div>
