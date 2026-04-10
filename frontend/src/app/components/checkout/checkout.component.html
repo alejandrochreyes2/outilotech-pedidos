@@ -1,165 +1,339 @@
-<div class="co-page">
-  <div class="co-container">
-    <!-- Izquierda: Formulario -->
-    <div class="co-form">
-      <div class="co-logo">
-        <a routerLink="/home">← Volver a la tienda</a>
-      </div>
+<div class="checkout-page">
+
+  <!-- HEADER -->
+  <header class="checkout-header">
+    <a routerLink="/home" class="co-brand">
+      <svg viewBox="0 0 180 36" width="140" height="28" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="26" font-family="Arial Black,sans-serif" font-weight="900" font-size="22" fill="white" letter-spacing="-0.5">OUTIL</text>
+        <text x="70" y="26" font-family="Arial Black,sans-serif" font-weight="900" font-size="22" fill="#FF6B00" letter-spacing="-0.5">TECH</text>
+      </svg>
+    </a>
+    <div class="co-steps">
+      <span class="co-step">Carrito</span>
+      <span class="co-sep">›</span>
+      <span class="co-step active">Información</span>
+      <span class="co-sep">›</span>
+      <span class="co-step">Envío</span>
+      <span class="co-sep">›</span>
+      <span class="co-step">Pago</span>
+    </div>
+    <div class="co-secure">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Pago seguro SSL
+    </div>
+  </header>
+
+  <div class="checkout-body">
+
+    <!-- ===== COLUMNA IZQUIERDA ===== -->
+    <div class="co-left">
 
       <!-- CONTACTO -->
-      <div class="co-section">
-        <h2>Contacto</h2>
+      <p class="co-section-title">Contacto</p>
+      <p class="co-section-sub">Necesitamos estos datos para enviarte la confirmación del pedido</p>
+      <div class="co-metodos" style="border-radius:10px;overflow:visible;border:none;gap:10px;display:flex;flex-direction:column;margin-bottom:28px">
         <input [(ngModel)]="form.email" type="email" placeholder="Correo electrónico" class="co-input" required/>
         <input [(ngModel)]="form.telefono" type="tel" placeholder="Teléfono / Celular" class="co-input" required/>
       </div>
 
       <!-- ENTREGA -->
-      <div class="co-section">
-        <h2>Entrega</h2>
-        <div class="co-row">
+      <p class="co-section-title">Entrega</p>
+      <p class="co-section-sub">¿A dónde enviamos tu pedido?</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px">
+        <div class="co-row-2">
           <input [(ngModel)]="form.nombre" type="text" placeholder="Nombre" class="co-input" required/>
           <input [(ngModel)]="form.apellido" type="text" placeholder="Apellido" class="co-input" required/>
         </div>
         <input [(ngModel)]="form.empresa" type="text" placeholder="Empresa (opcional)" class="co-input"/>
-        <select [(ngModel)]="form.ciudad" class="co-input" required>
-          <option value="">Selecciona tu ciudad</option>
-          <option value="Bogotá">Bogotá</option>
-          <option value="Medellín">Medellín</option>
-          <option value="Cali">Cali</option>
-          <option value="Barranquilla">Barranquilla</option>
-          <option value="Cartagena">Cartagena</option>
-          <option value="Bucaramanga">Bucaramanga</option>
-          <option value="Otra">Otra ciudad</option>
-        </select>
-        <input [(ngModel)]="form.direccion" type="text" placeholder="Dirección" class="co-input" required/>
-        <input [(ngModel)]="form.barrio" type="text" placeholder="Barrio / Apto / Casa (opcional)" class="co-input"/>
-        <div class="co-row">
-          <select [(ngModel)]="form.tipoId" class="co-input" required>
-            <option value="">Tipo de identificación</option>
-            <option value="CC">Cédula de Ciudadanía</option>
-            <option value="NIT">NIT</option>
-            <option value="CE">Cédula Extranjería</option>
-            <option value="PA">Pasaporte</option>
+        <div class="co-field-group">
+          <select [(ngModel)]="form.ciudad" class="co-input co-select" required>
+            <option value="">Selecciona tu ciudad</option>
+            <option value="Bogotá">Bogotá</option>
+            <option value="Medellín">Medellín</option>
+            <option value="Cali">Cali</option>
+            <option value="Barranquilla">Barranquilla</option>
+            <option value="Cartagena">Cartagena</option>
+            <option value="Bucaramanga">Bucaramanga</option>
+            <option value="Otra">Otra ciudad</option>
           </select>
+          <span class="co-input-icon">▾</span>
+        </div>
+        <input [(ngModel)]="form.direccion" type="text" placeholder="Dirección (Calle, Carrera, #)" class="co-input" required/>
+        <input [(ngModel)]="form.barrio" type="text" placeholder="Barrio / Apto / Conjunto (opcional)" class="co-input"/>
+        <div class="co-row-2">
+          <div class="co-field-group">
+            <select [(ngModel)]="form.tipoId" class="co-input co-select" required>
+              <option value="">Tipo de identificación</option>
+              <option value="CC">Cédula de Ciudadanía</option>
+              <option value="NIT">NIT</option>
+              <option value="CE">Cédula Extranjería</option>
+              <option value="PA">Pasaporte</option>
+            </select>
+            <span class="co-input-icon">▾</span>
+          </div>
           <input [(ngModel)]="form.numeroId" type="text" placeholder="N° de identificación" class="co-input" required/>
         </div>
       </div>
 
       <!-- MÉTODO DE ENVÍO -->
-      <div class="co-section">
-        <h2>Método de envío</h2>
-        <label class="co-radio-card">
-          <input type="radio" [(ngModel)]="form.envio" value="domicilio"/>
-          <span><strong>Envío a domicilio</strong> — GRATIS (1-3 días hábiles)</span>
-        </label>
-        <label class="co-radio-card">
-          <input type="radio" [(ngModel)]="form.envio" value="tienda"/>
-          <span><strong>Recoger en tienda</strong> — Cra 2A No 18A-52, Bogotá</span>
-        </label>
+      <p class="co-section-title">Métodos de envío</p>
+      <p class="co-section-sub">Selecciona cómo recibirás tu pedido</p>
+      <div class="co-metodos" style="margin-bottom:28px">
+        <div class="co-metodo" [class.selected]="form.envio === 'domicilio'" (click)="form.envio = 'domicilio'">
+          <div class="co-metodo-left">
+            <div class="co-radio" [class.active]="form.envio === 'domicilio'"></div>
+            <span class="co-metodo-label"><strong>Envío a domicilio</strong> — Todas las ciudades de Colombia (1-3 días hábiles)</span>
+          </div>
+          <span style="color:#4ade80;font-weight:700;font-size:13px">GRATIS</span>
+        </div>
+        <div class="co-metodo" [class.selected]="form.envio === 'tienda'" (click)="form.envio = 'tienda'">
+          <div class="co-metodo-left">
+            <div class="co-radio" [class.active]="form.envio === 'tienda'"></div>
+            <span class="co-metodo-label"><strong>Recoger en tienda</strong> — Cra 2A No 18A-52, Bogotá · Lun-Sáb 9am-7pm</span>
+          </div>
+          <span style="color:#4ade80;font-weight:700;font-size:13px">GRATIS</span>
+        </div>
       </div>
 
       <!-- MÉTODO DE PAGO -->
-      <div class="co-section">
-        <h2>Método de pago</h2>
-        <label class="co-radio-card" [class.selected]="form.metodoPago === 'tarjeta'">
-          <input type="radio" [(ngModel)]="form.metodoPago" value="tarjeta"/>
-          <span><strong>Tarjetas de Crédito y Débito</strong></span>
-          <div class="pago-badges"><span class="pago-badge visa">VISA</span><span class="pago-badge mc">MC</span></div>
-        </label>
-        <div class="co-tarjeta" *ngIf="form.metodoPago === 'tarjeta'">
-          <input [(ngModel)]="form.numTarjeta" type="text" placeholder="Número de tarjeta" class="co-input" maxlength="19"/>
-          <div class="co-row">
-            <input [(ngModel)]="form.fechaTarjeta" type="text" placeholder="MM / AA" class="co-input"/>
-            <input [(ngModel)]="form.cvv" type="text" placeholder="CVV" class="co-input" maxlength="4"/>
+      <p class="co-section-title">Método de pago</p>
+      <p class="co-section-sub">Todas las transacciones son seguras y están encriptadas</p>
+      <div class="co-metodos" style="margin-bottom:28px">
+
+        <!-- TARJETA -->
+        <div class="co-metodo" [class.selected]="form.metodoPago === 'tarjeta'" (click)="form.metodoPago = 'tarjeta'">
+          <div class="co-metodo-left">
+            <div class="co-radio" [class.active]="form.metodoPago === 'tarjeta'"></div>
+            <span class="co-metodo-label">Tarjetas de Crédito y Débito</span>
           </div>
-          <input [(ngModel)]="form.titularTarjeta" type="text" placeholder="Nombre del titular" class="co-input"/>
-          <select [(ngModel)]="form.cuotas" class="co-input">
-            <option value="1">1 cuota (sin intereses)</option>
-            <option value="3">3 cuotas</option>
-            <option value="6">6 cuotas</option>
-            <option value="12">12 cuotas</option>
-            <option value="18">18 cuotas</option>
-          </select>
+          <div class="co-card-logos">
+            <span style="background:#1a1f71;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px">VISA</span>
+            <span style="background:#eb001b;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px">MC</span>
+            <span style="background:#003087;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px">AMEX</span>
+          </div>
         </div>
-        <label class="co-radio-card" [class.selected]="form.metodoPago === 'pse'">
-          <input type="radio" [(ngModel)]="form.metodoPago" value="pse"/>
-          <span><strong>PSE y billetera Mercado Pago</strong></span>
-          <span class="pago-badge pse">PSE</span>
-        </label>
-        <div class="co-pse" *ngIf="form.metodoPago === 'pse'">
-          <select [(ngModel)]="form.banco" class="co-input">
-            <option value="">Selecciona tu banco</option>
-            <option>Bancolombia</option><option>Davivienda</option><option>Banco de Bogotá</option>
-            <option>BBVA</option><option>Banco Popular</option><option>Colpatria</option>
-          </select>
-          <select [(ngModel)]="form.tipoCuenta" class="co-input">
-            <option value="">Tipo de cuenta</option>
-            <option value="ahorros">Ahorros</option><option value="corriente">Corriente</option>
-          </select>
+        <div class="co-form-section" *ngIf="form.metodoPago === 'tarjeta'">
+          <div class="co-field-group">
+            <input [(ngModel)]="form.numTarjeta" type="text" placeholder="Número de tarjeta" class="co-input" maxlength="19"/>
+            <span class="co-input-icon">💳</span>
+          </div>
+          <div class="co-row-2">
+            <input [(ngModel)]="form.fechaTarjeta" type="text" placeholder="MM / AA" class="co-input"/>
+            <div class="co-field-group">
+              <input [(ngModel)]="form.cvv" type="text" placeholder="CVV" class="co-input" maxlength="4"/>
+              <span class="co-input-icon">🔒</span>
+            </div>
+          </div>
+          <input [(ngModel)]="form.titularTarjeta" type="text" placeholder="Nombre en la tarjeta" class="co-input"/>
+          <div class="co-field-group">
+            <select [(ngModel)]="form.cuotas" class="co-input co-select">
+              <option value="1">1 cuota (sin intereses)</option>
+              <option value="3">3 cuotas</option>
+              <option value="6">6 cuotas</option>
+              <option value="12">12 cuotas</option>
+              <option value="18">18 cuotas</option>
+              <option value="24">24 cuotas</option>
+            </select>
+            <span class="co-input-icon">▾</span>
+          </div>
+          <p class="co-cuotas-note">* Cuotas sujetas a disponibilidad de tu banco emisor</p>
         </div>
-        <label class="co-radio-card" [class.selected]="form.metodoPago === 'nequi'">
-          <input type="radio" [(ngModel)]="form.metodoPago" value="nequi"/>
-          <span><strong>Nequi / Daviplata</strong></span>
-          <div class="pago-badges"><span class="pago-badge nequi">Nequi</span><span class="pago-badge daviplata">Daviplata</span></div>
-        </label>
-        <label class="co-radio-card" [class.selected]="form.metodoPago === 'efectivo'">
-          <input type="radio" [(ngModel)]="form.metodoPago" value="efectivo"/>
-          <span><strong>Pago en efectivo</strong> (Efecty / Baloto)</span>
-        </label>
+
+        <!-- PSE / MERCADO PAGO -->
+        <div class="co-metodo" [class.selected]="form.metodoPago === 'pse'" (click)="form.metodoPago = 'pse'">
+          <div class="co-metodo-left">
+            <div class="co-radio" [class.active]="form.metodoPago === 'pse'"></div>
+            <span class="co-metodo-label">PSE y billetera Mercado Pago</span>
+          </div>
+          <div class="co-card-logos">
+            <span class="co-pse-badge">PSE</span>
+            <span class="co-mp-badge">MP</span>
+          </div>
+        </div>
+        <div class="co-form-section" *ngIf="form.metodoPago === 'pse'">
+          <div class="co-pse-info">
+            <span>ℹ️</span>
+            <span>Se le redirigirá a PSE y billetera Pago para que complete la compra de forma segura.</span>
+          </div>
+          <div class="co-field-group">
+            <select [(ngModel)]="form.banco" class="co-input co-select">
+              <option value="">Selecciona tu banco</option>
+              <option>Bancolombia</option>
+              <option>Davivienda</option>
+              <option>Banco de Bogotá</option>
+              <option>BBVA</option>
+              <option>Banco Popular</option>
+              <option>Colpatria</option>
+              <option>Banco Caja Social</option>
+              <option>Nequi</option>
+            </select>
+            <span class="co-input-icon">▾</span>
+          </div>
+          <div class="co-field-group">
+            <select [(ngModel)]="form.tipoCuenta" class="co-input co-select">
+              <option value="">Tipo de cuenta</option>
+              <option value="ahorros">Ahorros</option>
+              <option value="corriente">Corriente</option>
+            </select>
+            <span class="co-input-icon">▾</span>
+          </div>
+        </div>
+
+        <!-- NEQUI / DAVIPLATA -->
+        <div class="co-metodo" [class.selected]="form.metodoPago === 'nequi'" (click)="form.metodoPago = 'nequi'">
+          <div class="co-metodo-left">
+            <div class="co-radio" [class.active]="form.metodoPago === 'nequi'"></div>
+            <span class="co-metodo-label">Nequi / Daviplata</span>
+          </div>
+          <div class="co-card-logos">
+            <span class="co-nequi-badge">Nequi</span>
+            <span class="co-davi-badge">Daviplata</span>
+          </div>
+        </div>
+        <div class="co-form-section" *ngIf="form.metodoPago === 'nequi'">
+          <div class="co-nequi-switch">
+            <button class="co-nequi-btn" [class.active]="nequiTab === 'nequi'" (click)="nequiTab = 'nequi'">Nequi</button>
+            <button class="co-nequi-btn" [class.active]="nequiTab === 'daviplata'" (click)="nequiTab = 'daviplata'">Daviplata</button>
+          </div>
+          <input type="tel" placeholder="Número de celular Nequi / Daviplata" class="co-input" maxlength="10"/>
+        </div>
+
+        <!-- EFECTIVO -->
+        <div class="co-metodo" [class.selected]="form.metodoPago === 'efectivo'" (click)="form.metodoPago = 'efectivo'">
+          <div class="co-metodo-left">
+            <div class="co-radio" [class.active]="form.metodoPago === 'efectivo'"></div>
+            <span class="co-metodo-label">Pago en efectivo (Efecty / Baloto)</span>
+          </div>
+          <div class="co-card-logos">
+            <span style="background:#ffd700;color:#000;font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px">EFECTY</span>
+          </div>
+        </div>
+        <div class="co-form-section" *ngIf="form.metodoPago === 'efectivo'">
+          <div class="co-pse-info">
+            <span>ℹ️</span>
+            <span>Se generará un cupón de pago que podrás cancelar en cualquier punto Efecty o Baloto a nivel nacional.</span>
+          </div>
+        </div>
+
+        <!-- ADDI -->
+        <div class="co-metodo" [class.selected]="form.metodoPago === 'addi'" (click)="form.metodoPago = 'addi'">
+          <div class="co-metodo-left">
+            <div class="co-radio" [class.active]="form.metodoPago === 'addi'"></div>
+            <span class="co-metodo-label">Addi – Paga después en cuotas</span>
+          </div>
+          <span style="background:#00c9a7;color:#fff;font-size:9px;font-weight:800;padding:2px 8px;border-radius:3px">ADDI</span>
+        </div>
+
       </div>
 
       <!-- DATOS DE FACTURACIÓN -->
-      <div class="co-section">
-        <h2>Datos de Facturación</h2>
-        <label class="co-radio-card">
-          <input type="radio" [(ngModel)]="form.facturacion" value="misma"/>
-          <span>La misma dirección de entrega (RECOMENDADO)</span>
+      <p class="co-section-title" style="margin-bottom:12px">Datos de Facturación</p>
+      <div class="co-billing" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+        <label class="co-checkbox-row" (click)="form.facturacion = 'misma'">
+          <div class="co-radio" [class.active]="form.facturacion === 'misma'" style="flex-shrink:0"></div>
+          <span>La misma dirección de entrega <span class="co-rec">(RECOMENDADO)</span></span>
         </label>
-        <label class="co-radio-card">
-          <input type="radio" [(ngModel)]="form.facturacion" value="otra"/>
+        <label class="co-checkbox-row" (click)="form.facturacion = 'otra'">
+          <div class="co-radio" [class.active]="form.facturacion === 'otra'" style="flex-shrink:0"></div>
           <span>Usar datos de facturación distintos</span>
         </label>
       </div>
 
       <!-- TÉRMINOS -->
-      <div class="co-section">
-        <label class="co-check">
+      <div class="co-terminos">
+        <label class="co-checkbox-row">
           <input type="checkbox" [(ngModel)]="form.terminos"/>
           <span>Acepto los <a href="#" class="co-link">Términos y Condiciones</a> y <a href="#" class="co-link">Política de Garantías</a></span>
         </label>
       </div>
 
       <!-- BOTÓN PAGAR -->
-      <button class="co-btn-pagar" (click)="procesarPago()" [disabled]="procesando || !form.terminos">
-        <span *ngIf="!procesando">🔒 Completar pago — {{formatPrecio(cartService.total())}}</span>
-        <span *ngIf="procesando">Procesando pago...</span>
+      <button class="btn-pagar" (click)="procesarPago()" [disabled]="procesando || !form.terminos">
+        <span *ngIf="procesando" class="co-spinner"></span>
+        <span *ngIf="!procesando">🔒</span>
+        <span>{{procesando ? 'Procesando...' : 'Completar pago — ' + formatPrecio(cartService.total())}}</span>
       </button>
+
     </div>
 
-    <!-- Derecha: Resumen -->
-    <div class="co-resumen">
-      <div class="co-resumen-items">
-        <div class="co-resumen-item" *ngFor="let item of cartService.items()">
-          <div class="co-resumen-img-wrap">
+    <!-- ===== COLUMNA DERECHA (RESUMEN) ===== -->
+    <div class="co-right">
+
+      <!-- Ítems del pedido -->
+      <div class="co-order-items">
+        <div *ngIf="cartService.items().length === 0" class="co-empty-cart">
+          <p>Tu carrito está vacío</p>
+          <a routerLink="/home" style="color:#FF6B00;font-size:13px;text-decoration:none">← Ver productos</a>
+        </div>
+        <div class="co-order-item" *ngFor="let item of cartService.items()">
+          <div class="co-item-img-wrap">
             <img [src]="item.producto.imagen" [alt]="item.producto.nombre"/>
             <span class="co-qty-badge">{{item.cantidad}}</span>
           </div>
-          <div class="co-resumen-info">
-            <p>{{item.producto.nombre}}</p>
-            <small *ngIf="item.variante">{{item.variante.storage || item.variante.color}}</small>
+          <div class="co-item-detail">
+            <p class="co-item-brand">{{item.producto.marca}}</p>
+            <p class="co-item-name">{{item.producto.nombre}}</p>
+            <p *ngIf="item.variante" style="font-size:11px;color:rgba(255,255,255,0.4);margin:0">{{item.variante.storage || item.variante.color}}</p>
           </div>
-          <p class="co-resumen-precio">{{formatPrecio(item.subtotal)}}</p>
+          <p class="co-item-price">{{formatPrecio(item.subtotal)}}</p>
         </div>
       </div>
-      <div class="co-resumen-discount">
-        <input [(ngModel)]="codigoDescuento" placeholder="Código de descuento" class="co-input-sm"/>
-        <button (click)="aplicarDescuento()">Aplicar</button>
+
+      <!-- Accesorios sugeridos -->
+      <div class="co-upsell" *ngIf="cartService.items().length > 0">
+        <p class="co-upsell-title">Completa tu compra</p>
+        <div class="co-upsell-item">
+          <img src="https://images.unsplash.com/photo-1583394838336-acd977736f90?w=100&q=80" alt="Cargador"/>
+          <div class="co-upsell-info">
+            <p>Cargador de Pared NCD PowerPlug Mini 20W USB-A + USB-C · Blanco</p>
+            <span>$ 39.000</span>
+          </div>
+          <button class="btn-agregar">Agregar</button>
+        </div>
+        <div class="co-upsell-item">
+          <img src="https://images.unsplash.com/photo-1484704849700-f032a568e944?w=100&q=80" alt="AirPods Pro 3"/>
+          <div class="co-upsell-info">
+            <p>AirPods Pro 3</p>
+            <span>$ 1.299.000</span>
+          </div>
+          <button class="btn-agregar">Agregar</button>
+        </div>
+        <div class="co-upsell-item">
+          <img src="https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=100&q=80" alt="Protector Pantalla"/>
+          <div class="co-upsell-info">
+            <p>Protector de Pantalla NCD GlassGuard iPhone 9H</p>
+            <span>$ 119.000</span>
+          </div>
+          <button class="btn-agregar">Agregar</button>
+        </div>
       </div>
-      <div class="co-resumen-totales">
-        <div class="co-total-row"><span>Subtotal</span><span>{{formatPrecio(cartService.subtotal())}}</span></div>
-        <div class="co-total-row"><span>Envío</span><span class="gratis">GRATIS</span></div>
-        <div class="co-total-final"><span>Total</span><strong>COP {{formatPrecio(cartService.total())}}</strong></div>
+
+      <!-- Código de descuento -->
+      <div class="co-discount">
+        <input [(ngModel)]="codigoDescuento" placeholder="Código de descuento o gift card" class="co-input"/>
+        <button class="btn-apply" (click)="aplicarDescuento()">Aplicar</button>
       </div>
+
+      <!-- Totales -->
+      <div class="co-totals">
+        <div class="co-total-row">
+          <span>Subtotal</span>
+          <span>{{formatPrecio(cartService.subtotal())}}</span>
+        </div>
+        <div class="co-total-row">
+          <span>Envío</span>
+          <span class="co-gratis">GRATIS</span>
+        </div>
+        <div class="co-total-row co-total-final">
+          <span>Total</span>
+          <div class="co-total-right">
+            <span class="co-cop">COP</span>
+            <strong>{{formatPrecio(cartService.total())}}</strong>
+          </div>
+        </div>
+        <p class="co-impuesto">* Incluye todos los impuestos y tasas aplicables</p>
+      </div>
+
     </div>
   </div>
 </div>

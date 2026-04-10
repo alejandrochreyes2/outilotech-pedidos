@@ -14,6 +14,7 @@ import { CartService } from '../../services/cart.service';
 export class CheckoutComponent {
   procesando = false;
   codigoDescuento = '';
+  nequiTab: 'nequi' | 'daviplata' = 'nequi';
 
   form = {
     email: '', telefono: '', nombre: '', apellido: '', empresa: '',
