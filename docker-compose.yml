@@ -48,6 +48,10 @@ services:
       - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
       - Jwt__Issuer=toyota-pedidos-api
       - Jwt__Audience=toyota-pedidos-client
+      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,6 +68,10 @@ services:
       - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
       - Jwt__Issuer=toyota-pedidos-api
       - Jwt__Audience=toyota-pedidos-client
+      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     depends_on:
       postgres:
         condition: service_healthy

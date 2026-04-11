@@ -11,6 +11,7 @@ using UsuariosAPI.Data;
 using UsuariosAPI.Repositories;
 using UsuariosAPI.DTOs;
 using UsuariosAPI.Mappings;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +25,7 @@ if (useInMemory)
 else
 {
     var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
-        ?? "Host=postgres;Port=5432;Database=usuarios_db;Username=toyota_user;Password=Toyota2026!";
+        ?? "Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!";
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
@@ -101,6 +102,10 @@ try
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.EnsureCreated();
+    try {
+        var creator = db.GetService<Microsoft.EntityFrameworkCore.Storage.IRelationalDatabaseCreator>();
+        creator.CreateTables();
+    } catch { }
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();

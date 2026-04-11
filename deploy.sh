@@ -1,35 +1,16 @@
 #!/bin/bash
 # ─────────────────────────────────────────────
-# DEPLOY FRONTEND → AZURE SWA + NETLIFY
-# Uso: bash deploy.sh
+# DEPLOY → GITHUB + AZURE (via GitHub Actions)
+# Uso: bash deploy.sh "descripción del cambio"
+# Dominio: https://outiltech.co
 # ─────────────────────────────────────────────
 
-echo "▶ Compilando Angular..."
-cd frontend
-npm run build -- --configuration=production
+if [ -z "$1" ]; then
+    echo "Uso: bash deploy.sh \"descripción del cambio\""
+    echo "Ejemplo: bash deploy.sh \"fix: sync supabase automatico\""
+    exit 1
+fi
 
-# Asegurar _redirects para routing de Angular en Netlify
-echo "/* /index.html 200" > dist/frontend/browser/_redirects
-
-echo "▶ Subiendo a Azure Static Web Apps..."
-DEPLOY_TOKEN=$(az staticwebapp secrets list \
-  --name toyota-pedidos-frontend \
-  --resource-group toyota-pedidos-rg \
-  --query "properties.apiKey" -o tsv)
-
-swa deploy ./dist/frontend/browser \
-  --deployment-token "$DEPLOY_TOKEN" \
-  --env production \
-  --no-use-keychain
-
-echo "▶ Subiendo a Netlify (yamarket)..."
-NETLIFY_AUTH_TOKEN="nfp_ejwdCfNtmJLqtdKNyn63R5VXhnNEdxzveefc" \
-  netlify deploy --prod \
-  --dir=dist/frontend/browser \
-  --site=3e88ab25-79a3-4a4d-bb9c-fb758e6d582b
-
-cd ..
-echo ""
-echo "✅ Deploy completado:"
-echo "   → https://yamarket.netlify.app/home"
-echo "   → https://gentle-water-0ba98b90f.1.azurestaticapps.net/home"
+# Delega al script principal que crea la feature branch, hace merge a main
+# y pushea → GitHub Actions despliega automáticamente a outiltech.co
+bash scripts/deploy.sh "$1"
