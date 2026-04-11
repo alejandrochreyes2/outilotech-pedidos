@@ -7,6 +7,7 @@ using PagosAPI.Data;
 using PagosAPI.Repositories;
 using PagosAPI.Models;
 using PagosAPI.DTOs;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,7 +28,7 @@ if (useInMemory)
 else
 {
     var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
-        ?? "Host=postgres;Port=5432;Database=pagos_db;Username=toyota_user;Password=Toyota2026!";
+        ?? "Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!";
     builder.Services.AddDbContext<PagosDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
@@ -97,6 +98,10 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PagosDbContext>();
     db.Database.EnsureCreated();
+    try {
+        var creator = db.GetService<Microsoft.EntityFrameworkCore.Storage.IRelationalDatabaseCreator>();
+        creator.CreateTables();
+    } catch { }
 }
 
 // Middleware global de excepciones

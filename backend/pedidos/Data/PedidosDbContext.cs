@@ -14,6 +14,7 @@ public class PedidosDbContext : DbContext
     {
         modelBuilder.Entity<Pedido>(entity =>
         {
+            entity.ToTable("pedidos");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Cliente).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Total).HasColumnType("decimal(18,2)");
