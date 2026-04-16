@@ -9,12 +9,20 @@
   <div class="pd-container">
     <!-- Galería izquierda -->
     <div class="pd-gallery">
-      <div class="pd-thumbnails">
-        <img *ngFor="let img of producto.imagenes" [src]="img" [class.active]="imagenActual() === img" (click)="seleccionarImagen(img)" class="pd-thumb"/>
-      </div>
+      <!-- Imagen principal grande -->
       <div class="pd-main-img">
         <span class="pd-badge" *ngIf="producto.badge">{{producto.badge}}</span>
-        <img [src]="imagenActual()" [alt]="producto.nombre" class="pd-img-principal"/>
+        <img [src]="imagenActual()" [alt]="producto.nombre" class="pd-img-principal"
+             (error)="$any($event.target).src='https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80'"/>
+      </div>
+      <!-- Thumbnails horizontales debajo (estilo tiendasishop) -->
+      <div class="pd-thumbnails">
+        <img *ngFor="let img of producto.imagenes"
+             [src]="img"
+             [class.active]="imagenActual() === img"
+             (click)="seleccionarImagen(img)"
+             class="pd-thumb"
+             (error)="$any($event.target).src='https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&q=80'"/>
       </div>
     </div>
 
