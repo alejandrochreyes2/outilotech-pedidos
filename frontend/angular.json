@@ -47,14 +47,12 @@
             "index": "src/index.html",
             "tsConfig": "tsconfig.app.json",
             "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              },
+              "src/favicon.ico",
               {
                 "glob": "**/*",
                 "input": "src/assets",
-                "output": "assets"
+                "output": "/assets",
+                "ignore": ["videos/**/*.mp4", "videos/**/*.webm", "videos/**/*.mov"]
               }
             ],
             "styles": [

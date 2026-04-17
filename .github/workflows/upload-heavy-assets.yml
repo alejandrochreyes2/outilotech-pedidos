@@ -1,0 +1,54 @@
+name: Upload Heavy Assets to R2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/src/assets/videos/**'
+  workflow_dispatch:
+
+jobs:
+  sync-to-r2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install rclone
+        run: sudo apt-get update && sudo apt-get install -y rclone
+
+      - name: Configure rclone for R2
+        run: |
+          mkdir -p ~/.config/rclone
+          cat <<EOF > ~/.config/rclone/rclone.conf
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${{ secrets.R2_ACCESS_KEY_ID }}
+          secret_access_key = ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          endpoint = https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          acl = public-read
+          EOF
+
+      - name: Sync videos to R2 bucket
+        run: |
+          rclone sync frontend/src/assets/videos/ r2:outiltech-videos/videos/ \
+            --progress --verbose --checksum
+
+      - name: Get bucket public URL
+        id: bucket_url
+        run: |
+          BUCKET_ID="${{ secrets.R2_BUCKET_ID }}"
+          echo "url=https://pub-${BUCKET_ID}.r2.dev" >> $GITHUB_OUTPUT
+
+      - name: Update environment.prod.ts with real R2 URL
+        run: |
+          sed -i "s|R2_BASE_URL_PLACEHOLDER|${{ steps.bucket_url.outputs.url }}|g" \
+            frontend/src/environments/environment.prod.ts
+
+      - name: Commit updated environment file
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update R2 video base URL [skip ci]"
+          file_pattern: frontend/src/environments/environment.prod.ts
