@@ -503,14 +503,25 @@ onImgError(event: Event, categoria: string) {
 
 ## Configuración de Cloudflare Pages en GitHub Actions
 
-Para que el despliegue automático hacia Cloudflare Pages funcione, es necesario configurar el token de la API de Cloudflare en los secretos de GitHub Actions.
+Para que el despliegue automático hacia Cloudflare Pages funcione, es necesario configurar el token de la API de Cloudflare y el Account ID en los secretos de GitHub Actions.
 
-Hemos simplificado este proceso con un script automatizado. Sólo necesitas hacer lo siguiente:
+Hemos simplificado este proceso con scripts automatizados.
 
-1. Instalar [GitHub CLI (gh)](https://cli.github.com/).
-2. Autenticarse ejecutando en tu terminal: `gh auth login`.
-3. Ejecutar el script (usando Git Bash, WSL o Linux/Mac): `bash scripts/setup-cloudflare-secret.sh`.
-4. Pegar el token `CLOUDFLARE_API_TOKEN` cuando el script lo solicite.
+### Configuración automática de secrets para Cloudflare
+
+Después de clonar el repositorio, ejecuta **una sola vez** el siguiente comando en la raíz del proyecto para configurar automáticamente el Account ID de Cloudflare:
+
+**En PowerShell (Windows):**
+```powershell
+./scripts/setup-cloudflare-account-id.ps1
+```
+
+**En bash (Linux/Mac/Git Bash):**
+```bash
+bash scripts/setup-cloudflare-account-id.sh
+```
+
+El script usará tu `CLOUDFLARE_API_TOKEN` ya configurado (o te lo pedirá) y obtendrá el Account ID automáticamente, guardándolo como secret en GitHub. Una vez hecho esto, los workflows de GitHub Actions funcionarán sin errores.
 
 ---
 
