@@ -547,6 +547,26 @@ Este repositorio está configurado para desplegar los contenedores backend y bas
 
 ---
 
+## Solución de errores en Coolify (WebSocket / 502 / 504)
+
+Si experimentas errores de "Gateway Time-out" (504), "Bad Gateway" (502) o problemas con WebSockets en el panel de Coolify, sigue estos pasos:
+
+1. **Configurar acceso SSH:**
+   - Ejecuta el script local para subir tu clave privada SSH a los secretos de GitHub (solo es necesario hacerlo una vez):
+     ```bash
+     bash scripts/upload-ssh-key.sh
+     ```
+   - Indica la ruta a tu clave privada (ej: `~/.ssh/id_rsa`). El script la guardará como el secreto `SSH_PRIVATE_KEY`.
+
+2. **Ejecutar el workflow de reparación:**
+   - Ve a la pestaña **Actions** en GitHub.
+   - Selecciona el flujo **Fix Coolify Real-time & WebSocket Errors**.
+   - Haz clic en **Run workflow** -> **Run workflow**.
+
+Este proceso abrirá los puertos necesarios (6001, 6002), configurará Soketi para usar el host correcto y reiniciará los servicios de Coolify para aplicar los cambios.
+
+---
+
 ## Contacto del Desarrollador
 
 **Alejandro Chaparro Reyes**

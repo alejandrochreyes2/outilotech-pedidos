@@ -1,0 +1,39 @@
+name: Fix Coolify Real-time & WebSocket Errors
+on:
+  workflow_dispatch:
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 178.156.222.248 >> ~/.ssh/known_hosts
+      - name: Open ports 6001 and 6002 on UFW
+        run: |
+          ssh root@178.156.222.248 "sudo ufw allow 6001/tcp && sudo ufw allow 6002/tcp && sudo ufw reload"
+      - name: Create custom docker-compose for Soketi
+        run: |
+          ssh root@178.156.222.248 "cat > /data/coolify/source/docker-compose.custom.yml << 'EOF'
+          services:
+            soketi:
+              ports:
+                - \"6001:6001\"
+              environment:
+                SOKETI_HOST: \"::\"
+          EOF"
+      - name: Restart Coolify services
+        run: |
+          ssh root@178.156.222.248 "cd /data/coolify/source && docker compose --env-file .env -f docker-compose.yml -f docker-compose.custom.yml up -d"
+      - name: Verify ports are open
+        run: |
+          ssh root@178.156.222.248 "sudo netstat -tulpn | grep -E '6001|6002'"
+      - name: Check container status
+        run: |
+          ssh root@178.156.222.248 "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+      - name: Show last 50 lines of Coolify logs if errors persist
+        if: failure()
+        run: |
+          ssh root@178.156.222.248 "docker logs coolify --tail 50"
