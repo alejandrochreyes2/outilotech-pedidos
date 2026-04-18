@@ -1,15 +1,23 @@
+version: '3.8'
 services:
-  # Frontend
-  frontend:
-    build: ./frontend
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: outiltech
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "80:80"
-    depends_on:
-      - apigateway
-    networks:
-      - toyota-network
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
-  # Gateway (Único punto de entrada para el Frontend)
+  mongodb:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+
   apigateway:
     build: ./backend/ApiGateway
     ports:
@@ -18,102 +26,29 @@ services:
       - usuarios
       - pedidos
       - pagos
-    networks:
-      - toyota-network
 
-  # Microservicios (Internos)
   usuarios:
     build: ./backend/usuarios
+    environment:
+      - ConnectionStrings__Postgres=Host=postgres;Database=outiltech;Username=postgres;Password=postgres
     ports:
       - "3001:3001"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:3001
-      - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
-      - Jwt__Issuer=toyota-pedidos-api
-      - Jwt__Audience=toyota-pedidos-client
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - toyota-network
 
   pedidos:
     build: ./backend/pedidos
+    environment:
+      - ConnectionStrings__Postgres=Host=postgres;Database=outiltech;Username=postgres;Password=postgres
     ports:
       - "3002:3002"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:3002
-      - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
-      - Jwt__Issuer=toyota-pedidos-api
-      - Jwt__Audience=toyota-pedidos-client
-      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - toyota-network
 
   pagos:
     build: ./backend/pagos
+    environment:
+      - ConnectionStrings__Postgres=Host=postgres;Database=outiltech;Username=postgres;Password=postgres
+      - ConnectionStrings__MongoDB=mongodb://mongodb:27017
     ports:
       - "3003:3003"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:3003
-      - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
-      - Jwt__Issuer=toyota-pedidos-api
-      - Jwt__Audience=toyota-pedidos-client
-      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - toyota-network
-
-  # Persistencia MongoDB
-  mongodb:
-    image: mongo:6
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-      - ./backend/mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
-    networks:
-      - toyota-network
-
-  # Persistencia PostgreSQL
-  postgres:
-    image: postgres:15
-    container_name: proyecto-pedidos-postgres-1
-    environment:
-      - POSTGRES_USER=toyota_user
-      - POSTGRES_PASSWORD=Toyota2026!
-      - POSTGRES_DB=toyota_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    networks:
-      - toyota-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U toyota_user -d toyota_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-
-networks:
-  toyota-network:
-    driver: bridge
 
 volumes:
-  mongo-data:
-  postgres-data:
+  pgdata:
+  mongodata:

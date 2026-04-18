@@ -1,0 +1,10 @@
+name: Rollback to Azure
+on: workflow_dispatch
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run rollback script
+        run: bash scripts/rollback-to-azure.sh

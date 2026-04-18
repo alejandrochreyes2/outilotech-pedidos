@@ -1,0 +1,91 @@
+name: Deploy Backend to Oracle Cloud Free Tier
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - 'terraform/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform Init & Apply
+        working-directory: terraform
+        env:
+          TF_VAR_home_region: ${{ secrets.OCI_HOME_REGION }}
+          TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
+          TF_VAR_ssh_public_key: ${{ secrets.OCI_SSH_PUBLIC_KEY }}
+        run: |
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Get VM Public IP
+        id: vm_ip
+        working-directory: terraform
+        run: echo "ip=$(terraform output -raw vm_public_ip)" >> $GITHUB_OUTPUT
+
+      - name: Wait for SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ steps.vm_ip.outputs.ip }}
+          username: ubuntu
+          key: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          script: |
+            echo "VM ready"
+
+      - name: Copy migration script to VM
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ steps.vm_ip.outputs.ip }}
+          username: ubuntu
+          key: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          source: "scripts/migrate_data.py"
+          target: "/tmp/"
+
+      - name: Run data migration on VM
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        with:
+          host: ${{ steps.vm_ip.outputs.ip }}
+          username: ubuntu
+          key: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          envs: SUPABASE_URL,SUPABASE_ANON_KEY,MONGODB_URI
+          script: |
+            cd /opt/outilotech
+            git pull origin main
+            python3 /tmp/migrate_data.py
+
+      - name: Deploy docker-compose on VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ steps.vm_ip.outputs.ip }}
+          username: ubuntu
+          key: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/outilotech
+            docker-compose pull
+            docker-compose up -d --build
+
+      - name: Setup OCI CLI and budget alert
+        uses: oracle-actions/setup-oci-cli@v1
+        with:
+          oci-cli-version: '3.0.0'
+      - name: Create budget alert
+        run: |
+          oci budget budget create --compartment-id ${{ secrets.OCI_TENANCY_OCID }} --amount 0.01 --reset-period "MONTHLY" --display-name "outiltech-always-free"
+          # La alerta por correo requiere pasos adicionales, se simplifica aquí

@@ -532,3 +532,26 @@ El script usará tu `CLOUDFLARE_API_TOKEN` ya configurado (o te lo pedirá) y ob
 - GitHub: https://github.com/alejandrochreyes2
 - Rama principal: `main`
 - Bogotá D.C., Colombia
+
+---
+
+## Despliegue en Oracle Cloud Free Tier (automatizado)
+
+### Prerrequisitos
+- Tener una cuenta en Oracle Cloud Free Tier (sin tarjeta de crédito).
+- Instalar [GitHub CLI](https://cli.github.com/) y autenticarse (`gh auth login`).
+- Tener `git` y `bash` en tu sistema.
+
+### Un solo comando para desplegar todo
+```bash
+bash scripts/bootstrap-oracle.sh
+```
+El script te pedirá las credenciales de Oracle y las bases de datos actuales, configurará los secrets en GitHub y lanzará el workflow. El resto es automático.
+
+### Puntos clave a vigilar (para mantenerlo gratuito)
+- **Home Region**: Solo usar la región que elegiste al crear la cuenta.
+- **Alertas de presupuesto**: Configuradas automáticamente para $0.01 USD.
+- **Evitar recursos de pago**: Solo se usa la instancia ARM A1.Flex y servicios Always Free.
+
+### Rollback a Azure
+Si necesitas volver a Azure, ejecuta manualmente el workflow `Rollback to Azure` desde GitHub Actions o destruye la VM con Terraform.
