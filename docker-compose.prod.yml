@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: outiltech-postgres-prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_DB: ${POSTGRES_DB:-outiltech}
+    volumes:
+      - postgres-data-prod:/var/lib/postgresql/data
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+
+  mongodb:
+    image: mongo:6
+    container_name: outiltech-mongodb-prod
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-root}
+    volumes:
+      - mongodb-data-prod:/data/db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+
+  usuarios:
+    build:
+      context: ./backend/usuarios
+      dockerfile: Dockerfile
+    container_name: outiltech-usuarios-prod
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
+      - Jwt__Issuer=${JWT_ISSUER:-OutilTech}
+      - Jwt__Audience=${JWT_AUDIENCE:-OutilTechUsers}
+      - Jwt__Key=${JWT_KEY:-YourSuperSecretKeyHere1234567890}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    ports:
+      - "3001:8080"
+
+  pedidos:
+    build:
+      context: ./backend/pedidos
+      dockerfile: Dockerfile
+    container_name: outiltech-pedidos-prod
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    ports:
+      - "3002:8080"
+
+  pagos:
+    build:
+      context: ./backend/pagos
+      dockerfile: Dockerfile
+    container_name: outiltech-pagos-prod
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    ports:
+      - "3003:8080"
+
+  apigateway:
+    build:
+      context: ./backend/ApiGateway
+      dockerfile: Dockerfile
+    container_name: outiltech-apigateway-prod
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Jwt__Issuer=${JWT_ISSUER:-OutilTech}
+      - Jwt__Audience=${JWT_AUDIENCE:-OutilTechUsers}
+      - Jwt__Key=${JWT_KEY:-YourSuperSecretKeyHere1234567890}
+    depends_on:
+      - usuarios
+      - pedidos
+      - pagos
+    restart: unless-stopped
+    ports:
+      - "5000:8080"
+
+volumes:
+  postgres-data-prod:
+  mongodb-data-prod:

@@ -525,6 +525,28 @@ El script usará tu `CLOUDFLARE_API_TOKEN` ya configurado (o te lo pedirá) y ob
 
 ---
 
+## Despliegue automático en Coolify
+
+Este repositorio está configurado para desplegar los contenedores backend y bases de datos automáticamente en un servidor mediante Coolify usando GitHub Actions.
+
+### Pasos para activar el despliegue automático:
+
+1. **Generar un API Token en Coolify:**
+   - Inicia sesión en tu panel de Coolify.
+   - Ve a la sección de **Settings** y busca **API tokens**.
+   - Revoca o crea un nuevo token (con permisos de lectura y escritura) y cópialo de manera segura.
+
+2. **Agregar los secrets en GitHub:**
+   - En tu repositorio de GitHub, ve a **Settings -> Secrets and variables -> Actions -> New repository secret**.
+   - Agrega `COOLIFY_URL` y pon como valor la URL donde está tu Coolify (p. ej. `http://178.156.222.248:8000`).
+   - Agrega `COOLIFY_API_TOKEN` y pega el token generado en el paso anterior.
+
+3. **Ejecutar el Despliegue:**
+   - Cualquier push directo hacia la rama `main` que toque el backend o los archivos de configuración (`docker-compose.prod.yml`) ejecutará automáticamente el pipeline.
+   - También puedes invocar y forzar tu despliegue manualmente desde tu repositorio: pestaña **Actions** -> Selecciona el workflow **Deploy to Coolify** -> Click en **Run workflow**.
+
+---
+
 ## Contacto del Desarrollador
 
 **Alejandro Chaparro Reyes**
