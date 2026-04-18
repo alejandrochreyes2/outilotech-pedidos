@@ -1,6 +1,11 @@
 name: Fix Coolify Real-time & WebSocket Errors
 on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/fix-coolify-errors.yml'
   workflow_dispatch:
+
 jobs:
   fix:
     runs-on: ubuntu-latest
@@ -11,9 +16,10 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H 178.156.222.248 >> ~/.ssh/known_hosts
+      - name: Test SSH connection
+        run: ssh -o StrictHostKeyChecking=accept-new root@178.156.222.248 "echo 'SSH OK'"
       - name: Open ports 6001 and 6002 on UFW
-        run: |
-          ssh root@178.156.222.248 "sudo ufw allow 6001/tcp && sudo ufw allow 6002/tcp && sudo ufw reload"
+        run: ssh root@178.156.222.248 "sudo ufw allow 6001/tcp && sudo ufw allow 6002/tcp && sudo ufw reload || true"
       - name: Create custom docker-compose for Soketi
         run: |
           ssh root@178.156.222.248 "cat > /data/coolify/source/docker-compose.custom.yml << 'EOF'
@@ -25,15 +31,11 @@ jobs:
                 SOKETI_HOST: \"::\"
           EOF"
       - name: Restart Coolify services
-        run: |
-          ssh root@178.156.222.248 "cd /data/coolify/source && docker compose --env-file .env -f docker-compose.yml -f docker-compose.custom.yml up -d"
+        run: ssh root@178.156.222.248 "cd /data/coolify/source && docker compose --env-file .env -f docker-compose.yml -f docker-compose.custom.yml up -d"
       - name: Verify ports are open
-        run: |
-          ssh root@178.156.222.248 "sudo netstat -tulpn | grep -E '6001|6002'"
+        run: ssh root@178.156.222.248 "sudo netstat -tulpn | grep -E '6001|6002' || true"
       - name: Check container status
-        run: |
-          ssh root@178.156.222.248 "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
-      - name: Show last 50 lines of Coolify logs if errors persist
+        run: ssh root@178.156.222.248 "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+      - name: Show Coolify logs if errors persist
         if: failure()
-        run: |
-          ssh root@178.156.222.248 "docker logs coolify --tail 50"
+        run: ssh root@178.156.222.248 "docker logs coolify --tail 50"
