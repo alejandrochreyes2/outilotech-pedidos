@@ -1,0 +1,26 @@
+name: Create DNS Record for api.outiltech.co
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/create-dns.yml'
+jobs:
+  dns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Get Zone ID
+        id: zone
+        run: |
+          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=outiltech.co" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_DNS_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+          echo "ZONE_ID=$ZONE_ID" >> $GITHUB_OUTPUT
+      - name: Create DNS A record
+        run: |
+          curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${{ steps.zone.outputs.ZONE_ID }}/dns_records" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_DNS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"type":"A","name":"api.outiltech.co","content":"178.156.222.248","ttl":1,"proxied":true}'

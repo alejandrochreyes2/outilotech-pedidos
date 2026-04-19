@@ -3,17 +3,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Agregar CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
-        policy.WithOrigins(
-            "http://localhost:4200",
-            "https://outiltech.co",
-            "https://www.outiltech.co",
-            "https://api.outiltech.co",
-            "https://api.178-156-222-248.sslip.io"
-        )
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials());
+    options.AddPolicy("AllowFrontend",
+        policy =>
+        {
+            policy.WithOrigins("https://outiltech.co", "https://api.outiltech.co", "http://localhost:4200")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
 });
 
 builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));

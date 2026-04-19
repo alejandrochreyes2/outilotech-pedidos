@@ -1,0 +1,34 @@
+name: Monitor Logs
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 178.156.222.248 >> ~/.ssh/known_hosts
+      - name: Fetch backend logs
+        run: |
+          ssh root@178.156.222.248 "docker ps --format 'table {{.Names}}\t{{.Status}}' > /tmp/containers.txt && docker logs apigateway --tail 50 > /tmp/apigateway.log && docker logs usuarios --tail 50 > /tmp/usuarios.log && docker logs pedidos --tail 50 > /tmp/pedidos.log && docker logs pagos --tail 50 > /tmp/pagos.log"
+          scp root@178.156.222.248:/tmp/*.log .
+          scp root@178.156.222.248:/tmp/containers.txt .
+      - name: Fetch frontend logs (Cloudflare Pages)
+        run: |
+          curl -s -X GET "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects/outiltech/deployments" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" | jq '.result[] | {id: .id, created_on: .created_on, status: .deployment_trigger.metadata.type}' > frontend_deployments.json
+      - name: Upload logs as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-$(date +%Y%m%d-%H%M%S)
+          path: |
+            *.log
+            containers.txt
+            frontend_deployments.json
