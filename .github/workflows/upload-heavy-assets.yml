@@ -36,19 +36,13 @@ jobs:
           rclone sync frontend/src/assets/videos/ r2:outiltech-videos/videos/ \
             --progress --verbose --checksum
 
-      - name: Get bucket public URL
-        id: bucket_url
+      - name: Verify public URL
         run: |
-          BUCKET_ID="${{ secrets.R2_BUCKET_ID }}"
-          echo "url=https://pub-${BUCKET_ID}.r2.dev" >> $GITHUB_OUTPUT
-
-      - name: Update environment.prod.ts with real R2 URL
-        run: |
-          sed -i "s|R2_BASE_URL_PLACEHOLDER|${{ steps.bucket_url.outputs.url }}|g" \
-            frontend/src/environments/environment.prod.ts
-
-      - name: Commit updated environment file
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: update R2 video base URL [skip ci]"
-          file_pattern: frontend/src/environments/environment.prod.ts
+          PUBLIC_URL="https://pub-a0b7016e047745bb9b903fba581c7a59.r2.dev"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${PUBLIC_URL}/videos/hero-tech.mp4" --max-time 10)
+          echo "Video URL status: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Video accesible en ${PUBLIC_URL}/videos/hero-tech.mp4"
+          else
+            echo "⚠️ Video no accesible (status $STATUS)"
+          fi

@@ -7,7 +7,7 @@ import { CartService } from '../../services/cart.service';
 import { ProductosService, Producto } from '../../services/productos.service';
 import { UnsplashService } from '../../services/unsplash.service';
 import { ProductImageService } from '../../services/product-image.service';
-import { environment } from '../../../environments/environment.prod';
+import { environment } from '../../../environments/environment';
 
 
 @Component({
