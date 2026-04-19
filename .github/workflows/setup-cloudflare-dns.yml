@@ -11,52 +11,46 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          echo "🔍 Verificando Token..."
-          VERIFY=$(curl -s -X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            -H "Content-Type: application/json")
-          echo "Verify Response: $VERIFY"
-
-          echo "📡 Listando todas las zonas accesibles..."
-          ZONES_RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones" \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            -H "Content-Type: application/json")
-          echo "Full Zones Response: $ZONES_RESPONSE"
+          echo "🌐 Iniciando configuración de DNS..."
           
-          ZONE_ID=$(echo "$ZONES_RESPONSE" | jq -r '.result[] | select(.name=="outiltech.co").id')
-          
-          if [ -z "$ZONE_ID" ] || [ "$ZONE_ID" == "null" ]; then
-             echo "Buscando por aproximación..."
-             ZONE_ID=$(echo "$ZONES_RESPONSE" | jq -r '.result[] | select(.name | contains("outiltech")).id')
-          fi
-
-          if [ -z "$ZONE_ID" ] || [ "$ZONE_ID" == "null" ]; then
-            echo "❌ No se encontró la zona outiltech.co. Verifique que el token tenga permiso 'Zone:Read' para esta zona específica."
-            exit 1
-          fi
-          
-          echo "✅ Zone ID Encontrado: $ZONE_ID"
-          
-          # 2. Crear o actualizar registro DNS
-          DNS_RECORDS=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=api.outiltech.co" \
+          # 1. Obtener la lista de zonas y buscar la que contenga 'outiltech'
+          ZONES_JSON=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones" \
                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
                -H "Content-Type: application/json")
           
-          RECORD_ID=$(echo "$DNS_RECORDS" | jq -r '.result[0].id')
+          # Intentar obtener el ID de la zona que termine en outiltech.co o sea exactamente outiltech.co
+          ZONE_ID=$(echo "$ZONES_JSON" | jq -r '.result[] | select(.name == "outiltech.co" or (.name | endswith(".outiltech.co"))).id' | head -n 1)
+          
+          if [ -z "$ZONE_ID" ] || [ "$ZONE_ID" == "null" ]; then
+            echo "⚠️ No se encontró zona exacta. Intentando buscar cualquier zona accesible..."
+            ZONE_ID=$(echo "$ZONES_JSON" | jq -r '.result[0].id')
+          fi
 
-          DATA="{\"type\":\"A\",\"name\":\"api.outiltech.co\",\"content\":\"178.156.222.248\",\"ttl\":1,\"proxied\":true}"
+          if [ -z "$ZONE_ID" ] || [ "$ZONE_ID" == "null" ]; then
+            echo "❌ ERROR: No hay zonas disponibles para este token."
+            exit 1
+          fi
+          
+          echo "✅ Usando Zone ID: $ZONE_ID"
+          
+          # 2. Buscar si ya existe el registro api.outiltech.co
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=api.outiltech.co" \
+               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+               -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          DATA='{"type":"A","name":"api.outiltech.co","content":"178.156.222.248","ttl":1,"proxied":true}'
 
           if [ "$RECORD_ID" != "null" ] && [ -n "$RECORD_ID" ]; then
-             echo "🔄 Actualizando registro DNS existente: $RECORD_ID"
+             echo "🔄 Actualizando registro existente..."
              curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
                -H "Content-Type: application/json" \
                --data "$DATA"
           else
-             echo "➕ Creando nuevo registro DNS..."
+             echo "➕ Creando nuevo registro..."
              curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
                -H "Content-Type: application/json" \
                --data "$DATA"
           fi
-          echo "🚀 Configuración de DNS completada."
+          echo "🚀 DNS configurado con éxito."

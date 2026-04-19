@@ -33,7 +33,7 @@ services:
     container_name: outiltech-usuarios-prod
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
+      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
       - Jwt__Issuer=${JWT_ISSUER:-OutilTech}
       - Jwt__Audience=${JWT_AUDIENCE:-OutilTechUsers}
       - Jwt__Key=${JWT_KEY:-YourSuperSecretKeyHere1234567890}
@@ -50,7 +50,7 @@ services:
     container_name: outiltech-pedidos-prod
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
+      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
     depends_on:
       - postgres
     restart: unless-stopped
@@ -64,7 +64,7 @@ services:
     container_name: outiltech-pagos-prod
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
+      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
     depends_on:
       - postgres
     restart: unless-stopped
@@ -90,7 +90,7 @@ services:
       - "5000:5000"
     labels:
       - traefik.enable=true
-      - traefik.http.routers.apigateway.rule=Host(`api.178-156-222-248.sslip.io`)
+      - traefik.http.routers.apigateway.rule=Host(`api.outiltech.co`)
       - traefik.http.routers.apigateway.entrypoints=https
       - traefik.http.routers.apigateway.tls=true
       - traefik.http.routers.apigateway.tls.certresolver=letsencrypt
