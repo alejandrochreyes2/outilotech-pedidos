@@ -10,6 +10,7 @@ jobs:
       - name: Create or Update DNS Record for api.outiltech.co
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
             echo "Error: CLOUDFLARE_API_TOKEN secret is not set."
@@ -17,13 +18,14 @@ jobs:
           fi
           
           # Fetch Zone ID for outiltech.co
-          ZONES_RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=outiltech.co" \
+          ZONES_RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=outiltech.co&account.id=$CLOUDFLARE_ACCOUNT_ID" \
                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
                -H "Content-Type: application/json")
                
-          ZONE_ID=$(echo $ZONES_RESPONSE | jq -r '.result[0].id')
+          ZONE_ID=$(echo "$ZONES_RESPONSE" | jq -r '.result[0].id')
           if [ "$ZONE_ID" == "null" ] || [ -z "$ZONE_ID" ]; then
             echo "Error: Could not find Zone ID for outiltech.co"
+            echo "API Response: $ZONES_RESPONSE"
             exit 1
           fi
           
