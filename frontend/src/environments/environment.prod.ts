@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.outiltech.co',
+  apiUrl: '/api',
   r2VideoBaseUrl: 'R2_BASE_URL_PLACEHOLDER'
 };

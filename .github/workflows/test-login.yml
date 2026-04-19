@@ -12,7 +12,7 @@ jobs:
 
       - name: Test Login API
         run: |
-          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "https://api.outiltech.co/api/usuarios/auth/login" \
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "https://outiltech.co/api/usuarios/auth/login" \
             -H "Content-Type: application/json" \
             -d '{"email":"test@example.com","password":"testPassword"}')
             
