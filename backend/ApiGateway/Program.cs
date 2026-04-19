@@ -8,7 +8,8 @@ builder.Services.AddCors(options =>
             "http://localhost:4200",
             "https://outiltech.co",
             "https://www.outiltech.co",
-            "https://api.outiltech.co"
+            "https://api.outiltech.co",
+            "https://api.178-156-222-248.sslip.io"
         )
         .AllowAnyMethod()
         .AllowAnyHeader()
