@@ -48,8 +48,6 @@ services:
       context: ./backend/pedidos
       dockerfile: Dockerfile
     container_name: outiltech-pedidos-prod
-    ports:
-      - "3002:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
@@ -67,8 +65,6 @@ services:
       context: ./backend/pagos
       dockerfile: Dockerfile
     container_name: outiltech-pagos-prod
-    ports:
-      - "3003:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
