@@ -87,14 +87,14 @@ services:
       - pagos
     restart: unless-stopped
     ports:
-      - "5000:8080"
+      - "5000:5000"
     labels:
       - traefik.enable=true
       - traefik.http.routers.apigateway.rule=Host(`api.178-156-222-248.sslip.io`)
       - traefik.http.routers.apigateway.entrypoints=https
       - traefik.http.routers.apigateway.tls=true
       - traefik.http.routers.apigateway.tls.certresolver=letsencrypt
-      - traefik.http.services.apigateway.loadbalancer.server.port=8080
+      - traefik.http.services.apigateway.loadbalancer.server.port=5000
 
 
 volumes:
