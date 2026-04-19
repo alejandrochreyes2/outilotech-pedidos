@@ -25,13 +25,14 @@ jobs:
           ssh root@178.156.222.248 "cat > /data/coolify/source/docker-compose.custom.yml << 'EOF'
           services:
             soketi:
+              image: quay.io/soketi/soketi:1.6.0-16-alpine
               ports:
                 - \"6001:6001\"
               environment:
                 SOKETI_HOST: \"::\"
           EOF"
       - name: Restart Coolify services
-        run: ssh root@178.156.222.248 "cd /data/coolify/source && docker compose --env-file .env -f docker-compose.yml -f docker-compose.custom.yml up -d"
+        run: ssh root@178.156.222.248 "cd /data/coolify/source && docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.custom.yml up -d"
       - name: Verify ports are open
         run: ssh root@178.156.222.248 "sudo netstat -tulpn | grep -E '6001|6002' || true"
       - name: Check container status
