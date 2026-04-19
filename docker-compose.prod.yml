@@ -48,9 +48,14 @@ services:
       context: ./backend/pedidos
       dockerfile: Dockerfile
     container_name: outiltech-pedidos-prod
+    ports:
+      - "3002:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
+      - Jwt__Issuer=${JWT_ISSUER:-OutilTech}
+      - Jwt__Audience=${JWT_AUDIENCE:-OutilTechUsers}
+      - Jwt__Key=${JWT_KEY:-YourSuperSecretKeyHere1234567890}
     depends_on:
       - postgres
     restart: unless-stopped
@@ -62,9 +67,14 @@ services:
       context: ./backend/pagos
       dockerfile: Dockerfile
     container_name: outiltech-pagos-prod
+    ports:
+      - "3003:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=${POSTGRES_DB:-outiltech};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-root}
+      - Jwt__Issuer=${JWT_ISSUER:-OutilTech}
+      - Jwt__Audience=${JWT_AUDIENCE:-OutilTechUsers}
+      - Jwt__Key=${JWT_KEY:-YourSuperSecretKeyHere1234567890}
     depends_on:
       - postgres
     restart: unless-stopped
