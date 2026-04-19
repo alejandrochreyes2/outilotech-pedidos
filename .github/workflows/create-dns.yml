@@ -9,6 +9,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Check DNS token exists
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_DNS_TOKEN }}" ]; then
+            echo "::warning::CLOUDFLARE_DNS_TOKEN secret not set. DNS record will not be created."
+            exit 0
+          fi
       - name: Get Zone ID
         id: zone
         if: ${{ secrets.CLOUDFLARE_DNS_TOKEN != '' }}
