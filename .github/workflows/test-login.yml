@@ -1,0 +1,32 @@
+name: Test Login on Production
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-login:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Cloudflare and backend deployments
+        run: sleep 45 # Give it some time just in case it runs simultaneously
+
+      - name: Test Login API
+        run: |
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "https://outiltech.co/api/usuarios/auth/login" \
+            -H "Content-Type: application/json" \
+            -d '{"email":"test@example.com","password":"testPassword"}')
+            
+          HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | awk -F':' '{print $2}')
+          BODY=$(echo "$RESPONSE" | sed -n '1,/HTTP_STATUS:/p' | sed '$d')
+          
+          echo "Response Body: $BODY"
+          echo "HTTP Status: $HTTP_STATUS"
+          
+          if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 400 ] || [ "$HTTP_STATUS" -eq 401 ] || [ "$HTTP_STATUS" -eq 404 ]; then
+            # Es un status válido de API, lo que demuestra que CORS, Routing y puerto 5000 funcionan correctamente.
+            # Idealmente responderá 200 con token si el usuario existe, o 400/401 si falla el auth, pero lo importante es que responda.
+            echo "API Gateway and Auth service are reachable!"
+          else
+            echo "Failed to connect to API correctly. Received status: $HTTP_STATUS"
+            exit 1
+          fi

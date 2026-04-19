@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://toyota-gateway.wittystone-43cf97a7.eastus2.azurecontainerapps.io',
+  apiUrl: 'http://178.156.222.248:5000',
   r2VideoBaseUrl: 'R2_BASE_URL_PLACEHOLDER'
 };
