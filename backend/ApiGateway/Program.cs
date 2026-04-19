@@ -7,7 +7,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
             "http://localhost:4200",
             "https://outiltech.co",
-            "https://www.outiltech.co"
+            "https://www.outiltech.co",
+            "https://api.outiltech.co"
         )
         .AllowAnyMethod()
         .AllowAnyHeader()

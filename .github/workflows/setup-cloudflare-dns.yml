@@ -1,0 +1,55 @@
+name: Setup Cloudflare DNS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  configure-dns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create or Update DNS Record for api.outiltech.co
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "Error: CLOUDFLARE_API_TOKEN secret is not set."
+            exit 1
+          fi
+          
+          # Fetch Zone ID for outiltech.co
+          ZONES_RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=outiltech.co" \
+               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+               -H "Content-Type: application/json")
+               
+          ZONE_ID=$(echo $ZONES_RESPONSE | jq -r '.result[0].id')
+          if [ "$ZONE_ID" == "null" ] || [ -z "$ZONE_ID" ]; then
+            echo "Error: Could not find Zone ID for outiltech.co"
+            exit 1
+          fi
+          
+          echo "Found Zone ID: $ZONE_ID"
+          
+          # Check if DNS record for api.outiltech.co exists
+          DNS_RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=api.outiltech.co&type=A" \
+               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+               -H "Content-Type: application/json")
+               
+          RECORD_ID=$(echo $DNS_RESPONSE | jq -r '.result[0].id')
+          
+          DATA='{"type":"A","name":"api.outiltech.co","content":"178.156.222.248","ttl":1,"proxied":true}'
+          
+          if [ "$RECORD_ID" != "null" ]; then
+            echo "Updating existing DNS record ($RECORD_ID)..."
+            curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
+                 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                 -H "Content-Type: application/json" \
+                 -d "$DATA"
+          else
+            echo "Creating new DNS record..."
+            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+                 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                 -H "Content-Type: application/json" \
+                 -d "$DATA"
+          fi
+          
+          echo "DNS configuration complete."

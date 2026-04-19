@@ -88,6 +88,11 @@ services:
     restart: unless-stopped
     ports:
       - "5000:8080"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.apigateway.rule=Host(`api.outiltech.co`)
+      - traefik.http.services.apigateway.loadbalancer.server.port=8080
+
 
 volumes:
   postgres-data-prod:
