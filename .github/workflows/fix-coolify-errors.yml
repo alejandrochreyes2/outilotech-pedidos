@@ -1,15 +1,20 @@
-name: Fix Coolify Real-time & WebSocket Errors
+name: Fix Coolify Real-time & WebSocket Errors (Permanent)
 on:
   push:
     branches: [ main ]
     paths:
+      - 'config/coolify/docker-compose.custom.yml'
       - '.github/workflows/fix-coolify-errors.yml'
   workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'   # Opcional: cada 6 horas
 
 jobs:
-  fix:
+  sync-soketi:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
@@ -18,52 +23,23 @@ jobs:
           ssh-keyscan -H 178.156.222.248 >> ~/.ssh/known_hosts
       - name: Test SSH connection
         run: ssh -o StrictHostKeyChecking=accept-new root@178.156.222.248 "echo 'SSH OK'"
-      - name: Open ports 6001 and 6002 on UFW
-        run: ssh root@178.156.222.248 "sudo ufw allow 6001/tcp && sudo ufw allow 6002/tcp && sudo ufw reload || true"
-      - name: Create custom docker-compose for Soketi
+      - name: Copy config file to server and restart if needed
         run: |
-          ssh root@178.156.222.248 "cat > /data/coolify/source/docker-compose.custom.yml << 'EOF'
-          version: '3.8'
-          services:
-            soketi:
-              image: quay.io/soketi/soketi:1.6.0-16-alpine
-              restart: unless-stopped
-              ports:
-                - \"6001:6001\"
-                - \"6002:6002\"
-              environment:
-                SOKETI_HOST: \"0.0.0.0\"
-                SOKETI_PORT: \"6001\"
-                SOKETI_METRICS_SERVER_PORT: \"6002\"
-                DEFAULT_APP_ID: \"coolify\"
-                DEFAULT_APP_KEY: \"coolify\"
-                DEFAULT_APP_SECRET: \"coolify\"
-              healthcheck:
-                test: [\"CMD-SHELL\", \"echo 1\"]
-              networks:
-                - coolify
-          networks:
-            coolify:
-              external: true
-          EOF"
-      - name: Restart Coolify services
-        run: |
-          ssh root@178.156.222.248 "cd /data/coolify/source && docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.custom.yml down"
-          ssh root@178.156.222.248 "cd /data/coolify/source && docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.custom.yml up -d"
-      - name: Wait for soketi to be healthy
-        run: |
-          for i in {1..30}; do
-            if ssh root@178.156.222.248 "docker inspect coolify-realtime --format '{{.State.Health.Status}}' 2>/dev/null | grep -q healthy"; then
-              echo "soketi is healthy"
-              break
+          scp config/coolify/docker-compose.custom.yml root@178.156.222.248:/tmp/docker-compose.custom.yml
+          ssh root@178.156.222.248 << 'EOF'
+            LOCAL_CONFIG="/data/coolify/source/docker-compose.custom.yml"
+            if ! cmp -s /tmp/docker-compose.custom.yml "$LOCAL_CONFIG"; then
+              echo "Configuración de Soketi desactualizada. Actualizando..."
+              cp /tmp/docker-compose.custom.yml "$LOCAL_CONFIG"
+              cd /data/coolify/source
+              docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.custom.yml down
+              docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.custom.yml up -d
+              echo "Servicios reiniciados correctamente."
+            else
+              echo "Configuración ya está actualizada."
             fi
-            echo "Waiting for soketi... ($i/30)"
-            sleep 2
-          done
-      - name: Verify ports are open
-        run: ssh root@178.156.222.248 "sudo netstat -tulpn | grep -E '6001|6002' || true"
-      - name: Check container status
-        run: ssh root@178.156.222.248 "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
-      - name: Show Coolify logs if errors persist
-        if: failure()
-        run: ssh root@178.156.222.248 "docker logs coolify --tail 50"
+            rm -f /tmp/docker-compose.custom.yml
+          EOF
+      - name: Verify soketi is running
+        run: |
+          ssh root@178.156.222.248 "docker ps --filter name=coolify-realtime --format '{{.Status}}' | grep -q Up"

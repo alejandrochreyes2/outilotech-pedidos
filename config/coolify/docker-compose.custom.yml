@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  soketi:
+    image: quay.io/soketi/soketi:1.6.0-16-alpine
+    restart: unless-stopped
+    ports:
+      - "6001:6001"
+      - "6002:6002"
+    environment:
+      SOKETI_HOST: "0.0.0.0"
+      SOKETI_PORT: "6001"
+      SOKETI_METRICS_SERVER_PORT: "6002"
+      DEFAULT_APP_ID: "coolify"
+      DEFAULT_APP_KEY: "coolify"
+      DEFAULT_APP_SECRET: "coolify"
+    healthcheck:
+      test: ["CMD-SHELL", "echo 1"]
+    networks:
+      - coolify
+networks:
+  coolify:
+    external: true
