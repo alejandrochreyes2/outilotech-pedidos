@@ -9,46 +9,50 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Check DNS token exists
-        run: |
-          if [ -z "${{ secrets.CLOUDFLARE_DNS_TOKEN }}" ]; then
-            echo "::warning::CLOUDFLARE_DNS_TOKEN secret not set. DNS record will not be created."
-            exit 0
-          fi
+        
       - name: Get Zone ID
         id: zone
-        if: secrets.CLOUDFLARE_DNS_TOKEN != ''
         run: |
+          if [ -z "${{ secrets.CLOUDFLARE_DNS_TOKEN }}" ]; then
+            echo "❌ ERROR: CLOUDFLARE_DNS_TOKEN is missing."
+            exit 1
+          fi
+          
           ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=outiltech.co" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_DNS_TOKEN }}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
+               -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_DNS_TOKEN }}" \
+               -H "Content-Type: application/json" | jq -r '.result[0].id')
+          
+          if [ -z "$ZONE_ID" ] || [ "$ZONE_ID" == "null" ]; then
+            echo "❌ ERROR: Zone not found."
+            exit 1
+          fi
           echo "ZONE_ID=$ZONE_ID" >> $GITHUB_OUTPUT
-      - name: Check existing DNS record
-        id: check
-        if: steps.zone.outputs.ZONE_ID != '' && steps.zone.outputs.ZONE_ID != 'null'
+          
+      - name: Check or Create/Update DNS Record
         run: |
-          RECORD=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ steps.zone.outputs.ZONE_ID }}/dns_records?type=A&name=api.outiltech.co" \
+          ZONE_ID=${{ steps.zone.outputs.ZONE_ID }}
+          
+          RECORD=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=A&name=api.outiltech.co" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_DNS_TOKEN }}" \
             -H "Content-Type: application/json")
+            
           EXISTING_ID=$(echo $RECORD | jq -r '.result[0].id')
           EXISTING_IP=$(echo $RECORD | jq -r '.result[0].content')
-          echo "EXISTING_ID=$EXISTING_ID" >> $GITHUB_OUTPUT
-          echo "EXISTING_IP=$EXISTING_IP" >> $GITHUB_OUTPUT
-      - name: Create or Update DNS record
-        if: steps.zone.outputs.ZONE_ID != '' && steps.zone.outputs.ZONE_ID != 'null'
-        run: |
-          if [ "${{ steps.check.outputs.EXISTING_ID }}" = "null" ]; then
-            echo "Creating new DNS record..."
-            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${{ steps.zone.outputs.ZONE_ID }}/dns_records" \
+          
+          DATA='{"type":"A","name":"api.outiltech.co","content":"178.156.222.248","ttl":1,"proxied":true}'
+          
+          if [ "$EXISTING_ID" == "null" ] || [ -z "$EXISTING_ID" ]; then
+            echo "➕ Creating new DNS record..."
+            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
               -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_DNS_TOKEN }}" \
               -H "Content-Type: application/json" \
-              --data '{"type":"A","name":"api.outiltech.co","content":"178.156.222.248","ttl":1,"proxied":true}'
-          elif [ "${{ steps.check.outputs.EXISTING_IP }}" != "178.156.222.248" ]; then
-            echo "Updating existing DNS record..."
-            curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${{ steps.zone.outputs.ZONE_ID }}/dns_records/${{ steps.check.outputs.EXISTING_ID }}" \
+              --data "$DATA"
+          elif [ "$EXISTING_IP" != "178.156.222.248" ]; then
+            echo "🔄 Updating existing DNS record..."
+            curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$EXISTING_ID" \
               -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_DNS_TOKEN }}" \
               -H "Content-Type: application/json" \
-              --data '{"type":"A","name":"api.outiltech.co","content":"178.156.222.248","ttl":1,"proxied":true}'
+              --data "$DATA"
           else
-            echo "DNS record already exists and is up to date. No action needed."
+            echo "✅ DNS record is already correct."
           fi
