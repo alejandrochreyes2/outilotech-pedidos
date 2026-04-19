@@ -1,6 +1,6 @@
 # OutilTech — Tienda E-Commerce de Tecnología (Colombia)
 
-> Plataforma de e-commerce para venta de dispositivos electrónicos (Apple, Samsung, Android, Segway) con arquitectura de microservicios en .NET 8, frontend Angular 21 y despliegue en Microsoft Azure. Desarrollada para **OutilTech**, tienda ubicada en Cra 2A No 18A-52, Bogotá — Teléfonos: 304 592 8793 / 305 780 4236.
+> Plataforma de e-commerce para venta de dispositivos electrónicos (Apple, Samsung, Android, Segway) con arquitectura de microservicios en .NET 8, frontend Angular 21 y despliegue en **Hetzner Cloud + Coolify** (producción) y Docker local (desarrollo). Desarrollada para **OutilTech**, tienda ubicada en Cra 2A No 18A-52, Bogotá — Teléfonos: 304 592 8793 / 305 780 4236.
 
 ---
 
@@ -12,7 +12,7 @@ Este documento describe el estado actual completo del proyecto para que cualquie
 1. **Frontend Angular 21** — Tienda e-commerce pública (OutilTech) con catálogo de 114 productos, carrito, detalle de producto, checkout y filtros por marca/categoría.
 2. **Backend .NET 8** — Sistema de gestión interna (pedidos, pagos, usuarios) con 3 microservicios, API Gateway YARP, PostgreSQL y MongoDB.
 
-**Todo el trabajo activo está en el FRONTEND.** El backend ya está funcional y desplegado en Azure.
+**Todo el trabajo activo está en el FRONTEND.** El backend está funcional con dos entornos: **desarrollo local** (Docker Desktop) y **producción** (Hetzner Cloud + Coolify).
 
 ---
 
@@ -171,16 +171,26 @@ Diseño inspirado en tiendasishop.com:
 ## Arquitectura del Sistema
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                      NAVEGADOR / USUARIO                             │
-│           http://localhost:4200  (dev)  |  http://localhost (Docker) │
-│           https://outiltech.co         (producción)                  │
-└──────────────────────────┬───────────────────────────────────────────┘
-                           │
-                           ▼
+╔══════════════════════════════════════════════════════════════════════╗
+║                         DOS ENTORNOS                                 ║
+║   DESARROLLO (local)          PRODUCCIÓN (nube)                      ║
+║   Docker Desktop              Hetzner Cloud + Coolify                ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+                     NAVEGADOR / USUARIO
+          ┌──────────────────────────────────────────┐
+          │  Desarrollo: http://localhost:4200 (HMR) │
+          │              http://localhost:80  (Docker)│
+          │  Producción: https://outiltech.co        │
+          └──────────────────┬───────────────────────┘
+                             │
+                             ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                  FRONTEND — Angular 21                               │
 │  Standalone Components · TypeScript 5.9 · Signals API               │
+│                                                                      │
+│  DEV: ng serve (puerto 4200, hot-reload)                             │
+│  PROD: Cloudflare Pages (CI/CD via GitHub Actions)                   │
 │                                                                      │
 │  HomeComponent          → /home (tienda principal)                  │
 │  ProductoDetalleComponent → /productos/:slug                        │
@@ -190,17 +200,14 @@ Diseño inspirado en tiendasishop.com:
 │  DashboardComponent     → /dashboard (auth)                          │
 │  PedidosComponent       → /pedidos (auth)                            │
 │  PagosComponent         → /pagos (auth + admin)                      │
-│                                                                      │
-│  Servicios:                                                          │
-│  ProductosService  → catálogo estático 114 productos                │
-│  CartService       → carrito con Signals                             │
-│  AuthService       → JWT, login, roles                               │
-│  ApiService        → HTTP cliente para backend                       │
 └──────────────────────────┬───────────────────────────────────────────┘
                            │ REST/JSON + JWT Bearer
                            ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│              API GATEWAY — YARP (.NET 8) · Puerto 5000              │
+│              API GATEWAY — YARP (.NET 8)                            │
+│   DEV:  localhost:5000                                               │
+│   PROD: api.outiltech.co (Traefik + Let's Encrypt en Hetzner)       │
+│                                                                      │
 │   /api/usuarios/** → microservicio usuarios :3001                    │
 │   /api/pedidos/**  → microservicio pedidos  :3002                    │
 │   /api/pagos/**    → microservicio pagos    :3003                    │
@@ -215,17 +222,24 @@ Diseño inspirado en tiendasishop.com:
 └────────┬─────────┘  └───────┬──────────┘  └──────────┬───────┘
          │                    │                         │
          ▼                    ▼                         ▼
-┌──────────────────┐  ┌───────────────────────────────────────────┐
-│  usuarios_db     │  │          PostgreSQL 15                    │
-│  PostgreSQL      │  │   pedidos_db  ·  pagos_db                 │
-└──────────────────┘  └────────────────────────────────────────────┘
-                                    +
-                      ┌────────────────────────────────────────────┐
-                      │         MongoDB 6                          │
-                      │         toyota_catalogo (legacy)           │
-                      └────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                    PostgreSQL 15 (outiltech_db)                      │
+│   DEV:  localhost:5432  (Docker: proyecto-pedidos-postgres-1)        │
+│   PROD: Hetzner server  (gestionado por Coolify)                     │
+│   User: toyota_user · DB: outiltech_db                               │
+│   Tablas: pedidos · pagos · usuarios · roles · relacion_ventas       │
+└──────────────────────────────────────────────────────────────────────┘
+                              +
+┌──────────────────────────────────────────────────────────────────────┐
+│                       MongoDB 6                                      │
+│   DEV:  localhost:27017  (Docker: proyecto-pedidos-mongodb-1)        │
+│   PROD: Hetzner server  (gestionado por Coolify)                     │
+│   Uso: catálogo legacy toyota_catalogo                               │
+└──────────────────────────────────────────────────────────────────────┘
 
-CI/CD: GitHub push → GitHub Actions → Docker build → ACR → Azure Container Apps deploy
+CI/CD: GitHub push (main) → GitHub Actions → deploy-coolify.yml
+       → Coolify API (COOLIFY_URL + COOLIFY_API_TOKEN) → Hetzner
+       Frontend: GitHub Actions → deploy-frontend.yml → Cloudflare Pages
 ```
 
 ---
@@ -245,10 +259,11 @@ CI/CD: GitHub push → GitHub Actions → Docker build → ACR → Azure Contain
 | PostgreSQL | 15 | Base de datos relacional |
 | MongoDB | 6.x | Catálogo de productos legacy |
 | Docker / Docker Compose | 24.x | Contenedores |
-| Azure Static Web Apps | Latest | Hosting frontend |
-| Azure Container Apps | Latest | Hosting microservicios |
-| Azure Container Registry | Latest | Registro Docker |
-| GitHub Actions | Latest | CI/CD automatizado |
+| Hetzner Cloud | VPS Dedicado | Servidor de producción cloud |
+| Coolify | Latest | PaaS self-hosted (orquestación contenedores prod) |
+| Traefik | 2.x | Reverse proxy producción + Let's Encrypt SSL |
+| Cloudflare Pages | Latest | Hosting frontend + CDN global |
+| GitHub Actions | Latest | CI/CD automatizado (deploy-coolify.yml) |
 
 ---
 
@@ -367,9 +382,12 @@ proyecto-pedidos/
 │       └── init-mongo.js               # Seed legacy catálogo Toyota
 │
 ├── .github/workflows/
-│   ├── azure-static-web-apps.yml       # CI/CD frontend → Azure SWA
-│   ├── deploy.yml                      # CI/CD backend → Azure Container Apps
-│   └── main.yml                        # Pipeline principal
+│   ├── deploy-coolify.yml              # CI/CD backend → Hetzner vía Coolify API ★ ACTIVO
+│   ├── deploy-frontend.yml             # CI/CD frontend → Cloudflare Pages ★ ACTIVO
+│   ├── deploy.yml                      # Pipeline general
+│   ├── main.yml                        # Pipeline principal
+│   ├── fix-coolify-errors.yml          # Reparar errores WebSocket/502/504 en Coolify
+│   └── rollback.yml                    # Rollback manual si es necesario
 │
 ├── docker-compose.yml                  # Orquestación local completa
 ├── docker-compose.azure.yml            # Config para Azure
@@ -407,25 +425,34 @@ https://fdn2.gsmarena.com/vv/bigpic/samsung-galaxy-s25-ultra5g.jpg
 
 ---
 
-## Despliegue en Azure (Producción)
+## Despliegue en Producción — Hetzner Cloud + Coolify
 
-| Recurso | Nombre | Propósito |
-|---------|--------|-----------|
-| Static Web Apps | outiltech-frontend | Hosting Angular + CDN global |
-| Container Apps Env | toyota-pedidos-env | Entorno microservicios |
-| Container App | toyota-gateway | API Gateway YARP |
-| Container App | toyota-usuarios | Microservicio usuarios |
-| Container App | toyota-pedidos | Microservicio pedidos |
-| Container App | toyota-pagos | Microservicio pagos |
-| Container Registry | toyotapedidosacr | Imágenes Docker privadas |
+| Componente | Detalle | Propósito |
+|-----------|---------|-----------|
+| Servidor | Hetzner Cloud VPS | Host principal de todos los contenedores de producción |
+| Orquestador | Coolify (self-hosted) | Deploy automático vía API desde GitHub Actions |
+| Reverse Proxy | Traefik (incluido en Coolify) | Enrutamiento HTTPS + certificados Let's Encrypt |
+| Frontend | Cloudflare Pages | CDN global para Angular build |
+| Base de datos | PostgreSQL 15 (en Hetzner) | `outiltech_db` gestionada por Coolify |
+| Base de datos | MongoDB 6 (en Hetzner) | Catálogo legacy, gestionada por Coolify |
 
 ### URLs Producción
 
 | Servicio | URL |
 |---------|-----|
-| Frontend | https://outiltech.co / https://gentle-water-0ba98b90f.1.azurestaticapps.net |
-| Gateway | https://toyota-gateway.wittystone-43cf97a7.eastus2.azurecontainerapps.io |
-| Health | https://toyota-gateway.wittystone-43cf97a7.eastus2.azurecontainerapps.io/health |
+| Frontend | https://outiltech.co (Cloudflare Pages) |
+| API Gateway | https://api.outiltech.co (Traefik → YARP en Hetzner) |
+| Coolify Panel | http://178.156.222.248:8000 (administración) |
+| Health Check | https://api.outiltech.co/health |
+
+### Secrets requeridos en GitHub Actions
+
+| Secret | Descripción |
+|--------|-------------|
+| `COOLIFY_URL` | URL del panel Coolify, ej: `http://178.156.222.248:8000` |
+| `COOLIFY_API_TOKEN` | Token API de Coolify (Settings → API Tokens) |
+| `CLOUDFLARE_API_TOKEN` | Token Cloudflare para deploy frontend |
+| `SSH_PRIVATE_KEY` | Clave privada SSH para acceso directo al servidor Hetzner |
 
 ---
 
