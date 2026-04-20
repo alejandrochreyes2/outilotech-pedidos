@@ -167,9 +167,10 @@ async Task SyncPedidoToSupabase(Pedido p, IHttpClientFactory factory)
 {
     try
     {
+        // NO enviamos id — Supabase asigna su propio SERIAL para evitar conflictos
+        // con el ID del PostgreSQL local/Hetzner (ambas secuencias son independientes)
         var payload = new
         {
-            id           = p.Id,
             cliente      = p.Cliente,
             total        = p.Total,
             fecha        = p.Fecha,
@@ -192,7 +193,7 @@ async Task SyncPedidoToSupabase(Pedido p, IHttpClientFactory factory)
         using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("apikey", SUPABASE_KEY);
         client.DefaultRequestHeaders.Add("Authorization", $"Bearer {SUPABASE_KEY}");
-        client.DefaultRequestHeaders.Add("Prefer", "resolution=merge-duplicates");
+        client.DefaultRequestHeaders.Add("Prefer", "return=minimal");
 
         var json    = JsonSerializer.Serialize(payload);
         var content = new StringContent(json, Encoding.UTF8, "application/json");

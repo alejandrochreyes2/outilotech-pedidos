@@ -1,9 +1,13 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { CommonModule, DatePipe } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
+
+const SUPABASE_URL = 'https://gklxdzhmpjwwmffjdmwv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbHhkemhtcGp3d21mZmpkbXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NTM0MDEsImV4cCI6MjA5MTQyOTQwMX0.Es3YyKtLnx9lKiA_xyTHxK_IDSICb9kGf5-nu2XE_jg';
+const supabaseHeaders = new HttpHeaders({ 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` });
 
 export interface PedidoResponse {
   id:      number;
@@ -71,14 +75,18 @@ export class PedidosComponent implements OnInit {
   cargarPedidos() {
     this.isLoading.set(true);
     this.error.set(null);
-    this.http.get<PedidoResponse[]>(`${environment.apiUrl}/api/pedidos`).subscribe({
+    // Lee desde Supabase (fuente única — misma BD que AppSheet)
+    this.http.get<PedidoResponse[]>(
+      `${SUPABASE_URL}/rest/v1/pedidos?order=id.desc`,
+      { headers: supabaseHeaders }
+    ).subscribe({
       next: data => {
         this.pedidos.set(data);
         this.isLoading.set(false);
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading.set(false);
-        this.error.set(err.status === 403 ? 'Sin permiso para ver pedidos' : 'Error al cargar pedidos');
+        this.error.set('Error al cargar pedidos desde Supabase');
       }
     });
   }
@@ -87,17 +95,28 @@ export class PedidosComponent implements OnInit {
     if (this.form.invalid) return;
     const { cliente, total } = this.form.value;
     this.isLoading.set(true);
-    this.http.post<PedidoResponse>(`${environment.apiUrl}/api/pedidos`, { cliente, total }).subscribe({
-      next: pedido => {
-        this.pedidos.update(list => [...list, pedido]);
+    // Escribe en Supabase directamente
+    const pedido = {
+      cliente, total,
+      email: '', telefono: '', nombre: cliente ?? '', apellido: '',
+      empresa: '', ciudad: '', direccion: '', barrio: '',
+      tipo_id: '', numero_id: '',
+      metodo_envio: 'domicilio', metodo_pago: 'tarjeta',
+      items_json: '[]', estado: 'Completado'
+    };
+    const headers = supabaseHeaders.set('Prefer', 'return=representation');
+    this.http.post<PedidoResponse>(`${SUPABASE_URL}/rest/v1/pedidos`, pedido, { headers }).subscribe({
+      next: (resp: any) => {
+        const created = Array.isArray(resp) ? resp[0] : resp;
+        this.pedidos.update(list => [created, ...list]);
         this.form.reset({ cliente: '', total: 0 });
-        this.success.set('Pedido creado correctamente');
+        this.success.set('Pedido creado correctamente en Supabase');
         this.isLoading.set(false);
         setTimeout(() => this.success.set(null), 3000);
       },
-      error: (err: HttpErrorResponse) => {
+      error: () => {
         this.isLoading.set(false);
-        this.error.set(err.status === 403 ? 'Sin permiso para crear pedidos' : 'Error al crear pedido');
+        this.error.set('Error al crear pedido en Supabase');
       }
     });
   }
