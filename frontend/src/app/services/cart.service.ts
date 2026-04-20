@@ -9,14 +9,27 @@ export interface CartItem {
   subtotal: number;
 }
 
+const CART_KEY = 'outiltech_cart';
+
 @Injectable({ providedIn: 'root' })
 export class CartService {
-  items = signal<CartItem[]>([]);
+  items = signal<CartItem[]>(this.loadFromStorage());
   isOpen = signal(false);
 
   totalItems = computed(() => this.items().reduce((sum, i) => sum + i.cantidad, 0));
   subtotal = computed(() => this.items().reduce((sum, i) => sum + i.subtotal, 0));
   total = computed(() => this.subtotal());
+
+  private loadFromStorage(): CartItem[] {
+    try {
+      const saved = localStorage.getItem(CART_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  }
+
+  private save() {
+    localStorage.setItem(CART_KEY, JSON.stringify(this.items()));
+  }
 
   agregarItem(producto: Producto, variante?: ProductoVariante, cantidad: number = 1) {
     const precio = variante ? variante.precio : producto.precio;
@@ -30,6 +43,7 @@ export class CartService {
     } else {
       this.items.set([...items, { producto, variante, cantidad, precioUnitario: precio, subtotal: precio * cantidad }]);
     }
+    this.save();
     this.isOpen.set(true);
   }
 
@@ -38,13 +52,19 @@ export class CartService {
     const updated = [...this.items()];
     updated[index] = { ...updated[index], cantidad, subtotal: cantidad * updated[index].precioUnitario };
     this.items.set(updated);
+    this.save();
   }
 
   eliminarItem(index: number) {
     this.items.set(this.items().filter((_, i) => i !== index));
+    this.save();
   }
 
-  limpiar() { this.items.set([]); }
+  limpiar() {
+    this.items.set([]);
+    localStorage.removeItem(CART_KEY);
+  }
+
   abrirCarrito() { this.isOpen.set(true); }
   cerrarCarrito() { this.isOpen.set(false); }
   toggleCarrito() { this.isOpen.set(!this.isOpen()); }

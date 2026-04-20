@@ -67,7 +67,7 @@
         <button class="pd-btn-carrito" (click)="agregarAlCarrito()" [class.added]="agregado()">
           {{agregado() ? '✓ Agregado al carrito' : '🛒 Agregar al carrito'}}
         </button>
-        <button class="pd-btn-comprar" [routerLink]="['/checkout']">⚡ Comprar ahora</button>
+        <button class="pd-btn-comprar" (click)="comprarAhora()">⚡ Comprar ahora</button>
       </div>
 
       <!-- Métodos de pago -->

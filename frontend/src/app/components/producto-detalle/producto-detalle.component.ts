@@ -50,6 +50,12 @@ export class ProductoDetalleComponent implements OnInit {
     setTimeout(() => this.agregado.set(false), 2000);
   }
 
+  comprarAhora() {
+    if (!this.producto) return;
+    this.cartService.agregarItem(this.producto, this.varianteSeleccionada(), this.cantidad());
+    this.router.navigate(['/checkout']);
+  }
+
   formatPrecio(p: number): string {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(p);
   }
