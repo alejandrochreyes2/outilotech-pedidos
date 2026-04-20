@@ -1,0 +1,97 @@
+.pr-page {
+  min-height: 100vh;
+  background: #0a0a0f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+
+.pr-card {
+  background: #13131a;
+  border-radius: 20px;
+  padding: 48px 40px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.pr-icon {
+  font-size: 56px;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 12px;
+}
+
+.pr-desc {
+  font-size: 15px;
+  color: rgba(255,255,255,0.6);
+  margin: 0 0 28px;
+  line-height: 1.6;
+}
+
+.pr-detail {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.7);
+}
+.pr-detail strong { color: #fff; }
+
+.pr-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 28px 0 20px;
+  flex-wrap: wrap;
+}
+
+.pr-btn-primary {
+  background: #FF6B00;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 28px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .2s;
+}
+.pr-btn-primary:hover { background: #e55e00; }
+
+.pr-btn-secondary {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.8);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 12px 28px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .2s;
+}
+.pr-btn-secondary:hover { background: rgba(255,255,255,0.13); }
+
+.pr-note {
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+  margin: 0;
+  line-height: 1.7;
+}
+
+.pr-approved h1 { color: #4ade80; }
+.pr-declined h1 { color: #f87171; }
+.pr-error h1    { color: #fbbf24; }
+.pr-pending h1  { color: #60a5fa; }

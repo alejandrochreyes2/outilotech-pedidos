@@ -37,7 +37,7 @@ services:
   pedidos:
     build: ./backend/pedidos
     environment:
-      - ConnectionStrings__Postgres=Host=postgres;Database=outiltech;Username=postgres;Password=postgres
+      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres
     ports:
       - "3002:3002"
 

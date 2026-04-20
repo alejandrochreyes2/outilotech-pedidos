@@ -45,6 +45,7 @@ export const routes: Routes = [
   { path: 'motorola',   redirectTo: '/',    pathMatch: 'full' },
 
   { path: 'checkout', loadComponent: () => import('./components/checkout/checkout.component').then(m => m.CheckoutComponent) },
+  { path: 'payment-result', loadComponent: () => import('./components/payment-result/payment-result.component').then(m => m.PaymentResultComponent) },
   { path: 'nosotros', loadComponent: () => import('./components/nosotros/nosotros.component').then(m => m.NosotrosComponent) },
   { path: 'mision-vision', loadComponent: () => import('./components/mision-vision/mision-vision.component').then(m => m.MisionVisionComponent) },
   { path: 'servicios',  loadComponent: () => import('./components/servicios/servicios.component').then(m => m.ServiciosComponent) },

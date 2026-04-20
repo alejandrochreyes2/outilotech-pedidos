@@ -68,6 +68,7 @@ export class CheckoutComponent {
       itemsJson: itemsJson
     };
 
+    // 1. Guardar pedido en backend (PostgreSQL + sync Supabase en background)
     try {
       const res: any = await this.http
         .post(`${environment.apiUrl}/api/pedidos/checkout`, body)
@@ -77,13 +78,47 @@ export class CheckoutComponent {
       console.error('[CHECKOUT] Error guardando pedido:', err);
     }
 
-    // Sincronizar con Supabase en segundo plano (no bloquea el UX)
+    // 2. Sincronizar con Supabase en segundo plano
     this.syncSupabase(body, this.pedidoId);
 
+    // 3. Redirigir a Wompi según método de pago
+    const pagoElectronico = ['tarjeta', 'pse', 'nequi'].includes(this.form.metodoPago);
+
+    if (pagoElectronico) {
+      await this.redirigirAWompi(body.total, this.pedidoId, body.email,
+        `${this.form.nombre} ${this.form.apellido}`.trim(), this.form.telefono);
+      // redirigirAWompi hace window.location.href — el código de abajo no se ejecuta si fue exitoso
+      return;
+    }
+
+    // Para efectivo o ADDI: mostrar pantalla de éxito directamente
     this.procesando = false;
     this.cartService.limpiar();
     this.pagoExitoso = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  private async redirigirAWompi(total: number, pedidoId: number, email: string, fullName: string, phone: string) {
+    const reference   = `OUTILTECH-${pedidoId}-${Date.now()}`;
+    const redirectUrl = `${window.location.origin}/payment-result`;
+
+    try {
+      const res: any = await this.http.post(
+        `${environment.apiUrl}/api/pedidos/create-wompi-transaction`,
+        { reference, amountCop: total, redirectUrl, email, fullName, phone }
+      ).toPromise();
+
+      // Guardar carrito en sessionStorage antes de salir (para recuperar si hay error)
+      sessionStorage.setItem('wompi_reference', reference);
+      sessionStorage.setItem('wompi_pedidoId', String(pedidoId));
+
+      this.cartService.limpiar();
+      window.location.href = res.checkoutUrl;
+    } catch (err: any) {
+      console.error('[WOMPI] Error creando transacción:', err);
+      this.errorPago = 'No se pudo iniciar el pago. Intenta de nuevo.';
+      this.procesando = false;
+    }
   }
 
   private syncSupabase(body: any, pedidoId: number): void {
@@ -103,7 +138,7 @@ export class CheckoutComponent {
       metodo_envio: body.metodoEnvio,
       metodo_pago:  body.metodoPago,
       items_json:   body.itemsJson,
-      estado:       'Completado'
+      estado:       'Pendiente'
     };
 
     const headers = {

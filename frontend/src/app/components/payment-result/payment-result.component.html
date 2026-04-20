@@ -1,0 +1,57 @@
+<div class="pr-page">
+
+  <!-- APROBADO -->
+  <div class="pr-card pr-approved" *ngIf="isApproved">
+    <div class="pr-icon">✅</div>
+    <h1>¡Pago aprobado!</h1>
+    <p class="pr-desc">Tu compra fue procesada exitosamente. Recibirás una confirmación en tu correo electrónico.</p>
+    <div class="pr-detail" *ngIf="pedidoId">
+      <span>Pedido</span><strong>#{{pedidoId}}</strong>
+    </div>
+    <div class="pr-detail" *ngIf="transactionId">
+      <span>Transacción Wompi</span><strong>{{transactionId}}</strong>
+    </div>
+    <div class="pr-actions">
+      <a routerLink="/" class="pr-btn-primary">Seguir comprando</a>
+    </div>
+    <p class="pr-note">Nos comunicaremos contigo para coordinar la entrega.<br>
+      📞 304 592 8793 / 305 780 4236</p>
+  </div>
+
+  <!-- RECHAZADO -->
+  <div class="pr-card pr-declined" *ngIf="isDeclined">
+    <div class="pr-icon">❌</div>
+    <h1>Pago rechazado</h1>
+    <p class="pr-desc">Tu banco rechazó la transacción. Verifica los datos de tu tarjeta o intenta con otro método de pago.</p>
+    <div class="pr-actions">
+      <a routerLink="/checkout" class="pr-btn-primary">Intentar de nuevo</a>
+      <a routerLink="/" class="pr-btn-secondary">Volver al inicio</a>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="pr-card pr-error" *ngIf="isError">
+    <div class="pr-icon">⚠️</div>
+    <h1>Error en el pago</h1>
+    <p class="pr-desc">Ocurrió un error al procesar tu pago. No se realizó ningún cobro. Puedes intentarlo nuevamente.</p>
+    <div class="pr-actions">
+      <a routerLink="/checkout" class="pr-btn-primary">Intentar de nuevo</a>
+      <a routerLink="/" class="pr-btn-secondary">Volver al inicio</a>
+    </div>
+  </div>
+
+  <!-- PENDIENTE / CARGANDO -->
+  <div class="pr-card pr-pending" *ngIf="isPending">
+    <div class="pr-icon">⏳</div>
+    <h1>Pago en proceso</h1>
+    <p class="pr-desc">Tu pago está siendo verificado. Te notificaremos cuando se confirme la transacción.</p>
+    <div class="pr-detail" *ngIf="pedidoId">
+      <span>Pedido</span><strong>#{{pedidoId}}</strong>
+    </div>
+    <div class="pr-actions">
+      <a routerLink="/" class="pr-btn-primary">Ir al inicio</a>
+    </div>
+    <p class="pr-note">Si tienes dudas contáctanos:<br>📞 304 592 8793 / 305 780 4236</p>
+  </div>
+
+</div>

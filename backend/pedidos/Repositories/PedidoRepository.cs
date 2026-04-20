@@ -28,5 +28,11 @@ namespace PedidosAPI.Repositories
             _context.Pedidos.Add(pedido);
             await _context.SaveChangesAsync();
         }
+
+        public async Task UpdateAsync(Pedido pedido)
+        {
+            _context.Pedidos.Update(pedido);
+            await _context.SaveChangesAsync();
+        }
     }
 }

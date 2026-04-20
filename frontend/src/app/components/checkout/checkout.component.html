@@ -261,11 +261,15 @@
       </div>
 
       <!-- BOTÓN PAGAR -->
+      <div *ngIf="errorPago" class="co-error-msg">⚠️ {{errorPago}}</div>
       <button class="btn-pagar" (click)="procesarPago()" [disabled]="procesando || !form.terminos">
         <span *ngIf="procesando" class="co-spinner"></span>
         <span *ngIf="!procesando">🔒</span>
-        <span>{{procesando ? 'Procesando...' : 'Completar pago — ' + formatPrecio(cartService.total())}}</span>
+        <span>{{procesando ? 'Redirigiendo a Wompi...' : 'Completar pago — ' + formatPrecio(cartService.total())}}</span>
       </button>
+      <p class="co-wompi-note" *ngIf="['tarjeta','pse','nequi'].includes(form.metodoPago)">
+        Serás redirigido a <strong>Wompi</strong> (pasarela de pagos segura de Bancolombia)
+      </p>
 
     </div>
 

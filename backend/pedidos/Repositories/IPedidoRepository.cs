@@ -7,5 +7,6 @@ namespace PedidosAPI.Repositories
         Task<IEnumerable<Pedido>> GetAllAsync();
         Task<Pedido?> GetByIdAsync(int id);
         Task CreateAsync(Pedido pedido);
+        Task UpdateAsync(Pedido pedido);
     }
 }
