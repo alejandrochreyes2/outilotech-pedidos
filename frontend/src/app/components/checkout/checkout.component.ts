@@ -36,6 +36,10 @@ export class CheckoutComponent {
 
   async procesarPago() {
     if (!this.form.terminos) return;
+    if (this.cartService.items().length === 0 || this.cartService.total() <= 0) {
+      this.errorPago = 'El carrito está vacío. Agrega productos antes de pagar.';
+      return;
+    }
     this.procesando = true;
     this.errorPago = '';
 
