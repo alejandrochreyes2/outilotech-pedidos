@@ -88,7 +88,6 @@ export class CheckoutComponent {
 
   private syncSupabase(body: any, pedidoId: number): void {
     const supabasePedido = {
-      id:           pedidoId || undefined,
       cliente:      body.cliente,
       total:        body.total,
       email:        body.email,
@@ -111,7 +110,7 @@ export class CheckoutComponent {
       'apikey':        SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Content-Type':  'application/json',
-      'Prefer':        'resolution=merge-duplicates'
+      'Prefer':        'return=minimal'
     };
 
     this.http
