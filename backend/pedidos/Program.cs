@@ -352,9 +352,9 @@ async Task SyncPedidoToSupabase(Pedido p, IHttpClientFactory factory)
 // ============================================================
 // WOMPI — claves (sandbox por defecto; sobrescribir con env vars en prod)
 // ============================================================
-var WOMPI_PUBLIC_KEY    = builder.Configuration["Wompi:PublicKey"]    ?? "pub_stagtest_g2dFzO23W3NOcaFrm1lCgRGDnHFrJT0k";
-var WOMPI_INTEGRITY_KEY = builder.Configuration["Wompi:IntegrityKey"] ?? "stagtest_integrity_nAIBuqayW70XpUqJS4qf4STYiISd89Fp";
-var WOMPI_EVENTS_KEY    = builder.Configuration["Wompi:EventsKey"]    ?? "stagtest_events_pBnC7it2DPDgbGW1OvdH0BN6XoRAoLBx";
+var WOMPI_PUBLIC_KEY    = builder.Configuration["Wompi:PublicKey"]    ?? "pub_test_iGDtX1yJbTOiwFOZQsz57WHnqkPfKATo";
+var WOMPI_INTEGRITY_KEY = builder.Configuration["Wompi:IntegrityKey"] ?? "test_integrity_emFDteel2smneriBhxztMfMmudxgZhPg";
+var WOMPI_EVENTS_KEY    = builder.Configuration["Wompi:EventsKey"]    ?? "test_events_HZaNbXWnNGOICIDNxtjCvcgnZX6UobgW";
 
 string WompiIntegritySignature(string reference, long amountCents, string currency)
 {

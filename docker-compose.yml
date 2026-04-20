@@ -38,6 +38,9 @@ services:
     build: ./backend/pedidos
     environment:
       - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres
+      - Wompi__PublicKey=pub_test_iGDtX1yJbTOiwFOZQsz57WHnqkPfKATo
+      - Wompi__IntegrityKey=test_integrity_emFDteel2smneriBhxztMfMmudxgZhPg
+      - Wompi__EventsKey=test_events_HZaNbXWnNGOICIDNxtjCvcgnZX6UobgW
     ports:
       - "3002:3002"
 
