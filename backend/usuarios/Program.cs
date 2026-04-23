@@ -25,7 +25,7 @@ if (useInMemory)
 else
 {
     var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
-        ?? "Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres";
+        ?? "Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=root";
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
@@ -170,9 +170,7 @@ app.Use(async (context, next) =>
         await context.Response.WriteAsJsonAsync(new
         {
             error   = "Error interno del servidor",
-            detalle = ex.Message,
-            tipo    = ex.GetType().Name,
-            inner   = ex.InnerException?.Message
+            detalle = "Contacte al administrador"
         });
     }
 });
