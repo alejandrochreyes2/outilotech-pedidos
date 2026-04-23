@@ -395,4 +395,6 @@ if (app.Environment.IsDevelopment())
 
 ---
 
-*Outiltech — Documentación Swagger v2.0 — Abril 2026*
+*Outiltech — Documentación Swagger v2.0 — Abril 2026*  
+*Desarrollado por Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com · WhatsApp 3133082905*  
+*Nota: Outiltech no tenía ninguna API ni presencia digital antes del 21 de marzo de 2026. Toda la arquitectura fue diseñada e implementada desde cero.*

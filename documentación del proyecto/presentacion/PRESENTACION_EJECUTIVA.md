@@ -32,33 +32,49 @@
 
 ---
 
-## DIAPOSITIVA 2 — El Reto de Outiltech
+## DIAPOSITIVA 2 — El Punto de Partida: Outiltech no existía en internet
 
-### Antes de este proyecto...
+> **Dato clave:** Antes del 21 de marzo de 2026, si buscabas "Outiltech" en Google, **no aparecía nada**. La empresa existía físicamente, pero era invisible digitalmente.
 
-| Situación | Problema |
-|-----------|---------|
-| Pedidos por WhatsApp | Sin registro formal, datos perdidos |
-| Solo efectivo y transferencia manual | Se perdían ventas de clientes con tarjeta |
-| Sin presencia en Google | Competidores con tienda online ganaban clientes |
-| Atención solo en horario de tienda | Ventas limitadas a Lun-Sáb 9am-7pm |
-| Control manual en cuadernos | Sin métricas ni historial de ingresos |
+### Lo que Outiltech tenía antes de este proyecto: NADA
 
-### La pregunta clave:
-> *¿Cuántas ventas pierde Outiltech cada mes porque no tiene cómo recibir pagos con tarjeta o porque el cliente busca en Google y encuentra a la competencia?*
+| Área | Situación real |
+|------|--------------|
+| Página web | ❌ No existía |
+| Misión y Visión publicada | ❌ No había ninguna plataforma que las mostrara |
+| Servicios de ingeniería online | ❌ Seguridad Informática, ISO 27001, Software, IA — nadie los encontraba |
+| Tienda de productos | ❌ Solo por WhatsApp y presencial |
+| Pasarela de pagos | ❌ Solo efectivo y transferencias manuales |
+| Control de inventario | ❌ Manual, sin sistema |
+| Dashboard de ventas | ❌ No había ningún registro digital |
+| Panel de administración | ❌ No existía |
+
+### Outiltech ofrece servicios que el mercado necesita — pero nadie los conocía:
+
+- **Seguridad Informática & Forense Digital** — análisis de vulnerabilidades, recuperación de datos
+- **Auditoría Interna ISO 27001** — certificación para empresas
+- **Software a la Medida** — desarrollo de sistemas, integración SAP/ERP, IA
+- **Servicio Técnico** — reparación, diagnóstico, garantía, servicio a domicilio
+- **Soluciones Empresariales** — ventas por volumen, soporte TI, leasing tecnológico
+
+> *Antes de este proyecto: servicios de alto valor que nadie contrataba porque nadie sabía que existían.*
 
 ---
 
-## DIAPOSITIVA 3 — La Solución Entregada
+## DIAPOSITIVA 3 — La Solución: Presencia Digital Completa desde Cero
 
-### outiltech.co — Disponible 24/7
+### outiltech.co — Outiltech ya existe en internet
 
-🛍️ **Tienda profesional** con 114 productos de Apple, Samsung, Android, Segway  
+🏢 **Identidad corporativa** — Misión, Visión y valores publicados en `/mision-vision`  
+🗂️ **Catálogo de servicios** — 14 servicios en 4 categorías visibles en el mega-menú  
+🔒 **Página ISO 27001** — landing dedicada para el servicio estrella de auditoría  
+🛍️ **Tienda e-commerce** — 114 productos de Apple, Samsung, Android, Segway  
 💳 **Pagos electrónicos** — tarjeta, PSE, Nequi, Daviplata  
-📧 **Emails automáticos** — el cliente sabe el estado de su pedido en tiempo real  
-📊 **Panel admin** — Jhonnathan ve sus ventas desde el celular, en cualquier momento  
-🔒 **Seguridad Wompi** — la pasarela de Bancolombia, de confianza para los colombianos  
-📦 **Envíos a toda Colombia** — los clientes de cualquier ciudad pueden comprar  
+📧 **Emails automáticos** — confirmación al cliente en segundos  
+📊 **Dashboard admin** — 95+ pedidos, $121M+ en ventas monitoreadas en tiempo real  
+📋 **Historial de pagos** — FAC-1, FAC-2… cada transacción registrada con datos de entrega  
+📱 **AppSheet** — gestión visual del inventario sin tocar código  
+📦 **Envíos a toda Colombia** — clientes de cualquier ciudad pueden comprar  
 
 ---
 
@@ -217,6 +233,192 @@
 - 📱 App nativa (Android + iOS) en Play Store y App Store
 - 🤖 Chatbot de atención al cliente con IA
 - 💼 Portal de mayoristas / distribuidores
+
+---
+
+---
+
+## DIAPOSITIVA 9-A — Pantallazo 1: Misión y Visión (outiltech.co/mision-vision)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  🎯 NUESTRA MISIÓN                  🚀 NUESTRA VISIÓN               │
+│  ─────────────────────────────      ───────────────────────────────  │
+│  Brindar servicios                  Ser una empresa reconocida a     │
+│  especializados en seguridad        nivel nacional por su excelencia │
+│  informática, auditoría,            en seguridad informática,        │
+│  análisis forense digital,          análisis forense y soluciones    │
+│  microelectrónica y                 tecnológicas avanzadas.          │
+│  recuperación de datos.                                              │
+│                                     Destacarnos por la confianza,    │
+│  [Seguridad Informática]            la innovación y la capacidad de  │
+│  [Análisis Forense]                 resolver problemas complejos...  │
+│  [Recuperación de Datos]                                             │
+│  [Microelectrónica]                 [Alcance Nacional][Innovación]   │
+│                                     [Ecosistema Apple][Alta Exig.]   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Qué muestra este pantallazo:**
+- La empresa tenía misión y visión definidas internamente pero **nunca las había publicado en ningún lado**
+- Este proyecto creó y publicó la identidad formal de Outiltech en internet por primera vez
+- Diseño con identidad visual corporativa: fondo oscuro (#1a1a1a), naranja Outiltech, tonos azul/morado
+- URL de producción: **https://outiltech.co/mision-vision**
+
+---
+
+## DIAPOSITIVA 9-B — Pantallazo 2: Mega-Menú de Servicios
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  SISTEMAS Y         SOFTWARE A        SERVICIO          EMPRESAS     │
+│  TECNOLOGÍAS        LA MEDIDA         TÉCNICO                        │
+│  ──────────────     ─────────────     ─────────────     ─────────── │
+│  Seguridad          Software          Reparación de     Ventas       │
+│  Informática &      empresarial       dispositivos      corporativas │
+│  Forense Digital                                                     │
+│                     Páginas web       Diagnóstico       Compras por  │
+│  Auditoría                            gratuito          volumen      │
+│  Interna ISO 27001  IA en tu                                         │
+│                     plataforma        Servicio en       Soporte TI   │
+│                                       garantía                       │
+│                     Integración                         Leasing      │
+│                     SAP y ERP         Servicio a        tecnológico  │
+│                                       domicilio                      │
+│                     Apps para tu                        Encuentra    │
+│                     negocio                             una tienda   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Qué muestra este pantallazo:**
+- El mega-menú de "Servicios" en la barra de navegación principal
+- **14 servicios en 4 categorías** — todo el portafolio de Outiltech ahora visible en internet
+- Antes de este proyecto, ninguno de estos servicios estaba publicado en ningún lado online
+- Los clientes que busquen "auditoría ISO 27001 Bogotá" o "software empresarial Colombia" ahora pueden encontrar a Outiltech
+
+---
+
+## DIAPOSITIVA 9-C — Pantallazo 3: Página Auditoría Interna ISO 27001 (outiltech.co/iso27001)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│              OUTILTECH — SISTEMAS Y TECNOLOGÍAS                      │
+│                                                                      │
+│           Auditoría Interna                                          │
+│              ISO 27001                                               │
+│                                                                      │
+│     Asegura, Cumple y Fortalece tu Organización.                     │
+│     Transformamos la auditoría en una herramienta                    │
+│     estratégica, no en un simple requisito.                          │
+│                                                                      │
+│  [Solicitar auditoría]  [Ver todos los servicios]  [Certificados]   │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Qué muestra este pantallazo:**
+- Landing page dedicada para el servicio de Auditoría ISO 27001 — el servicio de mayor valor de Outiltech
+- Fondo de imagen de candado/seguridad con overlay verde — diseño profesional que genera confianza
+- Botones de acción claros para que empresas contacten a Outiltech
+- URL de producción: **https://outiltech.co/iso27001**
+- **Impacto:** Una empresa que busca certificación ISO 27001 en Colombia ahora puede encontrar y contratar a Outiltech
+
+---
+
+## DIAPOSITIVA 9-D — Pantallazo 4: Dashboard Admin (outiltech.co/dashboard)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Bienvenido, Jhonnathan Hernández Medina     [Admin]                 │
+│  jhonatanhtech@gmail.com                                            │
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                      │
+│  📦 95           💳 1            💰 $121.855.100+    ✅ 100%        │
+│  Compras         Total           Total Ventas         Disponibili-   │
+│  Registradas     Pagos                                dad            │
+│                                                                      │
+│  Historial de compras satisfactorias                [Actualizar]     │
+│  ─────────────────────────────────────────────────────────────────  │
+│  FAC-95  22/04/2026  Cliente            $1.500  ✓ Completado        │
+│  FAC-94  22/04/2026  Raul Chaparro      $1.500  ✓ Completado        │
+│  FAC-93  22/04/2026  Raul Chaparro      $1.500  ✓ Completado        │
+│  FAC-92  22/04/2026  EFECTIVO Chaparro  $1.500  ✓ Completado        │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Qué muestra este pantallazo (datos reales del sistema):**
+- **95 compras registradas** en el sistema desde el lanzamiento
+- **$121.855.100+ COP en ventas totales** — Outiltech ya tiene visibilidad real de sus ingresos
+- Historial de todas las compras con número de factura, fecha, cliente, monto y estado
+- Jhonnathan puede ver este dashboard desde su celular en cualquier momento
+- URL de producción: **https://outiltech.co/dashboard**
+- Los datos se actualizan en tiempo real vía Supabase sin recargar la página
+
+---
+
+## DIAPOSITIVA 9-E — Pantallazo 5: Módulo de Pagos (outiltech.co/pagos)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  43 Compras registradas  │  $22.880.800 Total facturado  │  0 Trans │
+│                                                                      │
+│  Datos de Contacto y Entrega                        [Actualizar]    │
+│  ─────────────────────────────────────────────────────────────────  │
+│  FAC# │ FECHA    │ CLIENTE              │ EMAIL      │ MÉTODO PAGO  │
+│  FAC-1│20/04/26  │ DANIEL ESTEBAN       │ alejandro..│ Tarjeta      │
+│  FAC-2│20/04/26  │ Raul Chaparro reyes  │ alejandro..│ Nequi        │
+│  FAC-3│20/04/26  │ raul alejandro reyes │ xxcelux4.. │ Nequi        │
+│  FAC-4│20/04/26  │ raul alejandro reyes │ xxcelux4.. │ Tarjeta      │
+│  FAC-5│20/04/26  │ raul alejandro reyes │ xxcelux4.. │ Tarjeta      │
+│  FAC-6│20/04/26  │ raul alejandro reyes │ xxcelux4.. │ Tarjeta      │
+│  FAC-7│20/04/26  │ alejandro chaparro   │ alejandro..│ Tarjeta      │
+│  FAC-8│20/04/26  │ alejandro compra     │ alejandro..│ Efectivo     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Qué muestra este pantallazo (datos reales del sistema en producción):**
+- **43 compras registradas** con datos completos de contacto y entrega
+- **$22.880.800 COP total facturado** — visible en tiempo real
+- Cada factura muestra: FAC#, fecha, cliente, email, teléfono, ciudad, dirección, método de envío, método de pago, total y estado
+- Múltiples métodos de pago ya usados: Tarjeta (Wompi), Nequi, Efectivo
+- Jhonnathan puede coordinar las entregas directamente desde esta pantalla
+- URL de producción: **https://outiltech.co/pagos**
+
+---
+
+## DIAPOSITIVA 9-F — Pantallazo 6: AppSheet — Gestión Visual del Inventario
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  inventario productos                          [Search] [+ Add]     │
+│  ─────────────────────────────────────────────────────────────────  │
+│  id    producto_id    nombre              marca   categoría  precio │
+│  ─────────────────────────────────────────────────────────────────  │
+│  Accesorios (8 productos)                                           │
+│   3    pencil-pro     Apple Pencil Pro     Apple   Accesorios 680k  │
+│  46    cubo-uni       Cubo Original Apple  Apple   Accesorios 260k  │
+│   2    pencil-2gen    Apple Pencil 2da Gen Apple   Accesorios 1.5k  │
+│  ─────────────────────────────────────────────────────────────────  │
+│  AirPods (3 productos)                                              │
+│  43    airpods4-rep   AirPods 4 Réplica   Apple   AirPods    260k  │
+│  44    airpodsp2-rep  AirPods Pro 2 Répl  Apple   AirPods    260k  │
+│  45    airpodsp3-ori  AirPods Pro 3 Orig  Apple   AirPods    1.4M  │
+│  ─────────────────────────────────────────────────────────────────  │
+│  Android (14 productos)                                             │
+│  101   redmi-note14   Redmi Note 14 256GB Redmi   Android    850k  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Qué muestra este pantallazo:**
+- **AppSheet** conectado directamente a la tabla `inventario_productos` en PostgreSQL/Supabase
+- El administrador puede **cambiar precios, agregar productos, desactivar disponibilidad** — todo sin tocar código
+- Muestra todos los campos: id, nombre, marca, categoría, modelo, año, precio, precio_anterior, unidades, disponibilidad, garantía, slug
+- Los cambios se sincronizan automáticamente con la tienda en outiltech.co
+- **Sin conocimientos técnicos requeridos** — cualquier empleado administrativo puede gestionar el catálogo
+- Accesible desde cualquier dispositivo con internet
+
+> **Por qué esto importa:** Antes de AppSheet, cambiar un precio requería un desarrollador que editara el código fuente. Ahora Jhonnathan o cualquier empleado puede hacerlo en 10 segundos desde el celular.
 
 ---
 

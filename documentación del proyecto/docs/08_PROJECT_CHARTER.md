@@ -11,16 +11,17 @@
 
 | Campo | Detalle |
 |-------|---------|
-| **Nombre del proyecto** | Outiltech — Plataforma E-Commerce de Tecnología |
+| **Nombre del proyecto** | Outiltech — Plataforma Digital Empresarial Completa |
 | **Código** | OTC-2026-001 |
 | **Cliente** | Outiltech |
 | **Gerente / Propietario** | Jhonnathan Hernández Medina |
 | **Cargo** | Gerente General y propietario de Outiltech |
 | **Dirección comercial** | Cra 2A No 18A-52, Bogotá D.C. |
-| **Teléfonos** | 304 592 8793 / 305 780 4236 |
+| **Teléfonos cliente** | 304 592 8793 / 305 780 4236 |
 | **URL entregada** | https://outiltech.co |
 | **Proveedor** | Alejandro Chaparro Reyes — Desarrollador Full-Stack |
 | **Email proveedor** | alejandrochreyes2@gmail.com |
+| **WhatsApp proveedor** | 3133082905 |
 | **Duración** | 36 días calendario |
 | **Inversión total** | **$20.000.000 COP** |
 | **Forma de pago** | 50% al firmar el contrato · 50% al firmar el acta de entrega |
@@ -29,33 +30,72 @@
 
 ## 2. Descripción del Proyecto
 
-Outiltech necesitaba transformar su negocio de venta de tecnología (antes solo presencial y por WhatsApp) en una tienda en línea profesional. El proyecto consistió en diseñar, desarrollar y desplegar una plataforma e-commerce completa que permite a los clientes de toda Colombia comprar productos de tecnología de alta gama con pagos electrónicos seguros.
+> **Contexto clave:** Antes de este proyecto, **Outiltech no tenía ninguna presencia en internet**. No existía página web, no existía plataforma digital, no había ningún sistema para mostrar sus servicios, vender sus productos ni gestionar su negocio en línea. Todo el ecosistema digital de la empresa fue creado desde cero por Alejandro Chaparro Reyes.
 
-**El problema que resolvimos:**
-- Los pedidos se manejaban por WhatsApp sin ningún registro formal
-- No había forma de cobrar con tarjeta de crédito o PSE
-- No existía visibilidad del inventario ni de los ingresos
-- Los clientes no podían comprar fuera del horario de atención
+El proyecto consistió en diseñar, desarrollar y desplegar **la presencia digital completa de Outiltech**: desde la identidad corporativa en internet (misión, visión, servicios) hasta la tienda e-commerce con pasarela de pagos, panel de administración, base de datos de inventario y herramientas de gestión visual para el equipo administrativo.
 
-**Lo que entregamos:**
-- Tienda online disponible 24/7 en outiltech.co
-- Pasarela de pagos Wompi (Bancolombia) para tarjeta y PSE
-- Sistema de pago Nequi/Daviplata con QR y verificación de comprobante
-- Panel de administración para gestionar pedidos en tiempo real
-- Emails automáticos de confirmación al cliente
+Outiltech no es solo una tienda de celulares: es una empresa de tecnología que ofrece **servicios especializados de ingeniería y sistemas** que nunca habían tenido vitrina digital. Este proyecto les dio esa vitrina.
+
+---
+
+### El problema que resolvimos (situación antes del 21 de marzo de 2026)
+
+**Presencia digital:**
+- ❌ Outiltech **no tenía página web** — cero presencia en Google
+- ❌ No existía ninguna plataforma donde mostrar la empresa, su misión, visión ni servicios
+- ❌ Nadie en internet sabía qué era Outiltech, qué ofrecía, dónde estaba
+- ❌ Los servicios de ingeniería (Seguridad Informática, ISO 27001, Software a la Medida, etc.) **no estaban en ningún lado online**
+- ❌ Un cliente potencial que buscara "seguridad informática Bogotá" o "auditoría ISO 27001 Colombia" **nunca encontraría a Outiltech**
+
+**Ventas y operación:**
+- ❌ Los pedidos de equipos se manejaban por WhatsApp sin ningún registro formal
+- ❌ No había forma de cobrar con tarjeta de crédito o PSE
+- ❌ No existía visibilidad del inventario ni de los ingresos
+- ❌ Los clientes no podían comprar fuera del horario de atención
+- ❌ No había control de inventario — no se sabía cuántas unidades había de cada producto
+
+---
+
+### Lo que construimos y entregamos
+
+**Identidad digital y presencia corporativa:**
+- ✅ Página web profesional en **outiltech.co** — Outiltech ya existe en internet
+- ✅ Página **Misión y Visión** (`/mision-vision`) — identidad corporativa formal
+- ✅ Catálogo completo de **servicios empresariales** visible en la web:
+  - *Sistemas y Tecnologías:* Seguridad Informática & Forense Digital · Auditoría Interna ISO 27001
+  - *Software a la Medida:* Software empresarial · Páginas web · IA en tu plataforma · Integración SAP y ERP · Apps para tu negocio
+  - *Servicio Técnico:* Reparación de dispositivos · Diagnóstico gratuito · Servicio en garantía · Servicio a domicilio
+  - *Empresas:* Ventas corporativas · Compras por volumen · Soporte TI · Leasing tecnológico · Instaladores certificados
+- ✅ Página dedicada **Auditoría Interna ISO 27001** (`/iso27001`) con descripción del servicio
+- ✅ Menú de navegación completo con mega-menú de servicios
+
+**Tienda E-Commerce:**
+- ✅ Tienda online con 114 productos disponible 24/7
+- ✅ Pasarela de pagos Wompi (Bancolombia) para tarjeta y PSE
+- ✅ Pago Nequi/Daviplata con QR estático y verificación de comprobante
+- ✅ Emails automáticos de confirmación al cliente
+
+**Sistema de gestión:**
+- ✅ Panel de administración con dashboard en tiempo real (Supabase)
+- ✅ Gestión de pedidos con estados, historial y exportación
+- ✅ Módulo de pagos con historial de transacciones (FAC-1, FAC-2…)
+- ✅ **AppSheet** conectado a la base de datos `inventario_productos` para gestión visual del catálogo sin tocar código
+
+**Resultado:** Outiltech pasó de ser **invisible en internet** a tener una plataforma digital completa que muestra quiénes son, qué ofrecen, dónde están y cómo contratar sus servicios — todo en outiltech.co.
 
 ---
 
 ## 3. Tecnologías Implementadas
 
-### 3.1 Frontend (Tienda Web)
+### 3.1 Frontend (Tienda Web + Portal Corporativo)
 
 | Tecnología | Función | Costo por licencia |
 |-----------|---------|-------------------|
-| **Angular 21** | Framework principal de la tienda | Gratis (MIT) |
+| **Angular 21** | Framework principal — tienda + portal corporativo completo | Gratis (MIT) |
 | **TypeScript 5** | Lenguaje de programación tipado | Gratis (MIT) |
 | **EmailJS** | Envío automático de emails al cliente | Gratis (200/mes) → $100.000 setup |
 | **Supabase JS** | Actualización en tiempo real del dashboard | Gratis (incluido) |
+| **AppSheet (Google)** | Gestión visual del inventario sobre PostgreSQL | Gratis (plan básico) → $150.000 setup |
 
 ### 3.2 Backend (Sistema de Gestión)
 

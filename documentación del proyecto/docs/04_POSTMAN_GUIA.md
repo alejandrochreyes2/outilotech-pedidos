@@ -286,4 +286,6 @@ Authorization: Bearer {{token_admin}}
 
 ---
 
-*Outiltech — Guía Postman v2.0 — Abril 2026*
+*Outiltech — Guía Postman v2.0 — Abril 2026*  
+*Desarrollado por Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com · WhatsApp 3133082905*  
+*Nota: Outiltech no tenía ninguna plataforma digital antes del 21 de marzo de 2026. Toda la API fue diseñada e implementada desde cero.*

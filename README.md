@@ -4,8 +4,10 @@
 
 **URL Producción:** https://outiltech.co  
 **Cliente:** Jhonnathan Hernández Medina — Gerente y propietario de Outiltech  
-**Desarrollado por:** Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com  
+**Desarrollado por:** Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com · WhatsApp 3133082905  
 **Período:** 21 Marzo – 26 Abril 2026 · **Inversión:** $20.000.000 COP
+
+> **Punto de partida:** Antes del 21 de marzo de 2026, Outiltech **no tenía ninguna presencia en internet**. Cero página web. Cero plataforma digital. Una empresa con servicios de alto valor — Seguridad Informática, Auditoría ISO 27001, Software a la medida — completamente invisible en Google. **Todo lo que existe hoy en outiltech.co fue construido desde cero en 36 días.**
 
 ---
 

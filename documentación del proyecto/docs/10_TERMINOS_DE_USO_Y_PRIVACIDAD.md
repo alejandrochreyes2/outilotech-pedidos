@@ -276,4 +276,5 @@ Para cualquier consulta sobre privacidad o protección de datos:
 ---
 
 *Outiltech — Términos de Uso y Política de Privacidad*  
-*Bogotá D.C., Colombia — Última actualización: 26 de abril de 2026*
+*Bogotá D.C., Colombia — Última actualización: 26 de abril de 2026*  
+*Plataforma desarrollada por Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com · WhatsApp 3133082905*

@@ -9,7 +9,19 @@
 
 ## Bienvenido a Outiltech
 
-Outiltech es tu tienda en línea para vender dispositivos de tecnología (iPhones, Samsung, Android, accesorios, patinetas Segway) a clientes de todo Colombia. Este manual te explica cómo usar cada parte del sistema **sin necesidad de saber programación**.
+> **Un logro importante:** Antes del 21 de marzo de 2026, Outiltech no tenía ninguna página web ni presencia digital. Toda esta plataforma — tienda, panel admin, pagos, emails — fue construida desde cero especialmente para Outiltech.
+
+Outiltech es tu tienda en línea para vender dispositivos de tecnología (iPhones, Samsung, Android, accesorios, patinetas Segway) a clientes de todo Colombia. Además de la tienda, Outiltech ofrece servicios empresariales:
+
+- **Seguridad Informática y Análisis Forense Digital**
+- **Auditoría Interna ISO 27001**
+- **Software empresarial a la medida**
+- **Páginas web e IA en plataformas empresariales**
+- **Integración SAP y ERP · Apps para tu negocio**
+- **Reparación técnica · Diagnóstico gratuito · Garantía · Servicio a domicilio**
+- **Ventas corporativas · Compras por volumen · Soporte TI · Leasing tecnológico**
+
+Este manual te explica cómo usar cada parte del sistema **sin necesidad de saber programación**.
 
 ---
 
@@ -203,4 +215,5 @@ Sí, contactando al desarrollador. También se puede solicitar un módulo de adm
 ---
 
 *Outiltech — Manual de Usuario v2.0 — Abril 2026*  
-*Cra 2A No 18A-52, Bogotá · Lun-Sáb 9am-7pm · 304 592 8793*
+*Cra 2A No 18A-52, Bogotá · Lun-Sáb 9am-7pm · 304 592 8793*  
+*Desarrollado por Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com · WhatsApp 3133082905*

@@ -11,7 +11,7 @@
 Nombre: **Alejandro Chaparro Reyes**  
 Identificación: C.C. [N° de cédula del proveedor]  
 Email: alejandrochreyes2@gmail.com  
-Teléfono: [Teléfono del proveedor]  
+Teléfono / WhatsApp: **3133082905**  
 En adelante denominado **"EL DESARROLLADOR"**
 
 **Y EL CLIENTE:**  
@@ -204,4 +204,5 @@ Fecha: 21/03/2026
 ---
 
 *Contrato de Servicios Tecnológicos — Outiltech E-Commerce*  
-*Bogotá D.C., Colombia — 2026*
+*Bogotá D.C., Colombia — 2026*  
+*Nota: Al momento de la firma (21 de marzo de 2026), Outiltech no contaba con ninguna plataforma digital. Toda la solución descrita en este contrato fue diseñada y construida desde cero.*

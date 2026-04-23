@@ -134,4 +134,8 @@ Ver carpeta `documentación del proyecto/docs/` para los 13 documentos del proye
 ---
 
 *Outiltech E-Commerce — Abril 2026*  
-*Desarrollado por Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com*
+*Desarrollado por Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com · WhatsApp 3133082905*  
+
+---
+
+> **Nota histórica:** Antes del 21 de marzo de 2026, Outiltech **no tenía ninguna presencia en internet** — cero página web, cero plataforma digital. Toda la infraestructura descrita en este documento fue creada desde cero en 36 días.

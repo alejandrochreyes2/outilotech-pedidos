@@ -12,7 +12,8 @@
 **EL DESARROLLADOR:**  
 Alejandro Chaparro Reyes  
 C.C.: ___________________________  
-Email: alejandrochreyes2@gmail.com
+Email: alejandrochreyes2@gmail.com  
+WhatsApp: 3133082905
 
 **EL CLIENTE:**  
 Jhonnathan Hernández Medina  
@@ -200,4 +201,5 @@ Fecha: 26/04/2026
 ---
 
 *Acta de Entrega — Outiltech E-Commerce Platform*  
-*Bogotá D.C., Colombia — 26 de abril de 2026*
+*Bogotá D.C., Colombia — 26 de abril de 2026*  
+*Nota: Al inicio de este proyecto (21 de marzo de 2026), Outiltech no tenía ninguna presencia en internet. Todo lo que se entrega en este acta fue creado desde cero en 36 días.*

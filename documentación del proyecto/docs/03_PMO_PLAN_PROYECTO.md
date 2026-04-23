@@ -358,4 +358,6 @@ DEMOS DE AVANCE                        ✓      ✓      ✓      ✓      ✓  
 ---
 
 *Outiltech E-Commerce — PMO Plan del Proyecto v2.0*  
-*Desarrollado por Alejandro Chaparro Reyes · Abril 2026*
+*Desarrollado por Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com · WhatsApp 3133082905*  
+*Bogotá, Colombia — Abril 2026*  
+*Nota: Antes del 21 de marzo de 2026, Outiltech no tenía ninguna presencia digital. Toda la plataforma fue creada desde cero en 36 días.*

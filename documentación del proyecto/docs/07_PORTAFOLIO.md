@@ -9,7 +9,19 @@
 
 ## El Proyecto
 
-**Outiltech** es una tienda en línea completa construida desde cero para la empresa **Outiltech** (Cra 2A No 18A-52, Bogotá), especializada en la venta de tecnología de alta gama: iPhones, Samsung, Mac, iPad, AirPods, Android, accesorios y patinetas Segway.
+> **Punto de partida:** Antes del 21 de marzo de 2026, **Outiltech no tenía ninguna presencia en internet**. Cero página web. Cero plataforma digital. Una empresa con servicios de alto valor — seguridad informática, auditoría ISO 27001, software a la medida — que era completamente invisible en Google.
+
+**Outiltech** es una empresa de tecnología con sede en Cra 2A No 18A-52, Bogotá, que ofrece:
+- Venta de dispositivos de alta gama (iPhones, Samsung, Mac, iPad, AirPods, Android, Segway)
+- Servicios de Seguridad Informática y Análisis Forense Digital
+- Auditoría Interna ISO 27001
+- Software empresarial a la medida
+- Integración SAP y ERP
+- IA en plataformas empresariales
+- Reparación técnica de dispositivos
+- Soporte TI para empresas y leasing tecnológico
+
+**Todo su core de negocio fue creado y llevado a internet por este proyecto.** Outiltech pasó de ser invisible a tener una plataforma digital completa en outiltech.co.
 
 > *"Tecnología de calidad al alcance de todos los colombianos"*
 
@@ -17,9 +29,23 @@
 
 ## ¿Qué se entregó?
 
-### Tienda pública (outiltech.co)
+### 1. Presencia Corporativa Digital (outiltech.co)
 
-Una tienda e-commerce moderna y responsive que los clientes de Outiltech usan para:
+Todo construido desde cero — Outiltech no tenía nada antes:
+
+- **Página principal** con hero slider, catálogo y secciones corporativas
+- **Misión y Visión** (`/mision-vision`) — identidad formal de la empresa en internet
+- **Mega-menú de Servicios** con 4 categorías y 14 servicios:
+  - *Sistemas y Tecnologías:* Seguridad Informática & Forense Digital · Auditoría ISO 27001
+  - *Software a la Medida:* Software empresarial · Páginas web · IA en tu plataforma · Integración SAP y ERP · Apps para tu negocio
+  - *Servicio Técnico:* Reparación · Diagnóstico gratuito · Garantía · Servicio a domicilio
+  - *Empresas:* Ventas corporativas · Compras por volumen · Soporte TI · Leasing tecnológico
+- **Página ISO 27001** (`/iso27001`) — servicio estrella con landing dedicada
+- **Navegación completa** con Acerca de nosotros, Servicios, Equipos, Descubrir
+
+### 2. Tienda E-Commerce (outiltech.co/#equipos)
+
+Una tienda moderna y responsive que los clientes de Outiltech usan para:
 
 - Explorar **114 productos** organizados por marca y categoría
 - Filtrar por Apple, Samsung, Android, accesorios, patinetas…
@@ -29,14 +55,26 @@ Una tienda e-commerce moderna y responsive que los clientes de Outiltech usan pa
 - Pagar con **Nequi o Daviplata** escaneando un QR
 - Recibir confirmación del pedido por **email automático**
 
-### Panel de administración
+### 3. Panel de Administración (outiltech.co/dashboard)
 
 Un panel interno para que Jhonnathan Hernández y su equipo puedan:
 
-- Ver todos los pedidos en tiempo real desde cualquier dispositivo
-- Confirmar manualmente los pagos Nequi
-- Gestionar estados de pedidos (pendiente → enviado → entregado)
+- Ver todos los pedidos en tiempo real — dashboard con métricas (95+ compras, $121M+ en ventas)
+- Confirmar manualmente los pagos Nequi/Daviplata
+- Gestionar estados de pedidos con historial completo (FAC-1, FAC-2…)
 - Administrar usuarios del sistema con roles de acceso
+- Ver historial de pagos con datos de contacto y entrega
+
+### 4. AppSheet — Gestión Visual del Inventario
+
+Para que el administrador pueda **gestionar productos y precios sin tocar código**:
+
+- AppSheet conectado directamente a la tabla `inventario_productos` en PostgreSQL/Supabase
+- Interfaz visual para agregar, editar, desactivar productos
+- Actualizar precios en tiempo real — los cambios se reflejan en la tienda inmediatamente
+- Gestionar disponibilidad y unidades por producto
+- Accesible desde cualquier dispositivo (celular, tablet, PC)
+- **No requiere conocimientos técnicos** — cualquier empleado administrativo lo puede usar
 
 ---
 
@@ -170,6 +208,7 @@ Desarrollador Full-Stack Senior
 Bogotá, Colombia
 
 📧 alejandrochreyes2@gmail.com  
+📱 WhatsApp: 3133082905  
 🐙 https://github.com/alejandrochreyes2  
 💼 Portafolio: https://github.com/alejandrochreyes2/outiltech-portafolio
 

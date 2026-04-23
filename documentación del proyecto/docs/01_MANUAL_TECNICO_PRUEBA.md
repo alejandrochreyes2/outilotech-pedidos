@@ -401,4 +401,5 @@ docker exec -it postgres psql -U postgres -d outiltech
 ---
 
 *Outiltech E-Commerce — Documentación Técnica v2.0 — Abril 2026*  
-*Desarrollado por Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com*
+*Desarrollado por Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com · WhatsApp 3133082905*  
+*Nota: Antes del 21 de marzo de 2026, Outiltech no tenía ninguna presencia en internet. Toda esta plataforma fue construida desde cero.*
