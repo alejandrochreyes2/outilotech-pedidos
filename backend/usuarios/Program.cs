@@ -155,11 +155,12 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
 app.MapGet("/diag2", (IConfiguration cfg) => {
-    var cs = cfg.GetConnectionString("PostgreSQL") ?? "NULL";
-    var safecs = System.Text.RegularExpressions.Regex.Replace(cs, @"Password=[^;]+", "Password=***");
-    var envOverride = System.Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSQL") ?? "NOT_SET";
-    var safeEnv = System.Text.RegularExpressions.Regex.Replace(envOverride, @"Password=[^;]+", "Password=***");
-    return Results.Ok(new { fromConfig = safecs, fromEnvVar = safeEnv, jwtIssuer = cfg["Jwt:Issuer"] });
+    var envRaw = System.Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSQL") ?? "NOT_SET";
+    return Results.Ok(new {
+        envVar = envRaw,
+        jwtKey = cfg["Jwt:Key"]?.Substring(0,8) + "...",
+        jwtIssuer = cfg["Jwt:Issuer"]
+    });
 });
 
 
