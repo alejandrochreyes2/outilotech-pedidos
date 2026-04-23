@@ -45,7 +45,7 @@ EL DESARROLLADOR se obliga a diseñar, desarrollar, implementar y entregar una *
 10. Dominio outiltech.co configurado con Cloudflare
 11. Documentación técnica completa (13 documentos)
 12. 30 horas de capacitación y soporte post-entrega
-
+13. Creaciòn software empresarial menu megaservicios 
 ---
 
 ## CLÁUSULA SEGUNDA — VALOR DEL CONTRATO Y FORMA DE PAGO
