@@ -13,9 +13,9 @@ using PedidosAPI.DTOs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var jwtKey      = builder.Configuration["Jwt:Key"]      ?? "ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!";
-var jwtIssuer   = builder.Configuration["Jwt:Issuer"]   ?? "toyota-pedidos-api";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "toyota-pedidos-client";
+var jwtKey      = builder.Configuration["Jwt:Key"]      ?? "OutiltechSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!";
+var jwtIssuer   = builder.Configuration["Jwt:Issuer"]   ?? "outiltech-api";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "outiltech-client";
 var emailUser   = builder.Configuration["Email:User"]        ?? "";
 var emailPass   = builder.Configuration["Email:Password"]    ?? "";
 var emailAdmin  = builder.Configuration["Email:AdminEmail"]  ?? "alejandrochreyes2@gmail.com";
@@ -23,7 +23,7 @@ var emailAdmin  = builder.Configuration["Email:AdminEmail"]  ?? "alejandrochreye
 Console.WriteLine($"[JWT CONFIG] Key len={jwtKey.Length} Issuer={jwtIssuer} Audience={jwtAudience}");
 
 var pgConnectionString = builder.Configuration.GetConnectionString("PostgreSQL")
-    ?? "Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!";
+    ?? "Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres";
 
 var useInMemory = builder.Configuration["USE_INMEMORY"] == "true";
 if (useInMemory)

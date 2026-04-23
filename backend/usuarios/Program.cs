@@ -25,7 +25,7 @@ if (useInMemory)
 else
 {
     var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
-        ?? "Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!";
+        ?? "Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres";
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
@@ -124,8 +124,8 @@ try
         (Email: "alejandrochreyes2@gmail.com",    UserName: "alejandro_admin",    FullName: "Jhonatan Hernandez",         Password: "Kx9#mT4$vR2n", Role: "Admin"),
         (Email: "contactanos@outiltech.co",        UserName: "jhonatan_admin",     FullName: "Jhonnathan Hernández Medina", Password: "Admin1327",     Role: "Admin"),
         (Email: "jhonatanhtech@gmail.com",         UserName: "jhonatanhtech",      FullName: "Jhonnathan Hernández Medina", Password: "Admin1327",     Role: "Admin"),
-        (Email: "vendedor@toyota-pedidos.com",    UserName: "vendedor_pedidos",   FullName: "Vendedor Toyota",             Password: "Bw3$pL7#qN5j", Role: "Vendedor"),
-        (Email: "usuario@toyota-pedidos.com",     UserName: "usuario_pedidos",    FullName: "Usuario Toyota",              Password: "Ym6#cF1$hK8s", Role: "User"),
+        (Email: "vendedor@outiltech.co",           UserName: "vendedor_outiltech", FullName: "Vendedor Outiltech",          Password: "Bw3$pL7#qN5j", Role: "Vendedor"),
+        (Email: "usuario@outiltech.co",            UserName: "usuario_outiltech",  FullName: "Usuario Outiltech",           Password: "Ym6#cF1$hK8s", Role: "User"),
     };
 
     foreach (var (Email, UserName, FullName, Password, Role) in seedUsers)
