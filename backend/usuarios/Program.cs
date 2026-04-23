@@ -154,18 +154,6 @@ catch (Exception ex)
 if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
-app.MapGet("/testdb/{pwd}", async (string pwd) => {
-    var cs = $"Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password={pwd}";
-    try {
-        await using var conn = new Npgsql.NpgsqlConnection(cs);
-        await conn.OpenAsync();
-        return Results.Ok(new { success = true, pwd = pwd.Substring(0,2)+"***" });
-    } catch (Exception ex) {
-        return Results.Ok(new { success = false, error = ex.Message.Substring(0, Math.Min(50, ex.Message.Length)) });
-    }
-});
-
-
 // Middleware global de excepciones
 app.Use(async (context, next) =>
 {
@@ -181,9 +169,7 @@ app.Use(async (context, next) =>
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(new
         {
-            error   = "Error interno del servidor",
-            detalle = ex.Message,
-            tipo    = ex.GetType().Name
+            error = "Error interno del servidor"
         });
     }
 });
