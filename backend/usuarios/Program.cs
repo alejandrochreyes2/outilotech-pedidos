@@ -170,7 +170,9 @@ app.Use(async (context, next) =>
         await context.Response.WriteAsJsonAsync(new
         {
             error   = "Error interno del servidor",
-            detalle = app.Environment.IsDevelopment() ? ex.Message : "Contacte al administrador"
+            detalle = ex.Message,
+            tipo    = ex.GetType().Name,
+            inner   = ex.InnerException?.Message
         });
     }
 });
