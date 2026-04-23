@@ -154,13 +154,15 @@ catch (Exception ex)
 if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
-app.MapGet("/diag2", (IConfiguration cfg) => {
-    var envRaw = System.Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSQL") ?? "NOT_SET";
-    return Results.Ok(new {
-        envVar = envRaw,
-        jwtKey = cfg["Jwt:Key"]?.Substring(0,8) + "...",
-        jwtIssuer = cfg["Jwt:Issuer"]
-    });
+app.MapGet("/testdb/{pwd}", async (string pwd) => {
+    var cs = $"Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password={pwd}";
+    try {
+        await using var conn = new Npgsql.NpgsqlConnection(cs);
+        await conn.OpenAsync();
+        return Results.Ok(new { success = true, pwd = pwd.Substring(0,2)+"***" });
+    } catch (Exception ex) {
+        return Results.Ok(new { success = false, error = ex.Message.Substring(0, Math.Min(50, ex.Message.Length)) });
+    }
 });
 
 
