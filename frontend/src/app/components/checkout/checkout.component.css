@@ -117,3 +117,52 @@
   .checkout-header { padding: 14px 20px; }
 }
 @media (max-width: 540px) { .co-row-2 { grid-template-columns: 1fr; } }
+
+/* ── Validación de formulario ─────────────────────────────────────── */
+.co-banner-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1.5px solid #ef4444;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 22px;
+  color: #fca5a5;
+  font-size: 14px;
+  font-weight: 600;
+  animation: co-shake 0.4s ease;
+}
+
+@keyframes co-shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-7px); }
+  40%       { transform: translateX(7px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+
+.co-input-error {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.07) !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
+}
+
+.co-field-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.co-field-error-msg {
+  font-size: 11px;
+  color: #f87171;
+  padding-left: 2px;
+}
+
+.co-terminos-error {
+  border: 1.5px solid rgba(239, 68, 68, 0.5);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.05);
+}

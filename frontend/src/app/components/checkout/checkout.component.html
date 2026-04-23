@@ -150,12 +150,28 @@
     <!-- ===== COLUMNA IZQUIERDA ===== -->
     <div class="co-left">
 
+      <!-- BANNER DE VALIDACIÓN -->
+      <div id="banner-validacion" class="co-banner-error" *ngIf="bannerValidacion">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Completa todos los datos requeridos para continuar</span>
+      </div>
+
       <!-- CONTACTO -->
       <p class="co-section-title">Contacto</p>
       <p class="co-section-sub">Necesitamos estos datos para enviarte la confirmación del pedido</p>
       <div class="co-metodos" style="border-radius:10px;overflow:visible;border:none;gap:10px;display:flex;flex-direction:column;margin-bottom:28px">
-        <input [(ngModel)]="form.email" type="email" placeholder="Correo electrónico" class="co-input" required/>
-        <input [(ngModel)]="form.telefono" type="tel" placeholder="Teléfono / Celular" class="co-input" required/>
+        <div class="co-field-wrap">
+          <input [(ngModel)]="form.email" (ngModelChange)="limpiarError('email')"
+                 type="email" placeholder="Correo electrónico *"
+                 [class.co-input-error]="camposInvalidos['email']" class="co-input"/>
+          <span class="co-field-error-msg" *ngIf="camposInvalidos['email']">Ingresa un correo válido</span>
+        </div>
+        <div class="co-field-wrap">
+          <input [(ngModel)]="form.telefono" (ngModelChange)="limpiarError('telefono')"
+                 type="tel" placeholder="Teléfono / Celular *"
+                 [class.co-input-error]="camposInvalidos['telefono']" class="co-input"/>
+          <span class="co-field-error-msg" *ngIf="camposInvalidos['telefono']">Ingresa tu teléfono (mínimo 7 dígitos)</span>
+        </div>
       </div>
 
       <!-- ENTREGA -->
@@ -163,13 +179,24 @@
       <p class="co-section-sub">¿A dónde enviamos tu pedido?</p>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px">
         <div class="co-row-2">
-          <input [(ngModel)]="form.nombre" type="text" placeholder="Nombre" class="co-input" required/>
-          <input [(ngModel)]="form.apellido" type="text" placeholder="Apellido" class="co-input" required/>
+          <div class="co-field-wrap">
+            <input [(ngModel)]="form.nombre" (ngModelChange)="limpiarError('nombre')"
+                   type="text" placeholder="Nombre *"
+                   [class.co-input-error]="camposInvalidos['nombre']" class="co-input"/>
+            <span class="co-field-error-msg" *ngIf="camposInvalidos['nombre']">Requerido</span>
+          </div>
+          <div class="co-field-wrap">
+            <input [(ngModel)]="form.apellido" (ngModelChange)="limpiarError('apellido')"
+                   type="text" placeholder="Apellido *"
+                   [class.co-input-error]="camposInvalidos['apellido']" class="co-input"/>
+            <span class="co-field-error-msg" *ngIf="camposInvalidos['apellido']">Requerido</span>
+          </div>
         </div>
         <input [(ngModel)]="form.empresa" type="text" placeholder="Empresa (opcional)" class="co-input"/>
         <div class="co-field-group">
-          <select [(ngModel)]="form.ciudad" class="co-input co-select" required>
-            <option value="">Selecciona tu ciudad</option>
+          <select [(ngModel)]="form.ciudad" (ngModelChange)="limpiarError('ciudad')"
+                  [class.co-input-error]="camposInvalidos['ciudad']" class="co-input co-select">
+            <option value="">Selecciona tu ciudad *</option>
             <option value="Bogotá">Bogotá</option>
             <option value="Medellín">Medellín</option>
             <option value="Cali">Cali</option>
@@ -180,20 +207,35 @@
           </select>
           <span class="co-input-icon">▾</span>
         </div>
-        <input [(ngModel)]="form.direccion" type="text" placeholder="Dirección (Calle, Carrera, #)" class="co-input" required/>
+        <span class="co-field-error-msg" *ngIf="camposInvalidos['ciudad']" style="margin-top:-6px">Selecciona tu ciudad</span>
+        <div class="co-field-wrap">
+          <input [(ngModel)]="form.direccion" (ngModelChange)="limpiarError('direccion')"
+                 type="text" placeholder="Dirección (Calle, Carrera, #) *"
+                 [class.co-input-error]="camposInvalidos['direccion']" class="co-input"/>
+          <span class="co-field-error-msg" *ngIf="camposInvalidos['direccion']">Requerido</span>
+        </div>
         <input [(ngModel)]="form.barrio" type="text" placeholder="Barrio / Apto / Conjunto (opcional)" class="co-input"/>
         <div class="co-row-2">
-          <div class="co-field-group">
-            <select [(ngModel)]="form.tipoId" class="co-input co-select" required>
-              <option value="">Tipo de identificación</option>
-              <option value="CC">Cédula de Ciudadanía</option>
-              <option value="NIT">NIT</option>
-              <option value="CE">Cédula Extranjería</option>
-              <option value="PA">Pasaporte</option>
-            </select>
-            <span class="co-input-icon">▾</span>
+          <div>
+            <div class="co-field-group">
+              <select [(ngModel)]="form.tipoId" (ngModelChange)="limpiarError('tipoId')"
+                      [class.co-input-error]="camposInvalidos['tipoId']" class="co-input co-select">
+                <option value="">Tipo de identificación *</option>
+                <option value="CC">Cédula de Ciudadanía</option>
+                <option value="NIT">NIT</option>
+                <option value="CE">Cédula Extranjería</option>
+                <option value="PA">Pasaporte</option>
+              </select>
+              <span class="co-input-icon">▾</span>
+            </div>
+            <span class="co-field-error-msg" *ngIf="camposInvalidos['tipoId']">Requerido</span>
           </div>
-          <input [(ngModel)]="form.numeroId" type="text" placeholder="N° de identificación" class="co-input" required/>
+          <div class="co-field-wrap">
+            <input [(ngModel)]="form.numeroId" (ngModelChange)="limpiarError('numeroId')"
+                   type="text" placeholder="N° de identificación *"
+                   [class.co-input-error]="camposInvalidos['numeroId']" class="co-input"/>
+            <span class="co-field-error-msg" *ngIf="camposInvalidos['numeroId']">Requerido</span>
+          </div>
         </div>
       </div>
 
@@ -365,16 +407,17 @@
       </div>
 
       <!-- TÉRMINOS -->
-      <div class="co-terminos">
+      <div class="co-terminos" [class.co-terminos-error]="camposInvalidos['terminos']">
         <label class="co-checkbox-row">
-          <input type="checkbox" [(ngModel)]="form.terminos"/>
+          <input type="checkbox" [(ngModel)]="form.terminos" (ngModelChange)="limpiarError('terminos')"/>
           <span>Acepto los <a href="#" class="co-link">Términos y Condiciones</a> y <a href="#" class="co-link">Política de Garantías</a></span>
         </label>
+        <span class="co-field-error-msg" *ngIf="camposInvalidos['terminos']">Debes aceptar los términos para continuar</span>
       </div>
 
       <!-- BOTÓN PAGAR -->
       <div *ngIf="errorPago" class="co-error-msg">⚠️ {{errorPago}}</div>
-      <button class="btn-pagar" (click)="procesarPago()" [disabled]="procesando || !form.terminos">
+      <button class="btn-pagar" (click)="procesarPago()" [disabled]="procesando">
         <span *ngIf="procesando" class="co-spinner"></span>
         <span *ngIf="!procesando">{{form.metodoPago === 'nequi' ? '📱' : '🔒'}}</span>
         <span>{{procesando ? (form.metodoPago === 'nequi' ? 'Generando QR...' : 'Redirigiendo a Wompi...') : 'Completar pago — ' + formatPrecio(cartService.total())}}</span>

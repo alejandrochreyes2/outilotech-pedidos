@@ -40,6 +40,10 @@ export class CheckoutComponent {
   referenciaPagoDirecto  = '';
   comprobante = { numeroPagador: '', codigoComprobante: '' };
 
+  // Validación de formulario
+  bannerValidacion = false;
+  camposInvalidos: Record<string, boolean> = {};
+
   // Guardamos items y datos del pedido para el email
   private _bodyPedido: any = null;
 
@@ -53,8 +57,58 @@ export class CheckoutComponent {
 
   constructor(public cartService: CartService, private http: HttpClient) {}
 
+  // Valida todos los campos requeridos y marca los inválidos
+  private validarFormulario(): boolean {
+    this.camposInvalidos = {};
+
+    const requeridos: Array<keyof typeof this.form> = [
+      'email', 'telefono', 'nombre', 'apellido', 'ciudad', 'direccion', 'tipoId', 'numeroId'
+    ];
+
+    for (const campo of requeridos) {
+      if (!this.form[campo] || String(this.form[campo]).trim() === '') {
+        this.camposInvalidos[campo] = true;
+      }
+    }
+
+    // Validar formato email
+    if (this.form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.email.trim())) {
+      this.camposInvalidos['email'] = true;
+    }
+
+    // Validar teléfono — mínimo 7 dígitos
+    if (this.form.telefono && this.form.telefono.replace(/\D/g, '').length < 7) {
+      this.camposInvalidos['telefono'] = true;
+    }
+
+    if (!this.form.terminos) {
+      this.camposInvalidos['terminos'] = true;
+    }
+
+    this.bannerValidacion = Object.keys(this.camposInvalidos).length > 0;
+
+    if (this.bannerValidacion) {
+      // Scroll al banner de error
+      setTimeout(() => {
+        const banner = document.getElementById('banner-validacion');
+        banner?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+    }
+
+    return !this.bannerValidacion;
+  }
+
+  // Limpia el error de un campo cuando el usuario empieza a escribir
+  limpiarError(campo: string) {
+    delete this.camposInvalidos[campo];
+    if (Object.keys(this.camposInvalidos).length === 0) {
+      this.bannerValidacion = false;
+    }
+  }
+
   async procesarPago() {
-    if (!this.form.terminos) return;
+    if (!this.validarFormulario()) return;
+
     if (this.cartService.items().length === 0 || this.cartService.total() <= 0) {
       this.errorPago = 'El carrito está vacío. Agrega productos antes de pagar.';
       return;
