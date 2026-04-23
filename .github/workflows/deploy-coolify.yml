@@ -3,10 +3,12 @@ name: Deploy to Coolify
 on:  
   push:  
     branches: [ main ]  
-    paths:  
-      - 'backend/**'  
-      - 'docker-compose.prod.yml'  
-      - 'scripts/deploy-to-coolify.js'  
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'docker-compose.yml'
+      - 'docker-compose.prod.yml'
+      - 'scripts/deploy-to-coolify.js'
   workflow_dispatch:  
 
 jobs:  
