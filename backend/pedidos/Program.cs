@@ -424,6 +424,102 @@ app.MapGet("/productos", async () =>
     return Results.Ok(list);
 });
 
+// POST /sync/productos — Supabase webhook llama este endpoint cuando cambia un producto
+// También puede llamarse manualmente desde Coolify o admin para sincronizar todo el inventario
+app.MapPost("/sync/productos", async (IHttpClientFactory factory, ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[SYNC] Iniciando sincronización productos Supabase → Hetzner");
+
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("apikey", SUPABASE_KEY);
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {SUPABASE_KEY}");
+
+        var resp = await client.GetAsync(
+            "https://gklxdzhmpjwwmffjdmwv.supabase.co/rest/v1/inventario_productos?select=*&order=id.asc");
+
+        if (!resp.IsSuccessStatusCode)
+            return Results.Problem($"Supabase error: {resp.StatusCode}");
+
+        var jsonStr = await resp.Content.ReadAsStringAsync();
+        var productos = JsonSerializer.Deserialize<List<JsonElement>>(jsonStr);
+        if (productos == null || productos.Count == 0)
+            return Results.Ok(new { synced = 0, message = "Sin productos en Supabase" });
+
+        int synced = 0;
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+
+        foreach (var p in productos)
+        {
+            string pid    = p.GetProperty("producto_id").GetString() ?? "";
+            string nombre = p.GetProperty("nombre").GetString() ?? "";
+            string marca  = p.GetProperty("marca").GetString() ?? "";
+            string cat    = p.GetProperty("categoria").GetString() ?? "";
+            string modelo = p.GetProperty("modelo").GetString() ?? "";
+            int anyo      = p.TryGetProperty("año", out var anyoProp) ? anyoProp.GetInt32() : 2025;
+            decimal precio = p.GetProperty("precio").GetDecimal();
+            decimal? precioAnt = p.TryGetProperty("precio_anterior", out var paProp)
+                                 && paProp.ValueKind != JsonValueKind.Null
+                                 ? paProp.GetDecimal() : null;
+            int unidades  = p.TryGetProperty("unidades", out var uProp) ? uProp.GetInt32() : 5;
+            string disp   = p.TryGetProperty("disponibilidad", out var dProp) ? dProp.GetString() ?? "Si" : "Si";
+            string gar    = p.TryGetProperty("garantia", out var gProp) ? gProp.GetString() ?? "1 año" : "1 año";
+            string slug   = p.TryGetProperty("slug", out var sProp) ? sProp.GetString() ?? pid : pid;
+            string? badge = p.TryGetProperty("badge", out var bProp) && bProp.ValueKind != JsonValueKind.Null
+                            ? bProp.GetString() : null;
+
+            var cmd = new NpgsqlCommand(@"
+                INSERT INTO inventario_productos
+                    (producto_id, nombre, marca, categoria, modelo, año, precio, precio_anterior,
+                     unidades, disponibilidad, garantia, slug, badge, actualizado_en)
+                VALUES
+                    (@pid, @nombre, @marca, @cat, @modelo, @anyo, @precio, @precioAnt,
+                     @unidades, @disp, @gar, @slug, @badge, NOW())
+                ON CONFLICT (producto_id) DO UPDATE SET
+                    nombre          = EXCLUDED.nombre,
+                    marca           = EXCLUDED.marca,
+                    categoria       = EXCLUDED.categoria,
+                    modelo          = EXCLUDED.modelo,
+                    año             = EXCLUDED.año,
+                    precio          = EXCLUDED.precio,
+                    precio_anterior = EXCLUDED.precio_anterior,
+                    unidades        = EXCLUDED.unidades,
+                    disponibilidad  = EXCLUDED.disponibilidad,
+                    garantia        = EXCLUDED.garantia,
+                    slug            = EXCLUDED.slug,
+                    badge           = EXCLUDED.badge,
+                    actualizado_en  = NOW()", conn);
+
+            cmd.Parameters.AddWithValue("pid", pid);
+            cmd.Parameters.AddWithValue("nombre", nombre);
+            cmd.Parameters.AddWithValue("marca", marca);
+            cmd.Parameters.AddWithValue("cat", cat);
+            cmd.Parameters.AddWithValue("modelo", modelo);
+            cmd.Parameters.AddWithValue("anyo", anyo);
+            cmd.Parameters.AddWithValue("precio", precio);
+            cmd.Parameters.AddWithValue("precioAnt", (object?)precioAnt ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("unidades", unidades);
+            cmd.Parameters.AddWithValue("disp", disp);
+            cmd.Parameters.AddWithValue("gar", gar);
+            cmd.Parameters.AddWithValue("slug", slug);
+            cmd.Parameters.AddWithValue("badge", (object?)badge ?? DBNull.Value);
+
+            await cmd.ExecuteNonQueryAsync();
+            synced++;
+        }
+
+        logger.LogInformation("[SYNC] Sincronizados {Count} productos", synced);
+        return Results.Ok(new { synced, message = $"{synced} productos sincronizados correctamente" });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SYNC] Error sincronizando productos");
+        return Results.Problem(ex.Message);
+    }
+});
+
 // GET / — lista completa
 app.MapGet("/", async (IPedidoRepository repo, ILogger<Program> logger) =>
 {
