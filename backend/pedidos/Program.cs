@@ -23,7 +23,7 @@ var emailAdmin  = builder.Configuration["Email:AdminEmail"]  ?? "alejandrochreye
 Console.WriteLine($"[JWT CONFIG] Key len={jwtKey.Length} Issuer={jwtIssuer} Audience={jwtAudience}");
 
 var pgConnectionString = builder.Configuration.GetConnectionString("PostgreSQL")
-    ?? "Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=root";
+    ?? "Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!";
 
 var useInMemory = builder.Configuration["USE_INMEMORY"] == "true";
 if (useInMemory)

@@ -25,7 +25,7 @@ if (useInMemory)
 else
 {
     var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
-        ?? "Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=root";
+        ?? "Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!";
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
@@ -154,12 +154,6 @@ catch (Exception ex)
 if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
-// Endpoint diagnóstico temporal — muestra config de conexión (sin contraseña)
-app.MapGet("/diag", (IConfiguration cfg) => {
-    var cs = cfg.GetConnectionString("PostgreSQL") ?? "NULL";
-    var safecs = System.Text.RegularExpressions.Regex.Replace(cs, @"Password=[^;]+", "Password=***");
-    return Results.Ok(new { connectionString = safecs, jwtIssuer = cfg["Jwt:Issuer"], env = System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") });
-});
 
 // Middleware global de excepciones
 app.Use(async (context, next) =>
@@ -177,9 +171,7 @@ app.Use(async (context, next) =>
         await context.Response.WriteAsJsonAsync(new
         {
             error   = "Error interno del servidor",
-            detalle = ex.Message,
-            tipo    = ex.GetType().Name,
-            v       = "root-fix-v2"
+            detalle = "Contacte al administrador"
         });
     }
 });

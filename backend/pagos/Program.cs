@@ -28,7 +28,7 @@ if (useInMemory)
 else
 {
     var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
-        ?? "Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=root";
+        ?? "Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!";
     builder.Services.AddDbContext<PagosDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
