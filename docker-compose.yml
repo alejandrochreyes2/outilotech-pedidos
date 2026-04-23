@@ -30,7 +30,7 @@ services:
   usuarios:
     build: ./backend/usuarios
     environment:
-      - ConnectionStrings__Postgres=Host=postgres;Database=outiltech;Username=postgres;Password=postgres
+      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres
     ports:
       - "3001:3001"
 
@@ -41,13 +41,16 @@ services:
       - Wompi__PublicKey=pub_test_iGDtX1yJbTOiwFOZQsz57WHnqkPfKATo
       - Wompi__IntegrityKey=test_integrity_emFDteel2smneriBhxztMfMmudxgZhPg
       - Wompi__EventsKey=test_events_HZaNbXWnNGOICIDNxtjCvcgnZX6UobgW
+      - Email__User=alejandrochreyes2@gmail.com
+      - Email__Password=PONER_APP_PASSWORD_AQUI
+      - Email__AdminEmail=alejandrochreyes2@gmail.com
     ports:
       - "3002:3002"
 
   pagos:
     build: ./backend/pagos
     environment:
-      - ConnectionStrings__Postgres=Host=postgres;Database=outiltech;Username=postgres;Password=postgres
+      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres
       - ConnectionStrings__MongoDB=mongodb://mongodb:27017
     ports:
       - "3003:3003"

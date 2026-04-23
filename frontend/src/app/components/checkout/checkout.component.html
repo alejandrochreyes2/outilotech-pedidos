@@ -1,3 +1,112 @@
+<!-- ===== PANTALLA PAGO DIRECTO NEQUI/DAVIPLATA ===== -->
+<div class="checkout-success" *ngIf="mostrarPagoDirecto">
+  <div class="success-card" style="max-width:440px">
+
+    <!-- FASE 1: QR + instrucciones -->
+    <ng-container *ngIf="!mostrarFormComprobante">
+      <div class="success-icon">📱</div>
+      <h2>Paga con {{nequiTab === 'daviplata' ? 'Daviplata' : 'Nequi'}}</h2>
+      <p style="margin-bottom:8px;font-size:14px">
+        Abre <strong>{{nequiTab === 'daviplata' ? 'Daviplata' : 'Nequi'}}</strong>, ve a
+        <strong>Cobrar / Pagar</strong> y escanea este QR,<br>
+        o transfiere directamente al número <strong style="color:#FF6B00">3045928793</strong>.
+      </p>
+
+      <!-- QR estático Nequi (Jhonnathan Hernandez — dueño Outiltech) -->
+      <div style="display:block;text-align:center;margin:12px auto">
+        <img
+          src="assets/nequi-qr-static.png"
+          alt="QR Nequi Outiltech"
+          style="width:220px;height:220px;border-radius:12px;background:#fff;padding:8px;display:inline-block;object-fit:contain"/>
+        <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.4)">
+          Abre Nequi → Pagar → Escanear QR
+        </div>
+      </div>
+
+      <!-- Datos de pago -->
+      <div style="background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.3);border-radius:10px;padding:16px;text-align:left;margin:16px 0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="color:rgba(255,255,255,0.6);font-size:13px">Número {{nequiTab === 'daviplata' ? 'Daviplata' : 'Nequi'}}</span>
+          <strong style="font-size:17px;color:#FF6B00;letter-spacing:2px">3045928793</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="color:rgba(255,255,255,0.6);font-size:13px">Valor EXACTO a pagar</span>
+          <strong style="font-size:16px;color:#4ade80">{{formatPrecio(cartService.total())}}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:rgba(255,255,255,0.6);font-size:13px">Referencia del pedido</span>
+          <strong style="font-size:12px;color:#fff;word-break:break-all">{{referenciaPagoDirecto}}</strong>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:20px">
+        ⚠️ Ingresa el valor EXACTO para que podamos confirmar tu pago automáticamente.
+      </p>
+
+      <button class="btn-pagar" (click)="confirmarPagoManual()" style="margin-bottom:12px">
+        ✅ Ya realicé el pago
+      </button>
+      <button style="background:transparent;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px;width:100%" (click)="mostrarPagoDirecto = false; procesando = false">
+        ← Volver al checkout
+      </button>
+    </ng-container>
+
+    <!-- FASE 2: Formulario de comprobante -->
+    <ng-container *ngIf="mostrarFormComprobante">
+      <div class="success-icon">🔍</div>
+      <h2>Confirma tu pago</h2>
+      <p style="font-size:14px;margin-bottom:20px;color:rgba(255,255,255,0.7)">
+        Ingresa los datos que aparecen en la confirmación de {{nequiTab === 'daviplata' ? 'Daviplata' : 'Nequi'}} después de transferir.
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+        <div style="text-align:left">
+          <label style="font-size:12px;color:rgba(255,255,255,0.5);display:block;margin-bottom:4px">
+            Tu número {{nequiTab === 'daviplata' ? 'Daviplata' : 'Nequi'}} (desde donde pagaste)
+          </label>
+          <input
+            [(ngModel)]="comprobante.numeroPagador"
+            type="tel"
+            placeholder="Ej: 3001234567"
+            class="co-input"
+            maxlength="10"
+            style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:12px 14px;border-radius:8px;width:100%;box-sizing:border-box;font-size:15px"
+          />
+        </div>
+        <div style="text-align:left">
+          <label style="font-size:12px;color:rgba(255,255,255,0.5);display:block;margin-bottom:4px">
+            Código o número de comprobante {{nequiTab === 'daviplata' ? 'Daviplata' : 'Nequi'}}
+          </label>
+          <input
+            [(ngModel)]="comprobante.codigoComprobante"
+            type="text"
+            placeholder="Ej: 2025042200123456"
+            class="co-input"
+            style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:12px 14px;border-radius:8px;width:100%;box-sizing:border-box;font-size:15px"
+          />
+          <p style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px">
+            En la app {{nequiTab === 'daviplata' ? 'Daviplata' : 'Nequi'}}: Movimientos → Detalle de la transacción → Número de autorización o referencia
+          </p>
+        </div>
+      </div>
+
+      <div *ngIf="errorComprobante" style="background:rgba(255,59,48,0.15);border:1px solid rgba(255,59,48,0.4);border-radius:8px;padding:10px 14px;font-size:13px;color:#ff9d97;margin-bottom:16px">
+        ⚠️ {{errorComprobante}}
+      </div>
+
+      <button class="btn-pagar" (click)="submitComprobante()" [disabled]="enviandoComprobante" style="margin-bottom:12px">
+        <span *ngIf="enviandoComprobante" class="co-spinner"></span>
+        <span *ngIf="!enviandoComprobante">✅</span>
+        <span>{{enviandoComprobante ? 'Guardando...' : 'Confirmar pago'}}</span>
+      </button>
+      <button style="background:transparent;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px;width:100%" (click)="mostrarFormComprobante = false">
+        ← Volver al QR
+      </button>
+    </ng-container>
+
+  </div>
+</div>
+
 <!-- ===== PANTALLA ÉXITO ===== -->
 <div class="checkout-success" *ngIf="pagoExitoso">
   <div class="success-card">
@@ -11,7 +120,7 @@
   </div>
 </div>
 
-<div class="checkout-page" *ngIf="!pagoExitoso">
+<div class="checkout-page" *ngIf="!pagoExitoso && !mostrarPagoDirecto">
 
   <!-- HEADER -->
   <header class="checkout-header">
@@ -208,7 +317,10 @@
             <button class="co-nequi-btn" [class.active]="nequiTab === 'nequi'" (click)="nequiTab = 'nequi'">Nequi</button>
             <button class="co-nequi-btn" [class.active]="nequiTab === 'daviplata'" (click)="nequiTab = 'daviplata'">Daviplata</button>
           </div>
-          <input type="tel" placeholder="Número de celular Nequi / Daviplata" class="co-input" maxlength="10"/>
+          <div class="co-pse-info" style="flex-direction:column;align-items:flex-start;gap:4px">
+            <span style="font-weight:700;color:#fff">Pago directo al comercio</span>
+            <span>Al confirmar el pedido verás el QR y el número <strong>3045928793</strong> para transferir. No saldrás de la página.</span>
+          </div>
         </div>
 
         <!-- EFECTIVO -->
@@ -264,11 +376,14 @@
       <div *ngIf="errorPago" class="co-error-msg">⚠️ {{errorPago}}</div>
       <button class="btn-pagar" (click)="procesarPago()" [disabled]="procesando || !form.terminos">
         <span *ngIf="procesando" class="co-spinner"></span>
-        <span *ngIf="!procesando">🔒</span>
-        <span>{{procesando ? 'Redirigiendo a Wompi...' : 'Completar pago — ' + formatPrecio(cartService.total())}}</span>
+        <span *ngIf="!procesando">{{form.metodoPago === 'nequi' ? '📱' : '🔒'}}</span>
+        <span>{{procesando ? (form.metodoPago === 'nequi' ? 'Generando QR...' : 'Redirigiendo a Wompi...') : 'Completar pago — ' + formatPrecio(cartService.total())}}</span>
       </button>
-      <p class="co-wompi-note" *ngIf="['tarjeta','pse','nequi'].includes(form.metodoPago)">
+      <p class="co-wompi-note" *ngIf="['tarjeta','pse'].includes(form.metodoPago)">
         Serás redirigido a <strong>Wompi</strong> (pasarela de pagos segura de Bancolombia)
+      </p>
+      <p class="co-wompi-note" *ngIf="form.metodoPago === 'nequi'">
+        Pagarás directamente al comercio por <strong>{{nequiTab === 'daviplata' ? 'Daviplata' : 'Nequi'}}</strong> — sin comisiones de pasarela
       </p>
 
     </div>

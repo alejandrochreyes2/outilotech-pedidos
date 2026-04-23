@@ -1,6 +1,43 @@
-# OutilTech — Tienda E-Commerce de Tecnología (Colombia)
+# Outiltech — Tienda E-Commerce de Tecnología (Colombia)
 
-> Plataforma de e-commerce para venta de dispositivos electrónicos (Apple, Samsung, Android, Segway) con arquitectura de microservicios en .NET 8, frontend Angular 21 y despliegue en **Hetzner Cloud + Coolify** (producción) y Docker local (desarrollo). Desarrollada para **OutilTech**, tienda ubicada en Cra 2A No 18A-52, Bogotá — Teléfonos: 304 592 8793 / 305 780 4236.
+> Plataforma de e-commerce para venta de dispositivos electrónicos (Apple, Samsung, Android, Segway) con arquitectura de microservicios en .NET 8, frontend Angular 21 y despliegue en **Hetzner Cloud + Coolify** (producción) y Docker local (desarrollo). Desarrollada para **Outiltech**, tienda ubicada en Cra 2A No 18A-52, Bogotá — Teléfonos: 304 592 8793 / 305 780 4236.
+
+**URL Producción:** https://outiltech.co  
+**Cliente:** Jhonnathan Hernández Medina — Gerente y propietario de Outiltech  
+**Desarrollado por:** Alejandro Chaparro Reyes · alejandrochreyes2@gmail.com  
+**Período:** 21 Marzo – 26 Abril 2026 · **Inversión:** $20.000.000 COP
+
+---
+
+## Arquitectura del Proyecto
+
+```
+outiltech-entrega-portafolio/
+│
+├── docs/
+│   ├── 01_MANUAL_TECNICO_PRUEBA.md        ← Pruebas técnicas + guía admin servidor
+│   ├── 02_MANUAL_USUARIO.md               ← Manual no técnico para el cliente
+│   ├── 03_PMO_PLAN_PROYECTO.md            ← Plan PMO + checklist de entrega
+│   ├── 04_POSTMAN_GUIA.md                 ← Guía de pruebas con Postman (24 requests)
+│   ├── 05_SWAGGER_DOCUMENTACION.md        ← Documentación completa de la API REST
+│   ├── 06_README.md                       ← README de documentación
+│   ├── 07_PORTAFOLIO.md                   ← Portafolio del desarrollador
+│   ├── 08_PROJECT_CHARTER.md              ← Carta del proyecto + plan capacitación
+│   ├── 09_CONTRATO_DE_SERVICIOS_TECNOLOGICOS.md
+│   └── 10_TERMINOS_DE_USO_Y_PRIVACIDAD.md
+│
+├── postman/
+│   └── ProyectoPedidos.postman_collection.json
+│
+├── presentacion/
+│   └── PRESENTACION_EJECUTIVA.md
+│
+└── contratos_firmados/
+    └── 11_ACTA_DE_ENTREGA.md
+```
+
+📁 **Documentación completa:** `documentación del proyecto/`  
+🐙 **Portafolio GitHub:** https://github.com/alejandrochreyes2/outiltech-portafolio
 
 ---
 

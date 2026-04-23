@@ -23,6 +23,9 @@ namespace PedidosAPI.DTOs
         string Email, string Telefono, string Nombre, string Apellido,
         string Empresa, string Ciudad, string Direccion, string Barrio,
         string TipoId, string NumeroId, string MetodoEnvio, string MetodoPago,
-        string ItemsJson, string Estado
+        string ItemsJson, string Estado, string ComprobanteNequi = ""
     );
+
+    // DTO para guardar comprobante de pago Nequi/Daviplata
+    public record NequiComprobanteDto(string NumeroPagador, string CodigoComprobante, string TipoPago);
 }

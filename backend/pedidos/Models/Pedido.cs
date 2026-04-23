@@ -29,5 +29,8 @@ namespace PedidosAPI.Models
         public string ItemsJson { get; set; } = "[]";
 
         public string Estado { get; set; } = "Completado";
+
+        // Comprobante de pago directo Nequi/Daviplata
+        public string ComprobanteNequi { get; set; } = string.Empty;
     }
 }

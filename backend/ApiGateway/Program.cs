@@ -6,7 +6,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins("https://outiltech.co", "https://api.outiltech.co", "http://localhost:4200")
+            policy.WithOrigins("https://outiltech.co", "https://api.outiltech.co", "http://localhost:4200", "http://localhost", "http://localhost:80")
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();

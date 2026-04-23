@@ -1,4 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
+import { SupabaseService } from './supabase.service';
 
 export interface ProductoVariante {
   storage?: string; color?: string; precio: number; stock: number;
@@ -128,22 +131,72 @@ function p(
 @Injectable({ providedIn: 'root' })
 export class ProductosService {
 
+  private http      = inject(HttpClient);
+  private supabase  = inject(SupabaseService);
+
   /** Aplica el proxy weserv.nl a URLs externas que bloquean hotlinking.
    *  Deja intactas las URLs de dominios confiables (celudmovil, unsplash, weserv). */
   private proxifyImageUrl(url: string): string {
     if (!url) return url;
-    if (url.includes('images.weserv.nl')) return url;              // ya proxificada
+    if (url.includes('images.weserv.nl')) return url;
     const safe = ['celudmovil.com.co', 'images.unsplash.com', 'upload.wikimedia.org', 'placehold.co', 'media.falabella.com.co'];
-    if (safe.some(d => url.includes(d))) return url;               // dominios confiables sin hotlink
+    if (safe.some(d => url.includes(d))) return url;
     const clean = url.replace(/^https?:\/\//, '');
     return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}`;
   }
 
   constructor() {
-    // Post-procesa todos los productos para que ninguna imagen externa quede sin proxy
+    // Post-procesa imágenes con proxy
     this.productos = this.productos.map(prod => {
       const img = this.proxifyImageUrl(prod.imagen);
       return { ...prod, imagen: img, imagenes: [img] };
+    });
+    // 1. Carga inicial desde Supabase
+    // 2. Suscripción en tiempo real: cualquier cambio en AppSheet actualiza el frontend al instante
+    this.sincronizarInventario();
+  }
+
+  /** Aplica una fila de inventario_productos sobre el array de productos (por producto_id) */
+  private patchProducto(db: any): void {
+    this.productos = this.productos.map(prod => {
+      if (prod.id !== db.producto_id) return prod;
+      return {
+        ...prod,
+        nombre:         db.nombre         ?? prod.nombre,
+        marca:          db.marca          ?? prod.marca,
+        garantia:       db.garantia       ?? prod.garantia,
+        precio:         Number(db.precio),
+        precioOriginal: db.precio_anterior != null ? Number(db.precio_anterior) : prod.precioOriginal,
+        badge:          db.badge          ?? prod.badge,
+        agotado:        db.disponibilidad === 'No',
+      };
+    });
+  }
+
+  /** Carga inicial + escucha cambios en tiempo real de inventario_productos */
+  private async sincronizarInventario(): Promise<void> {
+    // Carga inicial — trae todos los registros actuales de Supabase
+    const items = await this.supabase.getAll<any>(
+      'inventario_productos',
+      'producto_id,nombre,marca,precio,precio_anterior,disponibilidad,badge,garantia'
+    );
+    if (items.length > 0) {
+      items.forEach(db => this.patchProducto(db));
+      console.log('[INVENTARIO] Carga inicial:', items.length, 'productos desde Supabase');
+    }
+
+    // Tiempo real — AppSheet hace UPDATE → Supabase emite el evento → frontend actualiza al instante
+    this.supabase.escucharTabla('inventario_productos', (payload) => {
+      const fila = payload.new ?? payload.old;
+      if (!fila) return;
+      if (payload.eventType === 'DELETE') {
+        this.productos = this.productos.map(p =>
+          p.id === fila.producto_id ? { ...p, agotado: true } : p
+        );
+      } else {
+        // INSERT o UPDATE
+        this.patchProducto(fila);
+      }
     });
   }
 

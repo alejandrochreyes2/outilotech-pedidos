@@ -1,0 +1,299 @@
+{
+  "info": {
+    "name": "Outiltech — Colección Completa E-Commerce API",
+    "description": "Colección completa de pruebas para la API de Outiltech E-Commerce. Incluye 24 requests organizados en 5 carpetas con 18 escenarios de prueba automatizados.\n\nURL Base Local: http://localhost:5000\nURL Base Producción: https://api.outiltech.co\n\nDesarrollado por: Alejandro Chaparro Reyes\nProyecto: Outiltech - Abril 2026",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2.0.0"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000", "type": "string" },
+    { "key": "token_admin", "value": "", "type": "string" },
+    { "key": "token_vendedor", "value": "", "type": "string" },
+    { "key": "pedido_id", "value": "1", "type": "string" },
+    { "key": "pago_id", "value": "1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 — Health Checks",
+      "item": [
+        {
+          "name": "Health Gateway",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Gateway saludable', () => pm.response.to.have.status(200));"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/health" }
+        },
+        {
+          "name": "Health Usuarios",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Usuarios saludable', () => pm.response.to.have.status(200));"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/usuarios/health" }
+        },
+        {
+          "name": "Health Pedidos",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Pedidos saludable', () => pm.response.to.have.status(200));"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/pedidos/health" }
+        },
+        {
+          "name": "Health Pagos",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Pagos saludable', () => pm.response.to.have.status(200));"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/pagos/health" }
+        }
+      ]
+    },
+    {
+      "name": "02 — Autenticación",
+      "item": [
+        {
+          "name": "Login Admin",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Login exitoso - 200', () => pm.response.to.have.status(200));",
+                "pm.test('Respuesta tiene token', () => { const d = pm.response.json(); pm.expect(d).to.have.property('token'); });",
+                "if (pm.response.code === 200) { const d = pm.response.json(); pm.collectionVariables.set('token_admin', d.token); console.log('Token admin capturado OK'); }"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/usuarios/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@outiltech.co\",\n  \"password\": \"Admin123!\"\n}" }
+          }
+        },
+        {
+          "name": "Login Vendedor",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Login vendedor - 200', () => pm.response.to.have.status(200));",
+                "if (pm.response.code === 200) { const d = pm.response.json(); pm.collectionVariables.set('token_vendedor', d.token); }"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/usuarios/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"vendedor@outiltech.co\",\n  \"password\": \"Vendedor1!\"\n}" }
+          }
+        },
+        {
+          "name": "Login Inválido (debe dar 401)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Login inválido retorna 401', () => pm.response.to.have.status(401));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/usuarios/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"nadie@x.com\",\n  \"password\": \"wrong\"\n}" }
+          }
+        },
+        {
+          "name": "Registro Nuevo Usuario",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Registro - 201 o 200', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/usuarios/auth/register",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"test_nuevo@outiltech.co\",\n  \"password\": \"Test123!\",\n  \"nombre\": \"Usuario Test\",\n  \"rol\": \"Vendedor\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Pedidos",
+      "item": [
+        {
+          "name": "Listar Pedidos (Admin)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Listar pedidos - 200', () => pm.response.to.have.status(200));", "pm.test('Respuesta es array', () => pm.expect(pm.response.json()).to.be.an('array'));"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+            "url": "{{base_url}}/api/pedidos"
+          }
+        },
+        {
+          "name": "Checkout — Crear Pedido",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Checkout - 200 o 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                "pm.test('Respuesta tiene ID', () => { const d = pm.response.json(); pm.expect(d).to.have.property('id'); });",
+                "if (pm.response.code <= 201) { const d = pm.response.json(); if (d.id) pm.collectionVariables.set('pedido_id', String(d.id)); }"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/pedidos/checkout",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente\": \"Carlos Gómez Test\",\n  \"email\": \"carlos@test.com\",\n  \"telefono\": \"3001234567\",\n  \"nombre\": \"Carlos\",\n  \"apellido\": \"Gómez\",\n  \"empresa\": \"\",\n  \"ciudad\": \"Bogotá\",\n  \"direccion\": \"Calle 100 #15-20\",\n  \"barrio\": \"Santa Bárbara\",\n  \"tipoId\": \"CC\",\n  \"numeroId\": \"1234567890\",\n  \"metodoEnvio\": \"domicilio\",\n  \"metodoPago\": \"tarjeta\",\n  \"total\": 1299000,\n  \"itemsJson\": \"[{\\\"id\\\":1,\\\"nombre\\\":\\\"iPhone 16\\\",\\\"marca\\\":\\\"Apple\\\",\\\"cantidad\\\":1,\\\"precioUnitario\\\":1299000,\\\"subtotal\\\":1299000}]\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Obtener Pedido por ID",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Obtener pedido - 200', () => pm.response.to.have.status(200));"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+            "url": "{{base_url}}/api/pedidos/{{pedido_id}}"
+          }
+        },
+        {
+          "name": "Actualizar Estado Pedido",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Actualizar estado - 200', () => pm.response.to.have.status(200));"] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+            "url": "{{base_url}}/api/pedidos/{{pedido_id}}/estado",
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": \"Confirmado\"\n}" }
+          }
+        },
+        {
+          "name": "Comprobante Nequi (PATCH público)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Comprobante Nequi - 200', () => pm.response.to.have.status(200));"] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/pedidos/nequi-comprobante/{{pedido_id}}",
+            "body": { "mode": "raw", "raw": "{\n  \"numeroPagador\": \"3009876543\",\n  \"codigoComprobante\": \"20260426001234\",\n  \"tipoPago\": \"Nequi\"\n}" }
+          }
+        },
+        {
+          "name": "Crear Transacción Wompi",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Wompi transaction - 200', () => pm.response.to.have.status(200));", "pm.test('Tiene checkoutUrl', () => pm.expect(pm.response.json()).to.have.property('checkoutUrl'));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/pedidos/create-wompi-transaction",
+            "body": { "mode": "raw", "raw": "{\n  \"reference\": \"OUTILTECH-TEST-1714000000000\",\n  \"amountCop\": 1299000,\n  \"redirectUrl\": \"https://outiltech.co/payment-result\",\n  \"email\": \"carlos@test.com\",\n  \"fullName\": \"Carlos Gómez\",\n  \"phone\": \"3001234567\"\n}" }
+          }
+        },
+        {
+          "name": "Sin Token (debe dar 401)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Sin token retorna 401', () => pm.response.to.have.status(401));"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/pedidos" }
+        },
+        {
+          "name": "Listar Pedidos con Vendedor",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Vendedor puede listar pedidos - 200', () => pm.response.to.have.status(200));"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_vendedor}}" }],
+            "url": "{{base_url}}/api/pedidos"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Pagos",
+      "item": [
+        {
+          "name": "Listar Pagos (Admin)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Listar pagos - 200', () => pm.response.to.have.status(200));"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+            "url": "{{base_url}}/api/pagos"
+          }
+        },
+        {
+          "name": "Registrar Pago (Admin)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Crear pago - 200 o 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                "if (pm.response.code <= 201) { const d = pm.response.json(); if (d.id) pm.collectionVariables.set('pago_id', String(d.id)); }"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+            "url": "{{base_url}}/api/pagos",
+            "body": { "mode": "raw", "raw": "{\n  \"pedidoId\": {{pedido_id}},\n  \"monto\": 1299000,\n  \"metodoPago\": \"tarjeta\",\n  \"referencia\": \"OUTILTECH-TEST-1714000000000\"\n}" }
+          }
+        },
+        {
+          "name": "Pagos — Sin Token (debe dar 401)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Pagos sin token - 401', () => pm.response.to.have.status(401));"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/pagos" }
+        },
+        {
+          "name": "Pagos — Con Vendedor (debe dar 403)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Vendedor sin acceso a pagos - 403', () => pm.response.to.have.status(403));"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_vendedor}}" }],
+            "url": "{{base_url}}/api/pagos"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Flujo E2E Completo",
+      "item": [
+        {
+          "name": "E2E 1 — Login Admin",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('[E2E] Login exitoso', () => pm.response.to.have.status(200));",
+                "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/usuarios/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@outiltech.co\",\n  \"password\": \"Admin123!\"\n}" }
+          }
+        },
+        {
+          "name": "E2E 2 — Crear Pedido",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('[E2E] Pedido creado', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                "const d = pm.response.json(); if (d.id) pm.collectionVariables.set('pedido_id', String(d.id));"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/pedidos/checkout",
+            "body": { "mode": "raw", "raw": "{\n  \"cliente\": \"E2E Test Cliente\",\n  \"email\": \"e2e@test.com\",\n  \"telefono\": \"3009999999\",\n  \"nombre\": \"E2E\",\n  \"apellido\": \"Test\",\n  \"ciudad\": \"Bogotá\",\n  \"direccion\": \"Calle Test 1\",\n  \"tipoId\": \"CC\",\n  \"numeroId\": \"9999999\",\n  \"metodoEnvio\": \"domicilio\",\n  \"metodoPago\": \"efectivo\",\n  \"total\": 500000,\n  \"itemsJson\": \"[{\\\"id\\\":10,\\\"nombre\\\":\\\"Samsung Galaxy A55\\\",\\\"marca\\\":\\\"Samsung\\\",\\\"cantidad\\\":1,\\\"precioUnitario\\\":500000,\\\"subtotal\\\":500000}]\"\n}" }
+          }
+        },
+        {
+          "name": "E2E 3 — Verificar Pedido Creado",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('[E2E] Pedido existe', () => pm.response.to.have.status(200));"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+            "url": "{{base_url}}/api/pedidos/{{pedido_id}}"
+          }
+        },
+        {
+          "name": "E2E 4 — Confirmar Pedido",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('[E2E] Pedido confirmado', () => pm.response.to.have.status(200));"] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+            "url": "{{base_url}}/api/pedidos/{{pedido_id}}/estado",
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": \"Confirmado\"\n}" }
+          }
+        }
+      ]
+    }
+  ]
+}

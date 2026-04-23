@@ -5,6 +5,7 @@ using Microsoft.OpenApi.Models;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Npgsql;
 using PedidosAPI.Data;
 using PedidosAPI.Repositories;
 using PedidosAPI.Models;
@@ -15,8 +16,14 @@ var builder = WebApplication.CreateBuilder(args);
 var jwtKey      = builder.Configuration["Jwt:Key"]      ?? "ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!";
 var jwtIssuer   = builder.Configuration["Jwt:Issuer"]   ?? "toyota-pedidos-api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "toyota-pedidos-client";
+var emailUser   = builder.Configuration["Email:User"]        ?? "";
+var emailPass   = builder.Configuration["Email:Password"]    ?? "";
+var emailAdmin  = builder.Configuration["Email:AdminEmail"]  ?? "alejandrochreyes2@gmail.com";
 
 Console.WriteLine($"[JWT CONFIG] Key len={jwtKey.Length} Issuer={jwtIssuer} Audience={jwtAudience}");
+
+var pgConnectionString = builder.Configuration.GetConnectionString("PostgreSQL")
+    ?? "Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!";
 
 var useInMemory = builder.Configuration["USE_INMEMORY"] == "true";
 if (useInMemory)
@@ -26,10 +33,8 @@ if (useInMemory)
 }
 else
 {
-    var connectionString = builder.Configuration.GetConnectionString("PostgreSQL")
-        ?? "Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!";
     builder.Services.AddDbContext<PedidosDbContext>(options =>
-        options.UseNpgsql(connectionString));
+        options.UseNpgsql(pgConnectionString));
 }
 
 builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
@@ -145,6 +150,9 @@ using (var scope = app.Services.CreateScope())
                 END IF;
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='pedidos' AND column_name='Estado') THEN
                     ALTER TABLE pedidos ADD COLUMN ""Estado"" VARCHAR(50) NOT NULL DEFAULT 'Completado';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='pedidos' AND column_name='ComprobanteNequi') THEN
+                    ALTER TABLE pedidos ADD COLUMN ""ComprobanteNequi"" VARCHAR(500) NOT NULL DEFAULT '';
                 END IF;
             END $$;
         ";
@@ -387,6 +395,35 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapHealthChecks("/health");
 
+// ============================================================
+// GET /productos — inventario completo desde inventario_productos
+// Público: el frontend lo consume sin autenticación
+// ============================================================
+app.MapGet("/productos", async () =>
+{
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    var cmd = new NpgsqlCommand(
+        "SELECT producto_id, nombre, marca, precio, precio_anterior, unidades, disponibilidad, badge " +
+        "FROM inventario_productos ORDER BY id", conn);
+    await using var reader = await cmd.ExecuteReaderAsync();
+    var list = new List<object>();
+    while (await reader.ReadAsync())
+    {
+        list.Add(new {
+            productoId     = reader.GetString(0),
+            nombre         = reader.GetString(1),
+            marca          = reader.GetString(2),
+            precio         = reader.GetDecimal(3),
+            precioAnterior = reader.IsDBNull(4) ? (decimal?)null : reader.GetDecimal(4),
+            unidades       = reader.GetInt32(5),
+            disponibilidad = reader.GetString(6),
+            badge          = reader.IsDBNull(7) ? null : reader.GetString(7)
+        });
+    }
+    return Results.Ok(list);
+});
+
 // GET / — lista completa
 app.MapGet("/", async (IPedidoRepository repo, ILogger<Program> logger) =>
 {
@@ -439,8 +476,9 @@ app.MapPost("/checkout", async (PedidoCheckoutDto dto, IPedidoRepository repo, I
 
     await repo.CreateAsync(pedido);
 
-    // Sync a Supabase en background — no bloquea la respuesta al cliente
+    // Sync a Supabase y email — en background, no bloquean la respuesta
     _ = Task.Run(() => SyncPedidoToSupabase(pedido, factory));
+    _ = Task.Run(() => EnviarEmail(pedido, "checkout"));
 
     return Results.Created($"/{pedido.Id}", new PedidoDetalleDto(
         pedido.Id, pedido.Cliente, pedido.Total, pedido.Fecha,
@@ -547,9 +585,259 @@ app.MapPost("/wompi-webhook", async (HttpRequest request, IPedidoRepository repo
     }
 });
 
+// ============================================================
+// PATCH /nequi-comprobante/{id} — público
+// Guarda el comprobante de pago directo Nequi/Daviplata
+// ============================================================
+app.MapPatch("/nequi-comprobante/{id}", async (int id, NequiComprobanteDto dto, IPedidoRepository repo, ILogger<Program> logger) =>
+{
+    var pedido = await repo.GetByIdAsync(id);
+    if (pedido == null)
+    {
+        logger.LogWarning("[NEQUI] Pedido {Id} no encontrado", id);
+        return Results.NotFound(new { error = "Pedido no encontrado" });
+    }
+
+    pedido.Estado           = "PendienteVerificacion";
+    pedido.ComprobanteNequi = $"Tipo: {dto.TipoPago} | Cel: {dto.NumeroPagador} | Comprobante: {dto.CodigoComprobante}";
+    await repo.UpdateAsync(pedido);
+
+    logger.LogInformation("[NEQUI] Comprobante guardado pedido {Id}: {Comprobante}", id, pedido.ComprobanteNequi);
+
+    // Enviar email de confirmación al cliente y al admin
+    _ = Task.Run(() => EnviarEmail(pedido, "nequi_comprobante"));
+
+    return Results.Ok(new
+    {
+        mensaje      = "Comprobante recibido. Tu pedido quedará confirmado al verificar el pago.",
+        pedidoId     = id,
+        estado       = pedido.Estado,
+        comprobante  = pedido.ComprobanteNequi
+    });
+});
+
 app.UseSwagger();
 app.UseSwaggerUI();
 app.Run();
+
+// ── Servicio de email ──────────────────────────────────────────────
+static string BuildEmailHtml(Pedido p, string tipoEvento)
+{
+    var metodoPagoLabel = tipoEvento == "nequi_comprobante"
+        ? "Nequi/Daviplata (comprobante recibido)"
+        : p.MetodoPago switch {
+            "tarjeta"  => "Tarjeta de Crédito/Débito",
+            "pse"      => "PSE / Mercado Pago",
+            "nequi"    => "Nequi / Daviplata",
+            "efectivo" => "Efectivo (Efecty/Baloto)",
+            "addi"     => "Addi – Cuotas",
+            _          => p.MetodoPago
+          };
+
+    var estadoLabel = tipoEvento == "nequi_comprobante"
+        ? "<span style='background:#f59e0b;color:#000;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700'>⏳ Pendiente de verificación</span>"
+        : "<span style='background:#22c55e;color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700'>✅ Confirmado</span>";
+
+    var comprobanteHtml = !string.IsNullOrEmpty(p.ComprobanteNequi)
+        ? $@"<tr><td style='padding:12px 0;border-bottom:1px solid #2a2a2a'>
+               <strong style='color:#ff6b00'>Comprobante Nequi</strong><br/>
+               <span style='color:#ccc;font-size:13px'>{p.ComprobanteNequi}</span>
+             </td></tr>"
+        : "";
+
+    string itemsHtml;
+    try
+    {
+        var items = JsonSerializer.Deserialize<JsonElement[]>(p.ItemsJson) ?? [];
+        var rows = new System.Text.StringBuilder();
+        foreach (var item in items)
+        {
+            var nombre   = item.TryGetProperty("nombre",       out var n) ? n.GetString() : "-";
+            var marca    = item.TryGetProperty("marca",        out var m) ? m.GetString() : "";
+            var variante = item.TryGetProperty("variante",     out var v) ? v.GetString() : "";
+            var cantidad = item.TryGetProperty("cantidad",     out var c) ? c.GetInt32()  : 1;
+            var subtotal = item.TryGetProperty("subtotal",     out var s) ? s.GetDecimal() : 0;
+            rows.Append($@"
+              <tr>
+                <td style='padding:10px 8px;border-bottom:1px solid #2a2a2a;color:#ddd;font-size:14px'>
+                  <strong>{marca}</strong> {nombre}
+                  {(string.IsNullOrEmpty(variante) ? "" : $"<br/><span style='color:#999;font-size:12px'>{variante}</span>")}
+                </td>
+                <td style='padding:10px 8px;border-bottom:1px solid #2a2a2a;text-align:center;color:#ddd;font-size:14px'>{cantidad}</td>
+                <td style='padding:10px 8px;border-bottom:1px solid #2a2a2a;text-align:right;color:#4ade80;font-size:14px;font-weight:700'>
+                  {subtotal:N0} COP
+                </td>
+              </tr>");
+        }
+        itemsHtml = rows.Length > 0 ? rows.ToString() : "<tr><td colspan='3' style='color:#999;padding:12px'>Sin detalle de productos</td></tr>";
+    }
+    catch
+    {
+        itemsHtml = "<tr><td colspan='3' style='color:#999;padding:12px'>Sin detalle de productos</td></tr>";
+    }
+
+    var mensajeEstado = tipoEvento == "nequi_comprobante"
+        ? "Hemos recibido tu comprobante de pago. Lo verificaremos en las próximas horas y te confirmaremos el envío de tu pedido."
+        : "Tu pedido ha sido registrado correctamente. Nos pondremos en contacto contigo para coordinar el envío.";
+
+    return $@"<!DOCTYPE html>
+<html lang='es'>
+<head><meta charset='UTF-8'/><meta name='viewport' content='width=device-width,initial-scale=1.0'/></head>
+<body style='margin:0;padding:0;background:#0f0f0f;font-family:Arial,sans-serif'>
+  <div style='max-width:600px;margin:0 auto;background:#1a1a1a;border-radius:12px;overflow:hidden'>
+
+    <!-- HEADER -->
+    <div style='background:linear-gradient(135deg,#1a1a1a 0%,#2a1500 100%);padding:32px 40px;border-bottom:3px solid #ff6b00'>
+      <div style='font-family:Arial Black,sans-serif;font-size:28px;font-weight:900;letter-spacing:-1px'>
+        <span style='color:#fff'>OUTIL</span><span style='color:#ff6b00'>TECH</span>
+      </div>
+      <p style='color:rgba(255,255,255,0.5);font-size:13px;margin:4px 0 0 0'>outiltech.co · Tecnología de calidad</p>
+    </div>
+
+    <!-- ESTADO -->
+    <div style='padding:28px 40px;background:#1f1f1f;border-bottom:1px solid #2a2a2a;text-align:center'>
+      <div style='font-size:40px;margin-bottom:8px'>{(tipoEvento == "nequi_comprobante" ? "📋" : "🎉")}</div>
+      <h1 style='color:#fff;margin:0 0 8px 0;font-size:22px'>
+        {(tipoEvento == "nequi_comprobante" ? "Comprobante recibido" : "¡Pedido confirmado!")}
+      </h1>
+      <p style='color:rgba(255,255,255,0.6);margin:0 0 12px 0;font-size:14px'>{mensajeEstado}</p>
+      {estadoLabel}
+    </div>
+
+    <!-- NÚMERO DE PEDIDO -->
+    <div style='padding:20px 40px;background:#161616;border-bottom:1px solid #2a2a2a;display:flex;justify-content:space-between;align-items:center'>
+      <span style='color:rgba(255,255,255,0.5);font-size:13px'>Número de pedido</span>
+      <span style='color:#ff6b00;font-size:20px;font-weight:900;letter-spacing:1px'>#{p.Id}</span>
+    </div>
+
+    <!-- DATOS DEL CLIENTE -->
+    <div style='padding:24px 40px;border-bottom:1px solid #2a2a2a'>
+      <h2 style='color:#ff6b00;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:0 0 16px 0'>Datos del cliente</h2>
+      <table style='width:100%;border-collapse:collapse'>
+        <tr><td style='padding:6px 0;color:rgba(255,255,255,0.5);font-size:13px;width:140px'>Nombre</td>
+            <td style='padding:6px 0;color:#fff;font-size:13px'>{p.Nombre} {p.Apellido}</td></tr>
+        <tr><td style='padding:6px 0;color:rgba(255,255,255,0.5);font-size:13px'>Email</td>
+            <td style='padding:6px 0;color:#fff;font-size:13px'>{p.Email}</td></tr>
+        <tr><td style='padding:6px 0;color:rgba(255,255,255,0.5);font-size:13px'>Teléfono</td>
+            <td style='padding:6px 0;color:#fff;font-size:13px'>{p.Telefono}</td></tr>
+        <tr><td style='padding:6px 0;color:rgba(255,255,255,0.5);font-size:13px'>Identificación</td>
+            <td style='padding:6px 0;color:#fff;font-size:13px'>{p.TipoId} {p.NumeroId}</td></tr>
+      </table>
+    </div>
+
+    <!-- DIRECCIÓN DE ENVÍO -->
+    <div style='padding:24px 40px;border-bottom:1px solid #2a2a2a'>
+      <h2 style='color:#ff6b00;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:0 0 16px 0'>Dirección de envío</h2>
+      <p style='color:#fff;font-size:14px;margin:0 0 4px 0'>{p.Nombre} {p.Apellido}</p>
+      <p style='color:#ccc;font-size:13px;margin:0 0 2px 0'>{p.Direccion}{(string.IsNullOrEmpty(p.Barrio) ? "" : $", {p.Barrio}")}</p>
+      <p style='color:#ccc;font-size:13px;margin:0 0 2px 0'>{p.Ciudad}, Colombia</p>
+      <p style='color:#ccc;font-size:13px;margin:8px 0 0 0'>
+        📦 Método de envío: <strong style='color:#fff'>{(p.MetodoEnvio == "tienda" ? "Recoger en tienda" : "Envío a domicilio (1-3 días hábiles)")}</strong>
+      </p>
+    </div>
+
+    <!-- PRODUCTOS -->
+    <div style='padding:24px 40px;border-bottom:1px solid #2a2a2a'>
+      <h2 style='color:#ff6b00;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:0 0 16px 0'>Productos</h2>
+      <table style='width:100%;border-collapse:collapse'>
+        <thead>
+          <tr style='background:#252525'>
+            <th style='padding:10px 8px;text-align:left;color:rgba(255,255,255,0.5);font-size:12px;font-weight:600'>PRODUCTO</th>
+            <th style='padding:10px 8px;text-align:center;color:rgba(255,255,255,0.5);font-size:12px;font-weight:600'>CANT.</th>
+            <th style='padding:10px 8px;text-align:right;color:rgba(255,255,255,0.5);font-size:12px;font-weight:600'>SUBTOTAL</th>
+          </tr>
+        </thead>
+        <tbody>{itemsHtml}</tbody>
+        <tfoot>
+          <tr style='background:#252525'>
+            <td colspan='2' style='padding:14px 8px;color:#fff;font-size:16px;font-weight:700'>TOTAL A PAGAR</td>
+            <td style='padding:14px 8px;text-align:right;color:#4ade80;font-size:18px;font-weight:900'>{p.Total:N0} COP</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- PAGO -->
+    <div style='padding:24px 40px;border-bottom:1px solid #2a2a2a'>
+      <h2 style='color:#ff6b00;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:0 0 16px 0'>Información de pago</h2>
+      <table style='width:100%;border-collapse:collapse'>
+        <tr><td style='padding:6px 0;color:rgba(255,255,255,0.5);font-size:13px;width:140px'>Método de pago</td>
+            <td style='padding:6px 0;color:#fff;font-size:13px'>{metodoPagoLabel}</td></tr>
+        <tr><td style='padding:6px 0;color:rgba(255,255,255,0.5);font-size:13px'>Estado</td>
+            <td style='padding:6px 0;color:#fff;font-size:13px'>{p.Estado}</td></tr>
+        {comprobanteHtml}
+      </table>
+    </div>
+
+    <!-- CTA -->
+    <div style='padding:28px 40px;text-align:center'>
+      <p style='color:rgba(255,255,255,0.6);font-size:13px;margin:0 0 16px 0'>¿Tienes preguntas? Contáctanos:</p>
+      <a href='https://wa.me/573045928793' style='display:inline-block;background:#25d366;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;margin-bottom:12px'>
+        💬 WhatsApp: 3045928793
+      </a>
+      <br/>
+      <a href='https://outiltech.co' style='display:inline-block;background:#ff6b00;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px'>
+        🛍️ Seguir comprando en outiltech.co
+      </a>
+    </div>
+
+    <!-- FOOTER -->
+    <div style='padding:20px 40px;background:#111;text-align:center'>
+      <p style='color:rgba(255,255,255,0.3);font-size:12px;margin:0'>
+        © 2026 Outiltech · Cra 2A No 18A-52, Bogotá · Lunes a Sábado 9am-7pm<br/>
+        Este es un correo automático, por favor no respondas a este mensaje.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>";
+}
+
+async Task EnviarEmail(Pedido pedido, string tipoEvento)
+{
+    if (string.IsNullOrEmpty(emailUser) || string.IsNullOrEmpty(emailPass) ||
+        emailPass == "PONER_APP_PASSWORD_AQUI")
+    {
+        Console.WriteLine("[EMAIL] Credenciales no configuradas — saltando envío.");
+        return;
+    }
+
+    var asunto = tipoEvento == "nequi_comprobante"
+        ? $"📋 Comprobante recibido — Pedido #{pedido.Id} · Outiltech"
+        : $"✅ Confirmación de tu pedido #{pedido.Id} · Outiltech";
+
+    var htmlBody = BuildEmailHtml(pedido, tipoEvento);
+
+    try
+    {
+#pragma warning disable SYSLIB0006
+        using var smtp = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587)
+        {
+            EnableSsl  = true,
+            Credentials = new System.Net.NetworkCredential(emailUser, emailPass)
+        };
+#pragma warning restore SYSLIB0006
+
+        // Email al cliente (si tiene correo)
+        if (!string.IsNullOrEmpty(pedido.Email))
+        {
+            var mailCliente = new System.Net.Mail.MailMessage(emailUser, pedido.Email, asunto, htmlBody) { IsBodyHtml = true };
+            await smtp.SendMailAsync(mailCliente);
+            Console.WriteLine($"[EMAIL] Enviado al cliente {pedido.Email}");
+        }
+
+        // Copia al admin siempre
+        var mailAdmin = new System.Net.Mail.MailMessage(emailUser, emailAdmin,
+            $"[Admin] {asunto}", htmlBody) { IsBodyHtml = true };
+        await smtp.SendMailAsync(mailAdmin);
+        Console.WriteLine($"[EMAIL] Copia enviada al admin {emailAdmin}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[EMAIL] Error (no crítico): {ex.Message}");
+    }
+}
 
 // ── DTOs Wompi ──
 record WompiTransactionRequestDto(string Reference, decimal AmountCop, string RedirectUrl, string Email, string FullName, string Phone);
