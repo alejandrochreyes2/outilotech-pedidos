@@ -154,6 +154,14 @@ catch (Exception ex)
 if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
+app.MapGet("/diag2", (IConfiguration cfg) => {
+    var cs = cfg.GetConnectionString("PostgreSQL") ?? "NULL";
+    var safecs = System.Text.RegularExpressions.Regex.Replace(cs, @"Password=[^;]+", "Password=***");
+    var envOverride = System.Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSQL") ?? "NOT_SET";
+    var safeEnv = System.Text.RegularExpressions.Regex.Replace(envOverride, @"Password=[^;]+", "Password=***");
+    return Results.Ok(new { fromConfig = safecs, fromEnvVar = safeEnv, jwtIssuer = cfg["Jwt:Issuer"] });
+});
+
 
 // Middleware global de excepciones
 app.Use(async (context, next) =>
