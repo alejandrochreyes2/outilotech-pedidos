@@ -1,4 +1,4 @@
-# Portafolio — Outiltech E-Commerce
+# Portafolio — Outiltech Software empresarial y E-Commerce
 
 **Desarrollado por:** Alejandro Chaparro Reyes  
 **Bogotá, Colombia · Abril 2026**  
@@ -29,7 +29,7 @@
 
 ## ¿Qué se entregó?
 
-### 1. Presencia Corporativa Digital (outiltech.co)
+### 1. Presencia Software empresarial- Corporativa Digital (outiltech.co)
 
 Todo construido desde cero — Outiltech no tenía nada antes:
 

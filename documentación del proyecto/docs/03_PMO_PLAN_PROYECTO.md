@@ -1,4 +1,4 @@
-# PMO — Plan de Proyecto Outiltech E-Commerce
+# PMO — Plan de ProyectoOutiltech Software empresarial y E-Commerce
 
 **Versión:** 2.0  
 **Fecha de elaboración:** Marzo 2026  
@@ -11,7 +11,7 @@
 
 | Campo | Detalle |
 |-------|---------|
-| **Nombre del proyecto** | Outiltech — Plataforma E-Commerce de Tecnología |
+| **Nombre del proyecto** | Outiltech — Plataforma Software empresarial y E-Commerce |
 | **Código del proyecto** | OTC-2026-001 |
 | **Cliente** | Outiltech |
 | **Representante del cliente** | Jhonnathan Hernández Medina — Gerente y propietario |
@@ -146,7 +146,7 @@
 | Integración Wompi frontend | Redirección a checkout Wompi |
 | QR Nequi y comprobante | Pago manual Nequi funcional |
 | EmailJS configurado | Emails de confirmación enviados |
-| Angular environments | Build prod usa API de Hetzner |
+| Angular environments | Build prod usa API de Hetzner | 
 
 ### FASE 4 — Semana 4 (11–17 Abr): Integración y Calidad
 

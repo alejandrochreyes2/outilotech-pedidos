@@ -1,4 +1,4 @@
-# Project Charter — Outiltech E-Commerce
+# Project Charter — Outiltech Software empresarial y E-Commerce
 
 **Versión:** 1.0  
 **Fecha de inicio:** 21 de marzo de 2026  
