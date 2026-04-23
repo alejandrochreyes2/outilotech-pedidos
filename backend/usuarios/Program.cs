@@ -154,6 +154,13 @@ catch (Exception ex)
 if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
+// Endpoint diagnóstico temporal — muestra config de conexión (sin contraseña)
+app.MapGet("/diag", (IConfiguration cfg) => {
+    var cs = cfg.GetConnectionString("PostgreSQL") ?? "NULL";
+    var safecs = System.Text.RegularExpressions.Regex.Replace(cs, @"Password=[^;]+", "Password=***");
+    return Results.Ok(new { connectionString = safecs, jwtIssuer = cfg["Jwt:Issuer"], env = System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") });
+});
+
 // Middleware global de excepciones
 app.Use(async (context, next) =>
 {
