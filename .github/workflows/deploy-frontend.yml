@@ -7,6 +7,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     name: Build and Deploy Angular to Cloudflare Pages
+    permissions:
+      contents: read
+      deployments: write
 
     steps:
       - name: Checkout repository
