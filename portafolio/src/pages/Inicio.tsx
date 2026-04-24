@@ -41,7 +41,7 @@ export default function Inicio() {
     >
       {/* TopAppBar */}
       <header className="fixed top-0 w-full z-50 bg-transparent backdrop-blur-xl dark:bg-slate-950/70 shadow-[0_10px_40px_rgba(0,0,0,0.2)] tonal-transition">
-        <div className="flex justify-between items-center max-w-[1440px] mx-auto px-[4.8rem] h-[8rem]">
+        <div className="flex justify-between items-center max-w-[1440px] mx-auto px-[2rem] md:px-[4.8rem] h-[6rem] md:h-[8rem]">
           <div className="flex items-center gap-4">
             <span className="material-symbols-outlined text-blue-400 dark:text-blue-300 text-[2.4rem]">terminal</span>
             <span className="text-[2.4rem] font-bold text-slate-100 uppercase tracking-tighter font-headline">Alejandro Chaparro</span>
@@ -67,65 +67,65 @@ export default function Inicio() {
 
       <main className="relative">
         {/* Hero Section */}
-        <section className="min-h-screen flex items-center px-[4.8rem] pt-[8rem] max-w-[1440px] mx-auto overflow-hidden">
+        <section className="min-h-screen flex items-center px-[2rem] md:px-[4.8rem] pt-[6rem] md:pt-[8rem] pb-[8rem] md:pb-0 max-w-[1440px] mx-auto overflow-hidden">
           {/* Glow ambiental */}
           <div className="absolute top-[15%] right-[5%] w-[55rem] h-[55rem] rounded-full bg-primary-container/15 blur-[120px] pointer-events-none"></div>
 
-          <div className="relative z-10 w-full grid grid-cols-1 lg:grid-cols-2 gap-[6rem] items-center">
-            {/* Columna izquierda: texto */}
-            <div>
-              {/* Badge disponibilidad */}
-              <div className="inline-flex items-center gap-3 bg-primary/10 border border-primary/20 px-6 py-3 rounded-full mb-10">
-                <span className="w-[1rem] h-[1rem] rounded-full bg-green-400 animate-pulse flex-shrink-0"></span>
-                <span className="font-label text-[1.3rem] uppercase tracking-[0.2rem] text-primary">Disponible para trabajar</span>
-              </div>
+          <div className="relative z-10 w-full grid grid-cols-1 lg:grid-cols-2 gap-[3rem] lg:gap-[6rem] items-center">
 
-              {/* Nombre */}
-              <p className="font-label text-[1.8rem] tracking-[0.3rem] uppercase text-on-surface-variant mb-4">Alejandro Chaparro</p>
-
-              {/* Título principal */}
-              <h1 className="font-headline font-bold text-[6.4rem] md:text-[9.6rem] leading-[0.95] tracking-tighter text-on-background mb-12">
-                Desarrollador<br />
-                <span style={{ background: 'linear-gradient(135deg, #adc7ff 0%, #4a8eff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Full-Stack Senior</span>
-              </h1>
-
-              <p className="font-body text-[1.8rem] text-on-surface-variant max-w-[55ch] leading-relaxed mb-[4.8rem]">
-                Ayudo a empresas a construir soluciones cloud escalables y modernas. Con más de 6 años de experiencia dominando el ecosistema cloud backend, microservicios y DevOps.
-              </p>
-
-              <div className="flex flex-wrap gap-8">
-                <a className="editorial-gradient text-on-primary-fixed px-12 py-6 rounded-xl font-bold text-[1.6rem] transition-transform hover:scale-105 active:scale-95" href="#proyectos">Ver Mis Proyectos</a>
-                <Link className="ghost-border text-on-surface px-12 py-6 rounded-xl font-bold text-[1.6rem] hover:bg-surface-container-low transition-colors" to="/contacto">Contactar</Link>
-              </div>
-            </div>
-
-            {/* Columna derecha: foto */}
-            <div className="hidden lg:flex justify-center items-center relative">
-              <div className="relative w-[38rem] h-[48rem] rounded-[3.2rem] overflow-hidden shadow-2xl shadow-primary/20 bg-surface-container-low">
+            {/* Foto — aparece PRIMERO en mobile, segunda en desktop */}
+            <div className="flex justify-center items-center relative order-1 lg:order-2">
+              <div className="relative w-[20rem] h-[26rem] sm:w-[26rem] sm:h-[33rem] lg:w-[38rem] lg:h-[48rem] rounded-[2.4rem] lg:rounded-[3.2rem] overflow-hidden shadow-2xl shadow-primary/20 bg-surface-container-low">
                 <img
                   src="/img/foto-alejandro2.png"
                   alt="Alejandro Chaparro - Desarrollador Full-Stack Senior"
                   className="w-full h-full object-contain object-top grayscale-[10%] hover:grayscale-0 transition-all duration-600"
                 />
-                {/* Overlay de gradiente sutil en bordes */}
                 <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent pointer-events-none"></div>
               </div>
-              {/* Badge flotante inferior */}
-              <div className="absolute bottom-[3rem] left-[-2rem] bg-surface-container p-6 rounded-2xl ghost-border shadow-xl">
+              {/* Badges — solo en desktop */}
+              <div className="hidden lg:block absolute bottom-[3rem] left-[-2rem] bg-surface-container p-6 rounded-2xl ghost-border shadow-xl">
                 <p className="font-label text-[1.1rem] text-outline uppercase tracking-widest mb-1">Experiencia</p>
                 <p className="font-headline font-bold text-[2.4rem] text-primary">+6 Años</p>
               </div>
-              {/* Badge flotante superior */}
-              <div className="absolute top-[3rem] right-[-2rem] bg-surface-container p-6 rounded-2xl ghost-border shadow-xl">
+              <div className="hidden lg:block absolute top-[3rem] right-[-2rem] bg-surface-container p-6 rounded-2xl ghost-border shadow-xl">
                 <p className="font-label text-[1.1rem] text-outline uppercase tracking-widest mb-1">Nivel</p>
                 <p className="font-headline font-bold text-[1.8rem] text-on-surface">PhD. · MSc.</p>
               </div>
             </div>
+
+            {/* Texto — aparece SEGUNDO en mobile, primero en desktop */}
+            <div className="order-2 lg:order-1">
+              {/* Badge disponibilidad */}
+              <div className="inline-flex items-center gap-3 bg-primary/10 border border-primary/20 px-6 py-3 rounded-full mb-8">
+                <span className="w-[1rem] h-[1rem] rounded-full bg-green-400 animate-pulse flex-shrink-0"></span>
+                <span className="font-label text-[1.1rem] md:text-[1.3rem] uppercase tracking-[0.2rem] text-primary">Disponible para trabajar</span>
+              </div>
+
+              {/* Nombre */}
+              <p className="font-label text-[1.4rem] md:text-[1.8rem] tracking-[0.3rem] uppercase text-on-surface-variant mb-4">Alejandro Chaparro</p>
+
+              {/* Título principal */}
+              <h1 className="font-headline font-bold text-[4.8rem] md:text-[7rem] lg:text-[9.6rem] leading-[0.95] tracking-tighter text-on-background mb-8 md:mb-12">
+                Desarrollador<br />
+                <span style={{ background: 'linear-gradient(135deg, #adc7ff 0%, #4a8eff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Full-Stack Senior</span>
+              </h1>
+
+              <p className="font-body text-[1.5rem] md:text-[1.8rem] text-on-surface-variant max-w-[55ch] leading-relaxed mb-[3rem] md:mb-[4.8rem]">
+                Ayudo a empresas a construir soluciones cloud escalables y modernas. Con más de 6 años de experiencia dominando el ecosistema cloud backend, microservicios y DevOps.
+              </p>
+
+              <div className="flex flex-wrap gap-6">
+                <a className="editorial-gradient text-on-primary-fixed px-8 md:px-12 py-4 md:py-6 rounded-xl font-bold text-[1.4rem] md:text-[1.6rem] transition-transform hover:scale-105 active:scale-95" href="#proyectos">Ver Mis Proyectos</a>
+                <Link className="ghost-border text-on-surface px-8 md:px-12 py-4 md:py-6 rounded-xl font-bold text-[1.4rem] md:text-[1.6rem] hover:bg-surface-container-low transition-colors" to="/contacto">Contactar</Link>
+              </div>
+            </div>
+
           </div>
         </section>
 
         {/* Experiencia Section */}
-        <section className="py-[12rem] px-[4.8rem] bg-surface-container-low relative" id="experiencia">
+        <section className="py-[8rem] md:py-[12rem] px-[2rem] md:px-[4.8rem] bg-surface-container-low relative" id="experiencia">
           <div className="max-w-[1440px] mx-auto">
             <h2 className="font-headline font-bold text-[4.8rem] tracking-tight mb-[8rem] ml-[5%]">Experiencia</h2>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-[4.8rem]">
@@ -176,7 +176,7 @@ export default function Inicio() {
         </section>
 
         {/* Habilidades Section */}
-        <section className="py-[12rem] px-[4.8rem] bg-surface" id="habilidades">
+        <section className="py-[8rem] md:py-[12rem] px-[2rem] md:px-[4.8rem] bg-surface" id="habilidades">
           <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-[8rem] items-center">
             <div>
               <h2 className="font-headline font-bold text-[4.8rem] tracking-tight mb-[4.8rem]">Habilidades</h2>
@@ -226,7 +226,7 @@ export default function Inicio() {
         </section>
 
         {/* Proyectos Section */}
-        <section className="py-[12rem] px-[4.8rem] bg-surface-container-lowest" id="proyectos">
+        <section className="py-[8rem] md:py-[12rem] px-[2rem] md:px-[4.8rem] bg-surface-container-lowest" id="proyectos">
           <div className="max-w-[1440px] mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-end mb-[8rem] gap-8">
               <h2 className="font-headline font-bold text-[4.8rem] tracking-tight">Proyectos <span className="text-primary">Destacados</span></h2>
@@ -248,7 +248,7 @@ export default function Inicio() {
         </section>
 
         {/* Formación Académica Section */}
-        <section className="py-[12rem] px-[4.8rem] bg-surface-container-low" id="formacion">
+        <section className="py-[8rem] md:py-[12rem] px-[2rem] md:px-[4.8rem] bg-surface-container-low" id="formacion">
           <div className="max-w-[1440px] mx-auto">
             <h2 className="font-headline font-bold text-[4.8rem] tracking-tight mb-[8rem] ml-[5%]">Formación <span className="text-primary">Académica</span></h2>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-[4.8rem]">
@@ -317,7 +317,7 @@ export default function Inicio() {
         </section>
 
         {/* Sobre Mí Section */}
-        <section className="py-[12rem] px-[4.8rem] bg-surface" id="sobre-mi">
+        <section className="py-[8rem] md:py-[12rem] px-[2rem] md:px-[4.8rem] bg-surface" id="sobre-mi">
           <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-[8rem]">
             <div className="lg:col-span-5 relative">
               <div className="aspect-[3/4] bg-surface-container-low rounded-xl overflow-hidden relative grayscale hover:grayscale-0 transition-all duration-700">
@@ -347,7 +347,7 @@ export default function Inicio() {
         </section>
 
         {/* Contacto Section */}
-        <section className="py-[12rem] px-[4.8rem] bg-surface-container-low" id="contacto">
+        <section className="py-[8rem] md:py-[12rem] px-[2rem] md:px-[4.8rem] bg-surface-container-low" id="contacto">
           <div className="max-w-[1440px] mx-auto text-center mb-[8rem]">
             <h2 className="font-headline font-bold text-[4.8rem] tracking-tight mb-4">¿Tienes un proyecto en mente?</h2>
             <p className="font-body text-[2rem] text-on-surface-variant">Construyamos soluciones cloud escalables y de alto rendimiento juntos.</p>
@@ -376,7 +376,7 @@ export default function Inicio() {
 
       {/* Footer */}
       <footer className="bg-[#0b1326] w-full mt-[8rem] border-t border-slate-800/30">
-        <div className="flex flex-col md:flex-row justify-between items-center py-[6.4rem] px-[4.8rem] max-w-[1440px] mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center py-[4rem] md:py-[6.4rem] px-[2rem] md:px-[4.8rem] max-w-[1440px] mx-auto pb-[10rem] md:pb-[6.4rem]">
           <p className="font-['Manrope'] text-[1.4rem] text-slate-400 mb-8 md:mb-0">© 2025 Alejandro Chaparro · Líder Técnico Cloud Backend · Bogotá D.C., Colombia</p>
           <div className="flex gap-[3.2rem]">
             <a className="font-['Manrope'] text-[1.4rem] text-slate-500 hover:text-blue-400 transition-colors" href="https://linkedin.com/in/alejandro-chaparro" target="_blank" rel="noopener noreferrer">LinkedIn</a>
