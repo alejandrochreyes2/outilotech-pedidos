@@ -18,7 +18,13 @@
               <a routerLink="/nosotros" (click)="closeMenu()">Nuestra historia</a>
               <a routerLink="/mision-vision" (click)="closeMenu()">Misión y visión</a>
               <a routerLink="/nosotros" (click)="closeMenu()">Nuestro equipo</a>
-              <a routerLink="/nosotros" (click)="closeMenu()">Socios estratégicos</a>
+              <div class="has-flyout">
+                <span class="flyout-trigger">Socios estratégicos <span class="flyout-arrow">›</span></span>
+                <div class="flyout-menu">
+                  <a href="http://localhost:3000/#proyectos" target="_blank" (click)="closeMenu()">Desarrollador</a>
+                  <a routerLink="/nosotros" (click)="closeMenu()">Gerente</a>
+                </div>
+              </div>
             </div>
             <div class="mega-col">
               <h4>Recursos</h4>
