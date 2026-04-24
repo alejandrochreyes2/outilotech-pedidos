@@ -34,7 +34,7 @@ export default function Experiencia() {
             </div>
             <div>
               <h2 className="font-['Space_Grotesk'] text-blue-100 text-xl font-bold">Alejandro Chaparro</h2>
-              <p className="font-['Manrope'] text-sm text-slate-400">Líder Técnico Cloud Backend</p>
+              <p className="font-['Manrope'] text-sm text-slate-400">Desarrollador Full Stack Senior</p>
             </div>
           </div>
           <nav className="flex flex-col gap-2">
@@ -75,8 +75,48 @@ export default function Experiencia() {
         {/* Experience Timeline */}
         <section className="editorial-grid">
 
-          {/* Entry 1: Control Online International */}
+          {/* Entry 0: OutilTech — ACTUAL */}
           <article className="col-span-12 lg:col-span-10 lg:col-start-2 mb-16 relative">
+            <div className="flex flex-col md:flex-row gap-8 md:gap-16">
+              <div className="md:w-1/4 shrink-0">
+                <span className="font-label text-blue-400 text-lg font-bold tracking-widest uppercase">Sep 2025 — Actualmente</span>
+                <h3 className="font-headline text-3xl text-blue-100 mt-2">OutilTech</h3>
+                <span className="font-label text-xs text-slate-500 uppercase tracking-widest">Colombia · Bogotá</span>
+              </div>
+              <div className="flex-1">
+                <h2 className="font-headline text-4xl text-primary font-bold mb-6">Desarrollador Full Stack Senior</h2>
+                <div className="space-y-6">
+                  <p className="font-body text-lg text-on-surface leading-relaxed max-w-[70ch]">
+                    Diseñé y desarrollé desde cero la plataforma e-commerce <strong>outiltech.co</strong> — arquitectura de microservicios .NET 8, SPA Angular 21, integración de pasarela de pagos Wompi y despliegue en producción con Docker, Coolify y Cloudflare. La empresa pasó de cero presencia digital a una tienda en línea completamente operativa en producción.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
+                    <div className="p-8 bg-surface-container-low rounded-xl">
+                      <h4 className="font-label text-sm text-blue-300 uppercase tracking-widest mb-4">Logros Clave</h4>
+                      <ul className="space-y-3 font-body text-base text-on-surface-variant">
+                        <li className="flex gap-3"><span className="text-primary">/</span> 3 microservicios .NET 8 (Usuarios, Pedidos, Pagos) con YARP API Gateway.</li>
+                        <li className="flex gap-3"><span className="text-primary">/</span> Integración completa Wompi: tarjeta crédito/débito, PSE y Nequi QR.</li>
+                        <li className="flex gap-3"><span className="text-primary">/</span> SPA Angular 21 con Signals API, lazy loading y mega-menú responsive.</li>
+                        <li className="flex gap-3"><span className="text-primary">/</span> Sincronización en tiempo real Supabase ↔ PostgreSQL para inventario.</li>
+                        <li className="flex gap-3"><span className="text-primary">/</span> Dashboard admin: pedidos, pagos, métricas y gestión de usuarios con JWT.</li>
+                        <li className="flex gap-3"><span className="text-primary">/</span> CI/CD con GitHub Actions + deploy en Hetzner VPS vía Coolify.</li>
+                      </ul>
+                    </div>
+                    <div className="p-8 bg-surface-container-low rounded-xl">
+                      <h4 className="font-label text-sm text-blue-300 uppercase tracking-widest mb-4">Tecnologías</h4>
+                      <div className="flex flex-wrap gap-3">
+                        {['Angular 21', 'TypeScript', '.NET 8', 'C#', 'YARP', 'PostgreSQL', 'MongoDB', 'Supabase', 'Docker', 'Coolify', 'Hetzner', 'Cloudflare', 'GitHub Actions', 'Wompi', 'EmailJS'].map(t => (
+                          <span key={t} className="px-3 py-1 bg-surface-container-highest text-primary-fixed-dim font-label text-xs tracking-widest uppercase rounded-sm">{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          {/* Entry 1: Control Online International */}
+          <article className="col-span-12 lg:col-span-10 lg:col-start-2 mb-16 pt-16 border-t border-outline-variant/15">
             <div className="flex flex-col md:flex-row gap-8 md:gap-16">
               <div className="md:w-1/4 shrink-0">
                 <span className="font-label text-blue-400 text-lg font-bold tracking-widest uppercase">Mayo 2025 — Jul 2025</span>
