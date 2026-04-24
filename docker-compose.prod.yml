@@ -106,6 +106,25 @@ services:
       - traefik.http.services.apigateway.loadbalancer.server.port=5000
 
 
+  portafolio:
+    build:
+      context: ./portafolio
+      dockerfile: Dockerfile
+      args:
+        - VITE_SUPABASE_URL=https://nvwiuxtvcoputzeoouqc.supabase.co
+        - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52d2l1eHR2Y29wdXR6ZW9vdXFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MDUxNjUsImV4cCI6MjA5MTI4MTE2NX0.xomcxJiJFq68kvDtypFMCMEDyvEnl4ycK_i4KDlI2bU
+    container_name: outiltech-portafolio-prod
+    restart: unless-stopped
+    ports:
+      - "3010:80"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.portafolio.rule=Host(`dev.outiltech.co`) || Host(`dev.178-156-222-248.sslip.io`)
+      - traefik.http.routers.portafolio.entrypoints=https
+      - traefik.http.routers.portafolio.tls=true
+      - traefik.http.routers.portafolio.tls.certresolver=letsencrypt
+      - traefik.http.services.portafolio.loadbalancer.server.port=80
+
 volumes:
   postgres-data-prod:
   mongodb-data-prod:

@@ -64,6 +64,11 @@ project.nuget.cache
 # MongoDB data
 mongo-data/
 
+# Portafolio build artifacts
+portafolio/node_modules/
+portafolio/dist/
+portafolio/.env
+
 # Temporary files
 *.tmp
 *.temp
