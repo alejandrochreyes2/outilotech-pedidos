@@ -11,6 +11,6 @@ export class PortafolioComponent {
   portafolioUrl: SafeResourceUrl;
 
   constructor(private sanitizer: DomSanitizer) {
-    this.portafolioUrl = this.sanitizer.bypassSecurityTrustResourceUrl('https://dev.outiltech.co/#proyectos');
+    this.portafolioUrl = this.sanitizer.bypassSecurityTrustResourceUrl('https://dev.178-156-222-248.sslip.io/');
   }
 }
