@@ -55,7 +55,7 @@ services:
       - Jwt__Audience=${JWT_AUDIENCE:-OutilTechUsers}
       - Jwt__Key=${JWT_KEY:-YourSuperSecretKeyHere1234567890}
       - Wompi__PublicKey=pub_prod_KvfEtrlz3o4BUKuiSvYufUMqFYW8h5GK
-      - Wompi__IntegrityKey=prod_integrity_zsCbzReuepnjB5ZbLZnEpk4vBVjrGVK5
+      - Wompi__IntegrityKey=prod_integrity_zsCbzReUepnjB5ZbLZnEpk4v8VjrGvK5
       - Wompi__EventsKey=prod_events_XalS3k82LklSfv6Q0mG5y1kt0VsfkNXx
     depends_on:
       - postgres

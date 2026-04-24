@@ -37,7 +37,7 @@ API_URL="https://api.outiltech.co"
 # ── Credenciales de producción ─────────────────────────────────────────
 POSTGRES_PASS="root"
 WOMPI_PUBLIC_KEY_PROD="pub_prod_KvfEtrlz3o4BUKuiSvYufUMqFYW8h5GK"
-WOMPI_INTEGRITY_KEY_PROD="prod_integrity_zsCbzReuepnjB5ZbLZnEpk4vBVjrGVK5"
+WOMPI_INTEGRITY_KEY_PROD="prod_integrity_zsCbzReUepnjB5ZbLZnEpk4v8VjrGvK5"
 LOGIN_EMAIL="jhonatanhtech@gmail.com"
 LOGIN_PASS="Admin1327"
 
