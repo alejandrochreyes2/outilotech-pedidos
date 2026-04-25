@@ -87,7 +87,7 @@ export default function Experiencia() {
                 <h2 className="font-headline text-4xl text-primary font-bold mb-6">Desarrollador Full Stack Senior</h2>
                 <div className="space-y-6">
                   <p className="font-body text-lg text-on-surface leading-relaxed max-w-[70ch]">
-                    Diseñé y desarrollé desde cero la plataforma e-commerce <strong>outiltech.co</strong> — arquitectura de microservicios .NET 8, SPA Angular 21, integración de pasarela de pagos Wompi y despliegue en producción con Docker, Coolify y Cloudflare. La empresa pasó de cero presencia digital a una tienda en línea completamente operativa en producción.
+                    Diseñé y desarrollé desde cero la plataforma e-commerce <strong>outiltech.co</strong>
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
                     <div className="p-8 bg-surface-container-low rounded-xl">

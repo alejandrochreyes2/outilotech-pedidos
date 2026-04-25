@@ -129,8 +129,22 @@ export default function Inicio() {
           <div className="max-w-[1440px] mx-auto">
             <h2 className="font-headline font-bold text-[4.8rem] tracking-tight mb-[8rem] ml-[5%]">Experiencia</h2>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-[4.8rem]">
-              {/* Role 1 */}
+              {/* Role 1 — OutilTech (ACTUAL) */}
               <article className="lg:col-span-8 group">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                  <h3 className="font-headline text-[2.8rem] text-primary">Desarrollador Full Stack Senior</h3>
+                  <span className="font-label text-[1.4rem] text-outline">Sep 2025 — Actualmente</span>
+                </div>
+                <p className="font-headline text-[2.2rem] text-on-surface mb-6 italic">OutilTech · Bogotá, Colombia</p>
+                <p className="font-body text-[1.6rem] text-on-surface-variant max-w-[70ch] leading-relaxed">
+                  Diseñé y desarrollé desde cero la plataforma e-commerce outiltech.co: 3 microservicios .NET 8 con YARP API Gateway, SPA Angular 21 con Signals API, integración completa Wompi (tarjeta/PSE/Nequi), sincronización Supabase ↔ PostgreSQL en tiempo real y CI/CD con GitHub Actions + Coolify en Hetzner VPS.
+                </p>
+              </article>
+              <div className="hidden lg:block lg:col-span-4 border-l border-outline-variant/30 px-8 flex items-center">
+                <span className="text-[6.4rem] font-headline font-bold text-surface-container-highest">01</span>
+              </div>
+              {/* Role 2 */}
+              <article className="lg:col-span-8 group pt-[4.8rem] border-t border-outline-variant/20">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
                   <h3 className="font-headline text-[2.8rem] text-primary">Coordinador de Proyectos TI / Líder Backend</h3>
                   <span className="font-label text-[1.4rem] text-outline">Mayo 2025 — Jul 2025</span>
@@ -140,10 +154,10 @@ export default function Inicio() {
                   Lideré equipos de desarrollo backend para implementación de soluciones en la nube (ControlDoc). Diseñé microservicios en .NET 8 y C#, configuré pipelines CI/CD con Azure DevOps e implementé controles WAF con reglas OWASP personalizadas.
                 </p>
               </article>
-              <div className="hidden lg:block lg:col-span-4 border-l border-outline-variant/30 px-8 flex items-center">
-                <span className="text-[6.4rem] font-headline font-bold text-surface-container-highest">01</span>
+              <div className="hidden lg:block lg:col-span-4 border-l border-outline-variant/30 px-8 flex items-center pt-[4.8rem]">
+                <span className="text-[6.4rem] font-headline font-bold text-surface-container-highest">02</span>
               </div>
-              {/* Role 2 */}
+              {/* Role 3 */}
               <article className="lg:col-span-8 group pt-[4.8rem] border-t border-outline-variant/20">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
                   <h3 className="font-headline text-[2.8rem] text-primary">Líder Técnico Senior Cloud Backend</h3>
@@ -155,9 +169,9 @@ export default function Inicio() {
                 </p>
               </article>
               <div className="hidden lg:block lg:col-span-4 border-l border-outline-variant/30 px-8 flex items-center pt-[4.8rem]">
-                <span className="text-[6.4rem] font-headline font-bold text-surface-container-highest">02</span>
+                <span className="text-[6.4rem] font-headline font-bold text-surface-container-highest">03</span>
               </div>
-              {/* Role 3 */}
+              {/* Role 4 */}
               <article className="lg:col-span-8 group pt-[4.8rem] border-t border-outline-variant/20">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
                   <h3 className="font-headline text-[2.8rem] text-primary">Especialista en Tecnologías Cloud</h3>
@@ -169,7 +183,7 @@ export default function Inicio() {
                 </p>
               </article>
               <div className="hidden lg:block lg:col-span-4 border-l border-outline-variant/30 px-8 flex items-center pt-[4.8rem]">
-                <span className="text-[6.4rem] font-headline font-bold text-surface-container-highest">03</span>
+                <span className="text-[6.4rem] font-headline font-bold text-surface-container-highest">04</span>
               </div>
             </div>
           </div>
