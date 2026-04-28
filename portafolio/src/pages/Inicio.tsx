@@ -54,7 +54,7 @@ export default function Inicio() {
             <a className="text-slate-400 font-['Manrope'] text-[1.4rem] hover:text-slate-100 transition-colors" href="#formacion">Formación</a>
             <Link className="text-slate-400 font-['Manrope'] text-[1.4rem] hover:text-slate-100 transition-colors" to="/contacto">Sobre Mí</Link>
             <a
-              href="/HV2026C.pdf"
+              href="/HV2026AC.pdf"
               download="HV-Alejandro-Chaparro.pdf"
               className="inline-flex items-center gap-2 border border-blue-400 text-blue-300 font-['Manrope'] text-[1.3rem] font-bold px-5 py-2 rounded-xl hover:bg-blue-400/10 transition-colors"
             >
