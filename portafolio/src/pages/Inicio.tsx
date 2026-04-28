@@ -426,6 +426,14 @@ export default function Inicio() {
           <span className="material-symbols-outlined">person</span>
           <span className="text-[1rem] font-label">Sobre Mí</span>
         </Link>
+        <a
+          href="/HV2026AC.pdf"
+          download="HV-Alejandro-Chaparro.pdf"
+          className="flex flex-col items-center text-blue-400"
+        >
+          <span className="material-symbols-outlined">download</span>
+          <span className="text-[1rem] font-label">Descargar HV</span>
+        </a>
       </div>
     </motion.div>
   );
