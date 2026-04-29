@@ -1,0 +1,679 @@
+<img src="logo-outiltech.png" style="height: 60<!DOCTYPE html>
+<html lang=" es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Outiltech — Reel Instagram/Facebook</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+    }
+
+    .reel {
+      position: relative;
+      width: min(100vw, calc(100vh * 9/16));
+      height: min(100vh, calc(100vw * 16/9));
+      overflow: hidden;
+      background: #0D1117;
+    }
+
+    /* ── SCENES ── */
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 6% 7%;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ── LOGO OFICIAL ── */
+    .logo-area {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 5%;
+    }
+
+    .logo-area img {
+      width: 80%;
+      max-width: 300px;
+      height: auto;
+      object-fit: contain;
+    }
+
+    /* ── COMMON ELEMENTS ── */
+    .chip {
+      display: inline-block;
+      background: #FF6B00;
+      color: #fff;
+      font-size: clamp(0.55rem, 1.8vw, 1rem);
+      font-weight: 700;
+      padding: 0.35em 0.9em;
+      border-radius: 999px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4%;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 6vw, 3.8rem);
+      font-weight: 900;
+      color: #fff;
+      text-align: center;
+      line-height: 1.1;
+      margin-bottom: 3%;
+    }
+
+    h2 {
+      font-size: clamp(1.4rem, 4.8vw, 3rem);
+      font-weight: 800;
+      color: #fff;
+      text-align: center;
+      line-height: 1.15;
+      margin-bottom: 3%;
+    }
+
+    .accent {
+      color: #FF6B00;
+    }
+
+    p.sub {
+      font-size: clamp(0.8rem, 2.5vw, 1.4rem);
+      color: #9CA3AF;
+      text-align: center;
+      line-height: 1.5;
+      max-width: 88%;
+      margin-bottom: 5%;
+    }
+
+    /* ── STATS ── */
+    .stats {
+      display: flex;
+      gap: 4%;
+      width: 100%;
+      justify-content: center;
+      margin-top: 2%;
+    }
+
+    .stat {
+      background: #1C2333;
+      border: 1px solid #2D3748;
+      border-radius: 4%;
+      flex: 1;
+      padding: 5% 3%;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: clamp(1.2rem, 4vw, 2.2rem);
+      font-weight: 900;
+      color: #FF6B00;
+    }
+
+    .stat-lbl {
+      font-size: clamp(0.5rem, 1.6vw, 0.9rem);
+      color: #9CA3AF;
+      margin-top: 0.3em;
+    }
+
+    /* ── FEATURE LIST ── */
+    .feat-list {
+      list-style: none;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 3%;
+    }
+
+    .feat-list li {
+      display: flex;
+      align-items: center;
+      gap: 3%;
+      background: #1C2333;
+      border-left: 3px solid #FF6B00;
+      border-radius: 0 6px 6px 0;
+      padding: 3% 4%;
+      font-size: clamp(0.65rem, 2.1vw, 1.15rem);
+      color: #E5E7EB;
+      font-weight: 600;
+    }
+
+    .feat-list li .ck {
+      color: #FF6B00;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    /* ── SERVICE CARDS ── */
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5%;
+      width: 100%;
+    }
+
+    .card {
+      background: #1C2333;
+      border: 1px solid #2D3748;
+      border-radius: 6px;
+      padding: 3% 4%;
+      display: flex;
+      align-items: center;
+      gap: 4%;
+    }
+
+    .card-icon {
+      width: 11%;
+      aspect-ratio: 1;
+      background: #FF6B00;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(0.5rem, 1.7vw, 0.95rem);
+      font-weight: 900;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .card-text {
+      flex: 1;
+    }
+
+    .card-title {
+      font-size: clamp(0.6rem, 2vw, 1.1rem);
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .card-desc {
+      font-size: clamp(0.45rem, 1.5vw, 0.85rem);
+      color: #9CA3AF;
+      margin-top: 0.2em;
+      line-height: 1.4;
+    }
+
+    /* ── PRICE TAG ── */
+    .price-box {
+      background: linear-gradient(135deg, #FF6B00 0%, #e05500 100%);
+      border-radius: 8px;
+      padding: 5% 7%;
+      text-align: center;
+      width: 100%;
+      margin: 3% 0;
+    }
+
+    .price-main {
+      font-size: clamp(1.6rem, 5.5vw, 3.2rem);
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .price-sub {
+      font-size: clamp(0.6rem, 2vw, 1.1rem);
+      color: rgba(255, 255, 255, 0.85);
+      margin-top: 0.3em;
+    }
+
+    /* ── CODE SNIPPET ── */
+    .code-block {
+      background: #161B22;
+      border: 1px solid #30363D;
+      border-radius: 8px;
+      padding: 4% 5%;
+      width: 100%;
+      font-family: 'Courier New', monospace;
+      font-size: clamp(0.45rem, 1.5vw, 0.85rem);
+      line-height: 1.7;
+      color: #E6EDF3;
+      margin-bottom: 4%;
+    }
+
+    .code-kw {
+      color: #FF7B72;
+    }
+
+    .code-fn {
+      color: #D2A8FF;
+    }
+
+    .code-str {
+      color: #A5D6FF;
+    }
+
+    .code-cmt {
+      color: #8B949E;
+    }
+
+    /* ── CTA SCENE ── */
+    .cta-url {
+      font-size: clamp(1.4rem, 5vw, 3rem);
+      font-weight: 900;
+      color: #FF6B00;
+      text-align: center;
+      margin: 3% 0;
+      text-decoration: none;
+    }
+
+    .cta-free {
+      background: #FF6B00;
+      color: #fff;
+      font-size: clamp(0.9rem, 3vw, 1.8rem);
+      font-weight: 800;
+      padding: 3% 8%;
+      border-radius: 999px;
+      text-align: center;
+      margin: 4% 0;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .contact-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5%;
+      width: 100%;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: 3%;
+      font-size: clamp(0.6rem, 2vw, 1.1rem);
+      color: #9CA3AF;
+    }
+
+    .contact-dot {
+      width: 8px;
+      height: 8px;
+      background: #FF6B00;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── PROGRESS BAR ── */
+    .progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 4px;
+      background: #FF6B00;
+      width: 0%;
+      transition: none;
+      z-index: 10;
+    }
+
+    /* ── DOT NAV ── */
+    .dots {
+      position: absolute;
+      bottom: 3%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: background 0.3s, transform 0.3s;
+    }
+
+    .dot.active {
+      background: #FF6B00;
+      transform: scale(1.4);
+    }
+
+    /* ── DECORATIVE CIRCLES ── */
+    .deco-circle {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .deco1 {
+      width: 45%;
+      aspect-ratio: 1;
+      background: radial-gradient(circle, rgba(255, 107, 0, 0.12) 0%, transparent 70%);
+      top: -10%;
+      right: -15%;
+    }
+
+    .deco2 {
+      width: 35%;
+      aspect-ratio: 1;
+      background: radial-gradient(circle, rgba(255, 107, 0, 0.08) 0%, transparent 70%);
+      bottom: 5%;
+      left: -10%;
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      width: 15%;
+      height: 3px;
+      background: #FF6B00;
+      border-radius: 2px;
+      margin: 3% auto;
+    }
+
+    /* ── SLIDE-IN ANIMATION ── */
+    @keyframes slideUp {
+      from {
+        transform: translateY(18px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .scene.active .anim {
+      animation: slideUp 0.45s ease forwards;
+    }
+
+    .scene.active .anim-d1 {
+      animation-delay: 0.05s;
+      opacity: 0;
+    }
+
+    .scene.active .anim-d2 {
+      animation-delay: 0.18s;
+      opacity: 0;
+    }
+
+    .scene.active .anim-d3 {
+      animation-delay: 0.30s;
+      opacity: 0;
+    }
+
+    .scene.active .anim-d4 {
+      animation-delay: 0.42s;
+      opacity: 0;
+    }
+
+    .scene.active .anim-d5 {
+      animation-delay: 0.54s;
+      opacity: 0;
+    }
+
+    /* ── SCENE COUNTER ── */
+    .scene-counter {
+      position: absolute;
+      top: 4%;
+      right: 5%;
+      font-size: clamp(0.5rem, 1.6vw, 0.9rem);
+      color: rgba(255, 255, 255, 0.35);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      z-index: 10;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="reel" id="reel">
+
+    <div class="deco-circle deco1"></div>
+    <div class="deco-circle deco2"></div>
+    <div class="scene-counter" id="counter">1 / 5</div>
+
+    <!-- ═══════════════════════════════
+       SCENE 0 — INTRO / LOGO OFICIAL
+  ═══════════════════════════════════ -->
+    <div class="scene active" id="s0">
+
+      <!-- LOGO OFICIAL -->
+      <div class="logo-area anim anim-d1">
+        <img src="logo-outiltech.png" alt="OutilTech logo" />
+      </div>
+
+      <div class="chip anim anim-d2">Soluciones Digitales</div>
+      <h1 class="anim anim-d3">Tu Empresa<br /><span class="accent">Digitalizada</span><br />al Siguiente Nivel</h1>
+      <div class="divider anim anim-d4"></div>
+      <p class="sub anim anim-d5">
+        Más de <strong style="color:#fff">500 clientes</strong> confían en nosotros.<br />
+        8+ años construyendo tecnología que funciona.
+      </p>
+      <div class="stats anim anim-d5">
+        <div class="stat">
+          <div class="stat-val">500+</div>
+          <div class="stat-lbl">Clientes</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">99%</div>
+          <div class="stat-lbl">Satisfacción</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">24/7</div>
+          <div class="stat-lbl">Soporte</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+       SCENE 1 — TIENDA E-COMMERCE
+  ═══════════════════════════════════ -->
+    <div class="scene" id="s1">
+      <div class="chip anim anim-d1">Servicio 01</div>
+      <h2 class="anim anim-d2">Tienda<br /><span class="accent">E-Commerce</span><br />de Tecnología</h2>
+      <div class="price-box anim anim-d3">
+        <div class="price-main">Desde $1M COP</div>
+        <div class="price-sub">Proyecto completo · 36 días de entrega</div>
+      </div>
+      <ul class="feat-list anim anim-d4">
+        <li><span class="ck">✓</span> 114+ productos Apple, Samsung &amp; más</li>
+        <li><span class="ck">✓</span> Angular 21 + .NET 8 + Supabase</li>
+        <li><span class="ck">✓</span> Carrito, checkout y gestión de pedidos</li>
+        <li><span class="ck">✓</span> Deploy en Cloudflare Pages · 99.9% uptime</li>
+      </ul>
+      <p class="sub anim anim-d5" style="margin-top:3%">
+        Ver en producción → <strong style="color:#FF6B00">outiltech.co</strong>
+      </p>
+    </div>
+
+    <!-- ═══════════════════════════════
+       SCENE 2 — SOFTWARE A LA MEDIDA
+  ═══════════════════════════════════ -->
+    <div class="scene" id="s2">
+      <div class="chip anim anim-d1">Servicio 02</div>
+      <h2 class="anim anim-d2">Software<br /><span class="accent">a la Medida</span></h2>
+      <div class="code-block anim anim-d3">
+        <span class="code-cmt">// Tu idea → código real</span><br />
+        <span class="code-kw">const</span> <span class="code-fn">app</span> = <span class="code-fn">build</span>({<br />
+        &nbsp;&nbsp;stack: <span class="code-str">'Angular + .NET'</span>,<br />
+        &nbsp;&nbsp;IA: <span class="code-str">'ChatBot + ML'</span>,<br />
+        &nbsp;&nbsp;soporte: <span class="code-str">'24/7'</span>,<br />
+        &nbsp;&nbsp;entrega: <span class="code-str">'garantizada'</span><br />
+        });
+      </div>
+      <ul class="feat-list anim anim-d4">
+        <li><span class="ck">✓</span> APIs REST, microservicios, integraciones</li>
+        <li><span class="ck">✓</span> Creación de IA y sistemas de gestión empresarial</li>
+        <li><span class="ck">✓</span> ISO 27001 · Análisis Forense · PWA</li>
+      </ul>
+      <div class="price-box anim anim-d5" style="margin-top:4%">
+        <div class="price-main">Desde $30.000 / hora</div>
+        <div class="price-sub">Consulta inicial GRATIS · Sin compromiso</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+       SCENE 3 — PORTAFOLIO ESPECIALIZADO
+  ═══════════════════════════════════ -->
+    <div class="scene" id="s3">
+      <div class="chip anim anim-d1">Servicio 03</div>
+      <h2 class="anim anim-d2">Portafolio<br /><span class="accent">Especializado</span></h2>
+      <p class="sub anim anim-d2" style="margin-bottom:2%">Soluciones enterprise con respaldo técnico</p>
+      <div class="cards anim anim-d3">
+        <div class="card">
+          <div class="card-icon">ISO</div>
+          <div class="card-text">
+            <div class="card-title">ISO 27001</div>
+            <div class="card-desc">Auditoría y certificación de seguridad informática</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-icon">IA</div>
+          <div class="card-text">
+            <div class="card-title">Creación de IA</div>
+            <div class="card-desc">ChatBots inteligentes y automatización 24/7</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-icon">PWA</div>
+          <div class="card-text">
+            <div class="card-title">App Web Progresiva</div>
+            <div class="card-desc">Tu app en iOS &amp; Android sin tiendas de apps</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-icon">FOR</div>
+          <div class="card-text">
+            <div class="card-title">Forense Digital</div>
+            <div class="card-desc">Análisis e investigación de incidentes digitales</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-icon">OPS</div>
+          <div class="card-text">
+            <div class="card-title">DevOps / Cloud</div>
+            <div class="card-desc">CI/CD, Docker, infraestructura en nube</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+       SCENE 4 — CTA
+  ═══════════════════════════════════ -->
+    <div class="scene" id="s4">
+
+      <!-- LOGO OFICIAL (CTA) -->
+      <div class="logo-area anim anim-d1">
+        <img src="logo-outiltech.png" alt="OutilTech logo" />
+      </div>
+
+      <h2 class="anim anim-d2">¿Listo para<br /><span class="accent">Transformar</span><br />tu Negocio?</h2>
+      <div class="divider anim anim-d3"></div>
+      <div class="cta-free anim anim-d3">Reunión Inicial GRATIS</div>
+      <a class="cta-url anim anim-d4">outiltech.co</a>
+      <div class="contact-grid anim anim-d5">
+        <div class="contact-row">
+          <div class="contact-dot"></div>
+          <span>WhatsApp: +57 3133082905</span>
+        </div>
+        <div class="contact-row">
+          <div class="contact-dot"></div>
+          <span>Email: contactanos@outiltech.co</span>
+        </div>
+        <div class="contact-row">
+          <div class="contact-dot"></div>
+          <span>Portafolio: outiltech.co/portafolio</span>
+        </div>
+      </div>
+      <p class="sub anim anim-d5" style="margin-top:4%; font-size: clamp(0.5rem,1.4vw,0.8rem)">
+        Alejandro Reyes — Full-Stack Developer<br />
+        Jhonnatan Hernández — Gerente Comercial
+      </p>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progressBar"></div>
+    <!-- Dot nav -->
+    <div class="dots" id="dots"></div>
+
+  </div>
+
+  <script>
+    const TOTAL = 5;
+    const DURATION = 5000;
+    let current = 0;
+    let startTime = null;
+    let rafId = null;
+    let paused = false;
+
+    const scenes = Array.from(document.querySelectorAll('.scene'));
+    const bar = document.getElementById('progressBar');
+    const dotsEl = document.getElementById('dots');
+    const counter = document.getElementById('counter');
+
+    const dotEls = [];
+    for (let i = 0; i < TOTAL; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i === 0 ? ' active' : '');
+      d.addEventListener('click', () => goTo(i));
+      dotsEl.appendChild(d);
+      dotEls.push(d);
+    }
+
+    function goTo(idx) {
+      scenes[current].classList.remove('active');
+      dotEls[current].classList.remove('active');
+      current = idx;
+      scenes[current].classList.add('active');
+      dotEls[current].classList.add('active');
+      counter.textContent = (current + 1) + ' / ' + TOTAL;
+      startTime = null;
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+    }
+
+    function tick(ts) {
+      if (!startTime) startTime = ts;
+      const elapsed = ts - startTime;
+      const pct = Math.min((elapsed / DURATION) * 100, 100);
+      bar.style.transition = 'none';
+      bar.style.width = pct + '%';
+      if (elapsed >= DURATION) {
+        goTo((current + 1) % TOTAL);
+      }
+      rafId = requestAnimationFrame(tick);
+    }
+
+    document.getElementById('reel').addEventListener('click', (e) => {
+      if (e.target.closest('.dot')) return;
+      if (paused) {
+        paused = false;
+        startTime = null;
+        rafId = requestAnimationFrame(tick);
+      } else {
+        paused = true;
+        cancelAnimationFrame(rafId);
+      }
+    });
+
+    rafId = requestAnimationFrame(tick);
+  </script>
+</body>
+
+</html>
