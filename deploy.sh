@@ -17,8 +17,10 @@
 
 set -e
 
-# ── Asegurar que git esté en PATH (necesario cuando bash se lanza desde CMD/PowerShell)
-export PATH="/c/Program Files/Git/cmd:/c/Program Files/Git/bin:$PATH"
+# ── Asegurar que git esté en PATH (compatible con Git Bash y WSL)
+export PATH="/c/Program Files/Git/mingw64/bin:/c/Program Files/Git/cmd:/usr/bin:$PATH"
+# Alias por si bash no lo encuentra por el espacio en el nombre de carpeta
+GIT="$(command -v git 2>/dev/null || echo '/c/Program Files/Git/mingw64/bin/git')"
 
 # ── Colores ────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -63,18 +65,18 @@ echo -e "${BOLD}${CYAN}╚══════════════════
 # ══════════════════════════════════════════════════════════════════════
 step "PASO 1 — GIT: commit y push a producción"
 
-git add -A
+$GIT add -A
 
-if git diff --cached --quiet; then
+if $GIT diff --cached --quiet; then
     warn "No hay cambios pendientes. Continuando con verificaciones del servidor..."
 else
-    git commit -m "$MSG
+    $GIT commit -m "$MSG
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
     ok "Commit creado: $MSG"
 fi
 
-git push origin main
+$GIT push origin main
 ok "Push a GitHub completado → Coolify redeploy en progreso"
 ok "Push a GitHub completado → Cloudflare Pages deploy en progreso (si hay cambios en frontend/)"
 
