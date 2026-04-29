@@ -17,10 +17,15 @@
 
 set -e
 
-# ── Asegurar que git esté en PATH (compatible con Git Bash y WSL)
-export PATH="/c/Program Files/Git/mingw64/bin:/c/Program Files/Git/cmd:/usr/bin:$PATH"
-# Alias por si bash no lo encuentra por el espacio en el nombre de carpeta
-GIT="$(command -v git 2>/dev/null || echo '/c/Program Files/Git/mingw64/bin/git')"
+# ── Verificar que git esté disponible ─────────────────────────────────
+if ! command -v git &>/dev/null; then
+    echo ""
+    echo "  ERROR: git no encontrado en esta terminal."
+    echo "  Solución: abre Git Bash (el programa 'Git Bash' de Windows)"
+    echo "  y ejecuta el deploy desde ahí."
+    echo ""
+    exit 1
+fi
 
 # ── Colores ────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -65,18 +70,18 @@ echo -e "${BOLD}${CYAN}╚══════════════════
 # ══════════════════════════════════════════════════════════════════════
 step "PASO 1 — GIT: commit y push a producción"
 
-$GIT add -A
+git add -A
 
-if $GIT diff --cached --quiet; then
+if git diff --cached --quiet; then
     warn "No hay cambios pendientes. Continuando con verificaciones del servidor..."
 else
-    $GIT commit -m "$MSG
+    git commit -m "$MSG
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
     ok "Commit creado: $MSG"
 fi
 
-$GIT push origin main
+git push origin main
 ok "Push a GitHub completado → Coolify redeploy en progreso"
 ok "Push a GitHub completado → Cloudflare Pages deploy en progreso (si hay cambios en frontend/)"
 
