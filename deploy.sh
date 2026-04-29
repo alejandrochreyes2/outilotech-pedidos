@@ -17,6 +17,9 @@
 
 set -e
 
+# ── Asegurar que git esté en PATH (necesario cuando bash se lanza desde CMD/PowerShell)
+export PATH="/c/Program Files/Git/cmd:/c/Program Files/Git/bin:$PATH"
+
 # ── Colores ────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
@@ -73,6 +76,7 @@ fi
 
 git push origin main
 ok "Push a GitHub completado → Coolify redeploy en progreso"
+ok "Push a GitHub completado → Cloudflare Pages deploy en progreso (si hay cambios en frontend/)"
 
 # ══════════════════════════════════════════════════════════════════════
 # PASO 2 — ESPERAR A QUE COOLIFY RECONSTRUYA LOS CONTENEDORES

@@ -1,6 +1,11 @@
 name: Deploy Frontend to Cloudflare Pages
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
   workflow_dispatch:
 
 jobs:
