@@ -298,8 +298,26 @@ using (var scope = app.Services.CreateScope())
             ON CONFLICT (producto_id) DO NOTHING;
         ";
         cmd2.ExecuteNonQuery();
+
+        // ── Crear tabla conversaciones (chatbot IA Jhon) ────────────────
+        using var cmd3 = conn.CreateCommand();
+        cmd3.CommandText = @"
+            CREATE TABLE IF NOT EXISTS conversaciones (
+                id             SERIAL PRIMARY KEY,
+                session_id     VARCHAR(100) NOT NULL,
+                email          VARCHAR(200),
+                nombre_usuario VARCHAR(200),
+                role           VARCHAR(20)  NOT NULL,
+                mensaje        TEXT         NOT NULL,
+                creado_en      TIMESTAMP    DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_conv_session ON conversaciones(session_id);
+            CREATE INDEX IF NOT EXISTS idx_conv_email   ON conversaciones(email);
+        ";
+        cmd3.ExecuteNonQuery();
+
         conn.Close();
-        Console.WriteLine("[DB] Tabla inventario_productos verificada/creada correctamente.");
+        Console.WriteLine("[DB] Tablas inventario_productos y conversaciones verificadas/creadas.");
     }
     catch (Exception ex)
     {
@@ -713,9 +731,142 @@ app.MapPatch("/nequi-comprobante/{id}", async (int id, NequiComprobanteDto dto, 
 });
 
 // ============================================================
+// CHATBOT IA — helpers de base de datos y email
+// ============================================================
+async Task GuardarMensajeChat(string sessionId, string? email, string? nombre, string role, string mensaje)
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(
+            "INSERT INTO conversaciones (session_id, email, nombre_usuario, role, mensaje) " +
+            "VALUES (@sid, @email, @nombre, @role, @msg)", conn);
+        cmd.Parameters.AddWithValue("sid",    sessionId);
+        cmd.Parameters.AddWithValue("email",  (object?)email  ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("nombre", (object?)nombre ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("role",   role);
+        cmd.Parameters.AddWithValue("msg",    mensaje);
+        await cmd.ExecuteNonQueryAsync();
+    }
+    catch (Exception ex) { Console.WriteLine($"[CHATBOT DB] Error guardando mensaje: {ex.Message}"); }
+}
+
+async Task AsociarEmailSesion(string sessionId, string email, string? nombre)
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(
+            "UPDATE conversaciones SET email = @email, nombre_usuario = COALESCE(@nombre, nombre_usuario) " +
+            "WHERE session_id = @sid AND email IS NULL", conn);
+        cmd.Parameters.AddWithValue("email",  email);
+        cmd.Parameters.AddWithValue("nombre", (object?)nombre ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("sid",    sessionId);
+        await cmd.ExecuteNonQueryAsync();
+    }
+    catch (Exception ex) { Console.WriteLine($"[CHATBOT DB] Error asociando email: {ex.Message}"); }
+}
+
+async Task<int> ContarMensajesSesion(string sessionId)
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand("SELECT COUNT(*) FROM conversaciones WHERE session_id = @sid", conn);
+        cmd.Parameters.AddWithValue("sid", sessionId);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+    }
+    catch { return 0; }
+}
+
+async Task EnviarEmailBienvenidaChatbot(string emailDestino, string? nombre, string sessionId)
+{
+    if (string.IsNullOrEmpty(emailUser) || string.IsNullOrEmpty(emailPass) || emailPass == "PONER_APP_PASSWORD_AQUI") return;
+    try
+    {
+        var saludo = string.IsNullOrEmpty(nombre) ? "Hola" : $"Hola {nombre}";
+        var htmlBody = $@"<!DOCTYPE html><html lang='es'><body style='margin:0;padding:0;background:#0f0f0f;font-family:Arial,sans-serif'>
+<div style='max-width:600px;margin:0 auto;background:#1a1a1a;border-radius:12px;overflow:hidden'>
+  <div style='background:#FF6B00;padding:28px 40px'>
+    <div style='font-family:Arial Black,sans-serif;font-size:26px;font-weight:900'>
+      <span style='color:#fff'>OUTIL</span><span style='color:#0D1117'>TECH</span>
+    </div>
+    <p style='color:rgba(255,255,255,0.85);font-size:13px;margin:4px 0 0'>Jhon · Asistente IA de Outiltech</p>
+  </div>
+  <div style='padding:32px 40px'>
+    <h1 style='color:#fff;font-size:22px;margin:0 0 12px'>¡Tu consulta ha sido registrada! 🤖</h1>
+    <p style='color:#ccc;font-size:14px;line-height:1.7'>{saludo}, gracias por contactar a <strong style='color:#FF6B00'>Jhon</strong>, el asistente IA de Outiltech.</p>
+    <p style='color:#ccc;font-size:14px;line-height:1.7'>Hemos guardado tu conversación. Al finalizar, recibirás un resumen completo de tu consulta en este correo.</p>
+    <div style='background:#FF6B00;border-radius:8px;padding:16px 24px;margin:24px 0;text-align:center'>
+      <p style='color:#fff;font-weight:700;margin:0;font-size:15px'>¿Necesitas ayuda inmediata?</p>
+      <p style='color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:13px'>📧 contactanos@outiltech.co &nbsp;|&nbsp; 💬 WhatsApp +57 3133082905</p>
+    </div>
+    <a href='https://outiltech.co' style='display:inline-block;background:#1a1f2e;color:#FF6B00;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;border:1px solid #FF6B00'>
+      🛍️ Ver productos en outiltech.co
+    </a>
+  </div>
+  <div style='padding:16px 40px;background:#111;text-align:center'>
+    <p style='color:rgba(255,255,255,0.3);font-size:12px;margin:0'>© 2026 Outiltech · contactanos@outiltech.co</p>
+  </div>
+</div></body></html>";
+
+#pragma warning disable SYSLIB0006
+        using var smtp = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587) { EnableSsl = true, Credentials = new System.Net.NetworkCredential(emailUser, emailPass) };
+#pragma warning restore SYSLIB0006
+        var mail = new System.Net.Mail.MailMessage(emailUser, emailDestino, "Jhon IA registró tu consulta · Outiltech", htmlBody) { IsBodyHtml = true };
+        await smtp.SendMailAsync(mail);
+        var adminMail = new System.Net.Mail.MailMessage(emailUser, emailAdmin, $"[Chatbot] Nuevo usuario: {emailDestino}", $"<p>Nuevo usuario en el chatbot: <strong>{emailDestino}</strong> ({nombre})<br/>Sesión: {sessionId}</p>") { IsBodyHtml = true };
+        await smtp.SendMailAsync(adminMail);
+        Console.WriteLine($"[CHATBOT EMAIL] Bienvenida enviada a {emailDestino}");
+    }
+    catch (Exception ex) { Console.WriteLine($"[CHATBOT EMAIL] Error: {ex.Message}"); }
+}
+
+async Task EnviarTranscriptoEmail(string emailDestino, string? nombre, string sessionId)
+{
+    if (string.IsNullOrEmpty(emailUser) || string.IsNullOrEmpty(emailPass) || emailPass == "PONER_APP_PASSWORD_AQUI") return;
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(
+            "SELECT role, mensaje, creado_en FROM conversaciones WHERE session_id = @sid ORDER BY creado_en ASC LIMIT 100", conn);
+        cmd.Parameters.AddWithValue("sid", sessionId);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var rows = new System.Text.StringBuilder();
+        while (await reader.ReadAsync())
+        {
+            var role  = reader.GetString(0);
+            var msg   = reader.GetString(1);
+            var fecha = reader.GetDateTime(2).ToString("HH:mm");
+            var bg    = role == "user" ? "#1e2433" : "#161b27";
+            var who   = role == "user" ? $"<strong style='color:#FF6B00'>{(nombre ?? "Cliente")}</strong>" : "<strong style='color:#22c55e'>Jhon IA</strong>";
+            rows.Append($"<div style='background:{bg};padding:10px 14px;border-radius:8px;margin-bottom:8px'><span style='font-size:11px;color:#888'>{fecha}</span> {who}<br/><span style='color:#ddd;font-size:13px'>{System.Web.HttpUtility.HtmlEncode(msg)}</span></div>");
+        }
+        var htmlBody = $@"<!DOCTYPE html><html lang='es'><body style='margin:0;padding:0;background:#0f0f0f;font-family:Arial,sans-serif'>
+<div style='max-width:600px;margin:0 auto;background:#1a1a1a;border-radius:12px;overflow:hidden'>
+  <div style='background:#FF6B00;padding:24px 40px'><div style='font-family:Arial Black,sans-serif;font-size:24px;font-weight:900'><span style='color:#fff'>OUTIL</span><span style='color:#0D1117'>TECH</span></div><p style='color:rgba(255,255,255,0.85);font-size:13px;margin:4px 0 0'>Resumen de tu conversación con Jhon IA</p></div>
+  <div style='padding:24px 40px'><h2 style='color:#fff;font-size:18px'>Transcripto de tu consulta</h2>{rows}</div>
+  <div style='padding:16px 40px;background:#111;text-align:center'><p style='color:rgba(255,255,255,0.3);font-size:12px;margin:0'>© 2026 Outiltech · contactanos@outiltech.co</p></div>
+</div></body></html>";
+
+#pragma warning disable SYSLIB0006
+        using var smtp = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587) { EnableSsl = true, Credentials = new System.Net.NetworkCredential(emailUser, emailPass) };
+#pragma warning restore SYSLIB0006
+        var mail = new System.Net.Mail.MailMessage(emailUser, emailDestino, "Tu conversación con Jhon IA · Outiltech", htmlBody) { IsBodyHtml = true };
+        await smtp.SendMailAsync(mail);
+        var adminMail = new System.Net.Mail.MailMessage(emailUser, emailAdmin, $"[Chatbot Transcripto] {emailDestino}", htmlBody) { IsBodyHtml = true };
+        await smtp.SendMailAsync(adminMail);
+        Console.WriteLine($"[CHATBOT EMAIL] Transcripto enviado a {emailDestino}");
+    }
+    catch (Exception ex) { Console.WriteLine($"[CHATBOT EMAIL] Error transcripto: {ex.Message}"); }
+}
+
+// ============================================================
 // CHATBOT IA — POST /chatbot/mensaje (público)
-// Jhon, asistente virtual de Outiltech powered by Claude
-// Frontend llama: POST http://localhost:5000/api/pedidos/chatbot/mensaje
 // ============================================================
 app.MapPost("/chatbot/mensaje", async (HttpRequest request, IConfiguration configuration, IHttpClientFactory factory, ILogger<Program> logger) =>
 {
@@ -723,13 +874,28 @@ app.MapPost("/chatbot/mensaje", async (HttpRequest request, IConfiguration confi
     try { body = await request.ReadFromJsonAsync<JsonElement>(); }
     catch { return Results.BadRequest(new { error = "JSON inválido" }); }
 
-    var mensaje = body.TryGetProperty("mensaje", out var msgProp) ? msgProp.GetString() ?? "" : "";
+    var mensaje        = body.TryGetProperty("mensaje",        out var mp) ? mp.GetString() ?? "" : "";
+    var sessionId      = body.TryGetProperty("sessionId",      out var sp) ? sp.GetString() ?? Guid.NewGuid().ToString() : Guid.NewGuid().ToString();
+    var email          = body.TryGetProperty("email",          out var ep) && ep.ValueKind != JsonValueKind.Null ? ep.GetString() : null;
+    var nombreUsuario  = body.TryGetProperty("nombreUsuario",  out var np) && np.ValueKind != JsonValueKind.Null ? np.GetString() : null;
+    var emailEsNuevo   = body.TryGetProperty("emailEsNuevo",   out var en) && en.GetBoolean();
 
     if (string.IsNullOrWhiteSpace(mensaje))
         return Results.BadRequest(new { error = "El mensaje no puede estar vacío" });
-
     if (mensaje.Length > 500)
         return Results.BadRequest(new { error = "El mensaje no puede exceder 500 caracteres" });
+
+    // Guardar mensaje del usuario en DB
+    _ = Task.Run(() => GuardarMensajeChat(sessionId, email, nombreUsuario, "user", mensaje));
+
+    // Si el email es nuevo en esta sesión → asociar mensajes anteriores y enviar bienvenida
+    if (emailEsNuevo && !string.IsNullOrEmpty(email))
+    {
+        _ = Task.Run(async () => {
+            await AsociarEmailSesion(sessionId, email, nombreUsuario);
+            await EnviarEmailBienvenidaChatbot(email, nombreUsuario, sessionId);
+        });
+    }
 
     var apiKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY")
               ?? configuration["ANTHROPIC_API_KEY"]
@@ -737,7 +903,9 @@ app.MapPost("/chatbot/mensaje", async (HttpRequest request, IConfiguration confi
 
     if (string.IsNullOrEmpty(apiKey))
     {
-        logger.LogWarning("[CHATBOT] ANTHROPIC_API_KEY no configurada — respondiendo con fallback");
+        logger.LogWarning("[CHATBOT] ANTHROPIC_API_KEY no configurada");
+        _ = Task.Run(() => GuardarMensajeChat(sessionId, email, nombreUsuario, "assistant",
+            "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co"));
         return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co o al WhatsApp +57 3133082905" });
     }
 
@@ -761,11 +929,13 @@ app.MapPost("/chatbot/mensaje", async (HttpRequest request, IConfiguration confi
         client.DefaultRequestHeaders.Add("x-api-key", apiKey);
         client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
 
+        var nombreCtx = string.IsNullOrEmpty(nombreUsuario) ? "" : $" El nombre del cliente es {nombreUsuario}.";
         var payload = new
         {
             model      = "claude-haiku-4-5-20251001",
             max_tokens = 1024,
-            system     = @"Eres Jhon, el asistente virtual inteligente de Outiltech (outiltech.co). Respondes en español colombiano, tono amable y profesional. Solo respondes temas relacionados con los servicios de Outiltech:
+            system     = $@"Eres Jhon, el asistente virtual inteligente de Outiltech (outiltech.co). Respondes en español colombiano, tono amable y profesional.{nombreCtx}
+Solo respondes temas relacionados con los servicios de Outiltech:
 - Tienda E-Commerce de tecnología: 114+ productos Apple (iPhone, MacBook, iPad, Watch, AirPods), Samsung, Redmi, Infinix, ZTE, Tecno, Oppo, Segway, accesorios
 - Software a la medida desde $30.000/hora: PWA, apps móviles, e-commerce, DevOps
 - Servicios de seguridad: ISO 27001, Forense Digital
@@ -774,12 +944,12 @@ app.MapPost("/chatbot/mensaje", async (HttpRequest request, IConfiguration confi
 - Envíos a todo Colombia (1-3 días hábiles) o recogida en tienda
 - Garantías: Apple 1 año, Samsung 1 año, otros 6 meses-1 año
 - Contacto directo: contactanos@outiltech.co | WhatsApp +57 3133082905
-Si preguntan algo fuera de estos temas, redirige amablemente. Sé conciso (máximo 3 párrafos cortos). Nunca inventes precios específicos que no conoces — di que pueden consultar en outiltech.co.",
+Si preguntan algo fuera de estos temas, redirige amablemente. Sé conciso (máximo 3 párrafos). Nunca inventes precios — di que pueden consultar en outiltech.co.",
             messages
         };
 
-        var resp    = await client.PostAsJsonAsync("https://api.anthropic.com/v1/messages", payload);
-        var json    = await resp.Content.ReadAsStringAsync();
+        var resp = await client.PostAsJsonAsync("https://api.anthropic.com/v1/messages", payload);
+        var json = await resp.Content.ReadAsStringAsync();
 
         if (!resp.IsSuccessStatusCode)
         {
@@ -790,19 +960,73 @@ Si preguntan algo fuera de estos temas, redirige amablemente. Sé conciso (máxi
         var parsed    = JsonSerializer.Deserialize<JsonElement>(json);
         var respuesta = parsed.GetProperty("content")[0].GetProperty("text").GetString() ?? "";
 
-        logger.LogInformation("[CHATBOT] Respuesta OK — usuario preguntó: {Msg}", mensaje[..Math.Min(60, mensaje.Length)]);
+        // Guardar respuesta de Jhon en DB
+        _ = Task.Run(() => GuardarMensajeChat(sessionId, email, nombreUsuario, "assistant", respuesta));
+
+        logger.LogInformation("[CHATBOT] Respuesta OK — sesión {Sid}", sessionId[..8]);
         return Results.Ok(new { respuesta });
     }
     catch (TaskCanceledException)
     {
-        logger.LogWarning("[CHATBOT] Timeout llamando Anthropic API");
-        return Results.Ok(new { respuesta = "Lo siento, la respuesta tardó demasiado. Escríbenos directamente a contactanos@outiltech.co" });
+        logger.LogWarning("[CHATBOT] Timeout Anthropic API");
+        return Results.Ok(new { respuesta = "Lo siento, la respuesta tardó demasiado. Escríbenos a contactanos@outiltech.co" });
     }
     catch (Exception ex)
     {
         logger.LogError(ex, "[CHATBOT] Error inesperado");
         return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co" });
     }
+});
+
+// ============================================================
+// CHATBOT IA — GET /chatbot/historial/{sessionId}
+// Carga mensajes previos de la sesión actual
+// ============================================================
+app.MapGet("/chatbot/historial/{sessionId}", async (string sessionId, ILogger<Program> logger) =>
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(
+            "SELECT role, mensaje, creado_en FROM conversaciones WHERE session_id = @sid ORDER BY creado_en ASC LIMIT 50", conn);
+        cmd.Parameters.AddWithValue("sid", sessionId);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var mensajes = new List<object>();
+        while (await reader.ReadAsync())
+            mensajes.Add(new { role = reader.GetString(0), content = reader.GetString(1), creadoEn = reader.GetDateTime(2) });
+        return Results.Ok(new { mensajes });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CHATBOT] Error cargando historial");
+        return Results.Ok(new { mensajes = new List<object>() });
+    }
+});
+
+// ============================================================
+// CHATBOT IA — POST /chatbot/fin-sesion
+// Envía transcripto completo al cerrar el chat
+// ============================================================
+app.MapPost("/chatbot/fin-sesion", async (HttpRequest request, ILogger<Program> logger) =>
+{
+    JsonElement body;
+    try { body = await request.ReadFromJsonAsync<JsonElement>(); }
+    catch { return Results.Ok(); }
+
+    var sessionId = body.TryGetProperty("sessionId", out var sp) ? sp.GetString() ?? "" : "";
+    var email     = body.TryGetProperty("email",     out var ep) && ep.ValueKind != JsonValueKind.Null ? ep.GetString() : null;
+    var nombre    = body.TryGetProperty("nombre",    out var np) && np.ValueKind != JsonValueKind.Null ? np.GetString() : null;
+
+    if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(sessionId))
+    {
+        var total = await ContarMensajesSesion(sessionId);
+        if (total >= 4) // Mínimo 2 intercambios para enviar transcripto
+            _ = Task.Run(() => EnviarTranscriptoEmail(email, nombre, sessionId));
+    }
+
+    logger.LogInformation("[CHATBOT] Sesión cerrada: {Sid}", sessionId.Length > 8 ? sessionId[..8] : sessionId);
+    return Results.Ok();
 });
 
 app.UseSwagger();
