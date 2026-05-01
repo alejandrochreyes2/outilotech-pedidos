@@ -712,6 +712,99 @@ app.MapPatch("/nequi-comprobante/{id}", async (int id, NequiComprobanteDto dto, 
     });
 });
 
+// ============================================================
+// CHATBOT IA — POST /chatbot/mensaje (público)
+// Jhon, asistente virtual de Outiltech powered by Claude
+// Frontend llama: POST http://localhost:5000/api/pedidos/chatbot/mensaje
+// ============================================================
+app.MapPost("/chatbot/mensaje", async (HttpRequest request, IConfiguration configuration, IHttpClientFactory factory, ILogger<Program> logger) =>
+{
+    JsonElement body;
+    try { body = await request.ReadFromJsonAsync<JsonElement>(); }
+    catch { return Results.BadRequest(new { error = "JSON inválido" }); }
+
+    var mensaje = body.TryGetProperty("mensaje", out var msgProp) ? msgProp.GetString() ?? "" : "";
+
+    if (string.IsNullOrWhiteSpace(mensaje))
+        return Results.BadRequest(new { error = "El mensaje no puede estar vacío" });
+
+    if (mensaje.Length > 500)
+        return Results.BadRequest(new { error = "El mensaje no puede exceder 500 caracteres" });
+
+    var apiKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY")
+              ?? configuration["ANTHROPIC_API_KEY"]
+              ?? "";
+
+    if (string.IsNullOrEmpty(apiKey))
+    {
+        logger.LogWarning("[CHATBOT] ANTHROPIC_API_KEY no configurada — respondiendo con fallback");
+        return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co o al WhatsApp +57 3133082905" });
+    }
+
+    var messages = new List<object>();
+    if (body.TryGetProperty("historial", out var hist) && hist.ValueKind == JsonValueKind.Array)
+    {
+        foreach (var item in hist.EnumerateArray())
+        {
+            var role    = item.TryGetProperty("role",    out var rp) ? rp.GetString() ?? "" : "";
+            var content = item.TryGetProperty("content", out var cp) ? cp.GetString() ?? "" : "";
+            if (!string.IsNullOrEmpty(role) && !string.IsNullOrEmpty(content))
+                messages.Add(new { role, content });
+        }
+    }
+    messages.Add(new { role = "user", content = mensaje });
+
+    try
+    {
+        using var client = factory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(30);
+        client.DefaultRequestHeaders.Add("x-api-key", apiKey);
+        client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+
+        var payload = new
+        {
+            model      = "claude-haiku-4-5-20251001",
+            max_tokens = 1024,
+            system     = @"Eres Jhon, el asistente virtual inteligente de Outiltech (outiltech.co). Respondes en español colombiano, tono amable y profesional. Solo respondes temas relacionados con los servicios de Outiltech:
+- Tienda E-Commerce de tecnología: 114+ productos Apple (iPhone, MacBook, iPad, Watch, AirPods), Samsung, Redmi, Infinix, ZTE, Tecno, Oppo, Segway, accesorios
+- Software a la medida desde $30.000/hora: PWA, apps móviles, e-commerce, DevOps
+- Servicios de seguridad: ISO 27001, Forense Digital
+- Creación de IA y chatbots personalizados
+- Métodos de pago: tarjeta (Wompi), PSE, Nequi/Daviplata, efectivo (Efecty/Baloto), Addi en cuotas
+- Envíos a todo Colombia (1-3 días hábiles) o recogida en tienda
+- Garantías: Apple 1 año, Samsung 1 año, otros 6 meses-1 año
+- Contacto directo: contactanos@outiltech.co | WhatsApp +57 3133082905
+Si preguntan algo fuera de estos temas, redirige amablemente. Sé conciso (máximo 3 párrafos cortos). Nunca inventes precios específicos que no conoces — di que pueden consultar en outiltech.co.",
+            messages
+        };
+
+        var resp    = await client.PostAsJsonAsync("https://api.anthropic.com/v1/messages", payload);
+        var json    = await resp.Content.ReadAsStringAsync();
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            logger.LogError("[CHATBOT] Anthropic error {Status}: {Body}", resp.StatusCode, json);
+            return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co" });
+        }
+
+        var parsed    = JsonSerializer.Deserialize<JsonElement>(json);
+        var respuesta = parsed.GetProperty("content")[0].GetProperty("text").GetString() ?? "";
+
+        logger.LogInformation("[CHATBOT] Respuesta OK — usuario preguntó: {Msg}", mensaje[..Math.Min(60, mensaje.Length)]);
+        return Results.Ok(new { respuesta });
+    }
+    catch (TaskCanceledException)
+    {
+        logger.LogWarning("[CHATBOT] Timeout llamando Anthropic API");
+        return Results.Ok(new { respuesta = "Lo siento, la respuesta tardó demasiado. Escríbenos directamente a contactanos@outiltech.co" });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CHATBOT] Error inesperado");
+        return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co" });
+    }
+});
+
 app.UseSwagger();
 app.UseSwaggerUI();
 app.Run();

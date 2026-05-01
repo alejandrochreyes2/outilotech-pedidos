@@ -1,0 +1,106 @@
+<div class="chatbot-host">
+
+  @if (isOpen) {
+    <div class="chatbot-panel">
+
+      <!-- Header naranja con avatar Jhon -->
+      <div class="chatbot-header">
+        <div class="header-info">
+          @if (!avatarError) {
+            <img
+              src="assets/images/jhon-avatar.png"
+              class="header-avatar"
+              alt="Jhon"
+              (error)="onAvatarError()">
+          } @else {
+            <div class="header-avatar-fallback">🤖</div>
+          }
+          <div>
+            <div class="agent-name">Jhon</div>
+            <div class="agent-subtitle">
+              <span class="online-dot"></span>Asistente Outiltech IA
+            </div>
+          </div>
+        </div>
+        <button class="close-btn" (click)="close()">✕</button>
+      </div>
+
+      <!-- Área de mensajes -->
+      <div class="messages-area" #messagesContainer>
+        @for (msg of messages; track $index) {
+          <div class="msg-wrapper" [class.user]="msg.role === 'user'">
+
+            @if (msg.role === 'assistant') {
+              @if (!avatarError) {
+                <img
+                  src="assets/images/jhon-avatar.png"
+                  class="msg-avatar-sm"
+                  alt="Jhon"
+                  (error)="onAvatarError()">
+              } @else {
+                <div class="msg-avatar-sm-fallback">🤖</div>
+              }
+            }
+
+            @if (msg.isTyping) {
+              <div class="typing-indicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+              </div>
+            } @else {
+              <div class="msg-bubble">{{ msg.content }}</div>
+            }
+
+          </div>
+        }
+      </div>
+
+      <!-- Accesos rápidos WhatsApp -->
+      <div class="quick-actions">
+        <button class="quick-btn" (click)="openWhatsApp('ventas')">
+          💬 Ventas WA
+        </button>
+        <button class="quick-btn" (click)="openWhatsApp('posventa')">
+          🔧 Soporte WA
+        </button>
+      </div>
+
+      <!-- Input de chat -->
+      <div class="chat-input-area">
+        <input
+          class="chat-input"
+          [(ngModel)]="currentInput"
+          (keydown)="onKeyDown($event)"
+          placeholder="Escribe tu pregunta..."
+          [disabled]="isLoading"
+          autocomplete="off">
+        <button
+          class="send-btn"
+          (click)="sendMessage()"
+          [disabled]="isLoading || !currentInput.trim()">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 2L11 13" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  }
+
+  <!-- Botón flotante Jhon -->
+  <button class="jhon-fab" (click)="toggleChat()" title="Chatear con Jhon IA">
+    @if (!avatarError) {
+      <img
+        src="assets/images/jhon-avatar.png"
+        class="fab-avatar"
+        alt="Jhon IA"
+        (error)="onAvatarError()">
+    } @else {
+      <span class="fab-fallback">🤖</span>
+    }
+    <span class="fab-name">Jhon</span>
+  </button>
+
+</div>

@@ -252,6 +252,66 @@ python3 /tmp/patch_wompi.py" >/dev/null 2>&1
 fi
 
 # ══════════════════════════════════════════════════════════════════════
+# PASO 4.5 — CHATBOT IA JHON — ANTHROPIC_API_KEY en producción
+# ══════════════════════════════════════════════════════════════════════
+step "PASO 4.5 — Configurando Chatbot IA Jhon (ANTHROPIC_API_KEY)"
+
+ANTHROPIC_KEY="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"
+
+# Verificar si ya está activa en el contenedor pedidos
+PEDIDOS_CONTAINER_NOW=$($SSH "docker ps --format '{{.Names}}' | grep '^pedidos-'" 2>/dev/null | head -1)
+current_key=$($SSH "docker exec $PEDIDOS_CONTAINER_NOW printenv ANTHROPIC_API_KEY 2>/dev/null" 2>/dev/null || echo "")
+
+if [ -n "$current_key" ]; then
+    ok "ANTHROPIC_API_KEY ya activa en contenedor pedidos"
+else
+    info "Configurando ANTHROPIC_API_KEY en Coolify .env..."
+
+    # 1. Agregar al .env de Coolify
+    $SSH "python3 - << 'PYEOF'
+with open('${COOLIFY_DIR}/.env', 'r') as f:
+    lines = f.readlines()
+lines = [l for l in lines if not l.startswith('ANTHROPIC_API_KEY=')]
+lines.append('ANTHROPIC_API_KEY=${ANTHROPIC_KEY}\n')
+with open('${COOLIFY_DIR}/.env', 'w') as f:
+    f.writelines(lines)
+print('OK')
+PYEOF
+" >/dev/null 2>&1
+
+    # 2. Agregar referencia en docker-compose.yaml del servidor (sección environment del servicio pedidos)
+    $SSH "python3 - << 'PYEOF'
+with open('${COOLIFY_DIR}/docker-compose.yaml', 'r') as f:
+    content = f.read()
+if 'ANTHROPIC_API_KEY' not in content:
+    # Insertar antes de JWT_KEY en el bloque de pedidos
+    content = content.replace(
+        \"            JWT_KEY: YourSuperSecretKeyHere1234567890\",
+        \"            ANTHROPIC_API_KEY: '\${ANTHROPIC_API_KEY:-}'\n            JWT_KEY: YourSuperSecretKeyHere1234567890\"
+    )
+    with open('${COOLIFY_DIR}/docker-compose.yaml', 'w') as f:
+        f.write(content)
+    print('docker-compose actualizado')
+else:
+    print('Ya existe en docker-compose')
+PYEOF
+" >/dev/null 2>&1
+
+    # 3. Reiniciar pedidos para que tome la nueva variable
+    $SSH "cd ${COOLIFY_DIR} && docker compose -f docker-compose.yaml --env-file .env up -d --no-build pedidos" >/dev/null 2>&1
+    sleep 6
+
+    # 4. Verificar que quedó activa
+    PEDIDOS_CONTAINER_NOW=$($SSH "docker ps --format '{{.Names}}' | grep '^pedidos-'" 2>/dev/null | head -1)
+    check_key=$($SSH "docker exec $PEDIDOS_CONTAINER_NOW printenv ANTHROPIC_API_KEY 2>/dev/null" 2>/dev/null || echo "")
+    if [ -n "$check_key" ]; then
+        ok "ANTHROPIC_API_KEY configurada correctamente en producción"
+    else
+        warn "No se pudo verificar ANTHROPIC_API_KEY — revisa manualmente en Coolify"
+    fi
+fi
+
+# ══════════════════════════════════════════════════════════════════════
 # PASO 5 — SINCRONIZAR INVENTARIO SUPABASE → POSTGRESQL
 # ══════════════════════════════════════════════════════════════════════
 step "PASO 5 — Sincronizando inventario Supabase → Hetzner"

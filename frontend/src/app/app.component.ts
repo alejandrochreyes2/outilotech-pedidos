@@ -1,12 +1,13 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { ChatbotWidgetComponent } from './components/chatbot-widget/chatbot-widget.component';
 import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, SidebarComponent],
+  imports: [RouterOutlet, SidebarComponent, ChatbotWidgetComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
