@@ -59,18 +59,18 @@ export class ChatbotWidgetComponent implements OnInit, OnDestroy {
   private readonly NOMBRE_KEY  = 'chatbot_nombre';
 
   private readonly WELCOME_HTML =
-    `<div style="line-height:1.8">
-¡Hola! Soy <b>Jhon</b>, el asistente IA de Outiltech 🤖<br><br>
-Escoge la opción que quieras del <b>menú principal</b> o sigue hablando conmigo si quieres:<br><br>
-<b>1.</b> 🛍️ Productos (Precios, stock, disponibilidad)<br>
+    `<div style="line-height:1.45;font-size:12.5px">
+¡Hola! Soy <b>Jhon</b>, el asistente IA de Outiltech 🤖<br>
+<span style="color:rgba(255,255,255,0.65);font-size:11.5px">Escoge una opción o escribe tu pregunta:</span><br>
+<b>1.</b> 🛍️ Productos (Precios, stock)<br>
 <b>2.</b> 💳 Pagos (Tarjetas, Nequi, cuotas)<br>
-<b>3.</b> 🚚 Envíos (Tiempos, costos, cobertura nacional)<br>
-<b>4.</b> 🛡️ Garantías (Apple, Samsung, devoluciones, CPO)<br>
+<b>3.</b> 🚚 Envíos (Tiempos, costos)<br>
+<b>4.</b> 🛡️ Garantías y devoluciones<br>
 <b>5.</b> ℹ️ Sobre nosotros / Contáctanos<br>
 <b>6.</b> 📋 PQRS o Reclamos<br>
-<b>7.</b> 👤 Hablar con un asesor personalizado<br>
+<b>7.</b> 👤 Hablar con un asesor<br>
 <b>8.</b> 🛒 Soy cliente o mayorista<br>
-<b>9.</b> 🔧 Servicio técnico (seguimiento)<br>
+<b>9.</b> 🔧 Servicio técnico<br>
 <b>10.</b> 💻 Quiero mi software
 </div>`;
 
