@@ -3,9 +3,9 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_DB: outiltech
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-outiltech}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -30,14 +30,14 @@ services:
   usuarios:
     build: ./backend/usuarios
     environment:
-      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres
+      - ConnectionStrings__PostgreSQL=${ConnectionStrings__PostgreSQL:-Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres}
     ports:
       - "3001:3001"
 
   pedidos:
     build: ./backend/pedidos
     environment:
-      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres
+      - ConnectionStrings__PostgreSQL=${ConnectionStrings__PostgreSQL:-Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres}
       - Wompi__PublicKey=pub_test_iGDtX1yJbTOiwFOZQsz57WHnqkPfKATo
       - Wompi__IntegrityKey=test_integrity_emFDteel2smneriBhxztMfMmudxgZhPg
       - Wompi__EventsKey=test_events_HZaNbXWnNGOICIDNxtjCvcgnZX6UobgW
@@ -58,7 +58,7 @@ services:
   pagos:
     build: ./backend/pagos
     environment:
-      - ConnectionStrings__PostgreSQL=Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres
+      - ConnectionStrings__PostgreSQL=${ConnectionStrings__PostgreSQL:-Host=postgres;Port=5432;Database=outiltech;Username=postgres;Password=postgres}
       - ConnectionStrings__MongoDB=mongodb://mongodb:27017
     ports:
       - "3003:3003"
