@@ -1615,13 +1615,16 @@ Desarrollamos soluciones tecnológicas a la medida:<br><br>
         var tieneProducto = new[] {
             "iphone","samsung","macbook","laptop","mac ","patineta","ipad",
             "airpods","apple watch","watch","redmi","infinix","tecno","oppo",
-            "android","celular","movil","telefono","tablet","galaxy","segway"
+            "android","celular","movil","telefono","tablet","galaxy","segway",
+            "huawei","motorola","a79","a80","a58","reno","s25","s24","s23",
+            "iphone 15","iphone 14","iphone 13","iphone 12","iphone 11"
         }.Any(k => m05.Contains(k));
 
         var tieneIntentoPrecio = new[] {
             "precio","cuanto","cuanto","vale","cuesta","costo","barat","econom",
             "disponible","tienen","stock","cual tienen","muestrame","ver los",
-            "catalogo","listar","que tienen","mas barat","mas econom"
+            "catalogo","listar","que tienen","mas barat","mas econom",
+            "comprar","adquirir","llevar","quiero el","pedir","ordenar","compro"
         }.Any(k => m05.Contains(k));
 
         if (tieneProducto && tieneIntentoPrecio)
@@ -1650,6 +1653,48 @@ Desarrollamos soluciones tecnológicas a la medida:<br><br>
                 cat05 = "Tecno";
             else if (m05.Contains("samsung"))
                 cat05 = "Samsung";
+
+            // ── Búsqueda por modelo específico (A79, Reno 12, S25, etc.) ──
+            // Si el usuario menciona un modelo concreto, buscar directo en DB
+            {
+                await using var connMod = new NpgsqlConnection(pgConnectionString);
+                await connMod.OpenAsync();
+                var cmdMod = new NpgsqlCommand(@"
+                    SELECT nombre, precio, garantia, slug, disponibilidad, unidades
+                    FROM inventario_productos
+                    WHERE LOWER(nombre) ILIKE '%' || LOWER(@q) || '%'
+                       OR LOWER(modelo) ILIKE '%' || LOWER(@q) || '%'
+                    ORDER BY unidades DESC LIMIT 3", connMod);
+                // Extraer palabras clave del mensaje (mínimo 3 letras, no stopwords)
+                var stopwords = new HashSet<string>{"que","del","los","las","una","uno","con","por","para","quiero","comprar","tiene","tienen","esta","disponible","precio","cuanto","cuesta","vale","el","la","de","en","un","su","ver","mas","me","hay","si"};
+                var palabrasBusqueda = m05.Split(new[]{' ',',','.',';','?','!'}, StringSplitOptions.RemoveEmptyEntries)
+                    .Where(p => p.Length >= 3 && !stopwords.Contains(p))
+                    .OrderByDescending(p => p.Length)
+                    .FirstOrDefault();
+                if (palabrasBusqueda != null)
+                {
+                    cmdMod.Parameters.AddWithValue("q", palabrasBusqueda);
+                    await using var rdrMod = await cmdMod.ExecuteReaderAsync();
+                    if (await rdrMod.ReadAsync())
+                    {
+                        var nomM = rdrMod.GetString(0);
+                        var preM = rdrMod.GetDecimal(1);
+                        var garM = rdrMod.GetString(2);
+                        var slgM = rdrMod.GetString(3);
+                        var dispM = rdrMod.GetString(4);
+                        var uniM = rdrMod.GetInt32(5);
+                        string respMod;
+                        if (dispM == "Si" && uniM > 0)
+                            respMod = $"✅ Sí tenemos el *{nomM}* disponible a **${preM:N0} COP** con garantía de {garM}.\n\n¿Te gustaría comprarlo? <a href='https://outiltech.co/productos/{slgM}' target='_blank' style='color:#FF6B00;font-weight:700'>📱 Ver {nomM} →</a>";
+                        else
+                            respMod = $"Lo siento, el *{nomM}* no está disponible en este momento. ¿Te puedo mostrar productos similares?";
+                        await rdrMod.CloseAsync();
+                        _ = Task.Run(() => GuardarConversacion(sessionId, email, nombreUsuario, mensaje, respMod, "inventario", intencion, sentimiento));
+                        logger.LogInformation("[JHON N0.5mod] Búsqueda por modelo '{Palabra}' → {Nombre}", palabrasBusqueda, nomM);
+                        return Results.Ok(new { respuesta = respMod, fuente = "inventario", tieneHtml = true, accion = (object?)null });
+                    }
+                }
+            }
 
             if (cat05 != null)
             {
