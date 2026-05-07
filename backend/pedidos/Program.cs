@@ -1428,12 +1428,20 @@ app.MapPost("/chatbot/mensaje", async (HttpRequest request, IConfiguration confi
     var emailEsNuevo  = body.TryGetProperty("emailEsNuevo",  out var en) && en.GetBoolean();
 
     // Extraer historial para detectar último producto mencionado
-    var historialMsgs = (body.TryGetProperty("historial", out var hp) && hp.ValueKind == JsonValueKind.Array
-        ? hp.EnumerateArray().Select(h => (
-            role:    h.TryGetProperty("role",    out var r) ? r.GetString() ?? "" : "",
-            content: h.TryGetProperty("content", out var c) ? c.GetString() ?? "" : ""
-          )).ToList()
-        : new List<(string role, string content)>());
+    var historialMsgs = new List<(string role, string content)>();
+    if (body.TryGetProperty("historial", out var hp) && hp.ValueKind == JsonValueKind.Array)
+    {
+        foreach (var h in hp.EnumerateArray())
+        {
+            try
+            {
+                var role    = h.TryGetProperty("role",    out var rp2) ? rp2.GetString() ?? "" : "";
+                var content = h.TryGetProperty("content", out var cp2) ? cp2.GetString() ?? "" : "";
+                historialMsgs.Add((role, content));
+            }
+            catch { /* ignorar mensajes con encoding inválido */ }
+        }
+    }
 
     if (string.IsNullOrWhiteSpace(mensaje))
         return Results.BadRequest(new { error = "El mensaje no puede estar vacío" });
