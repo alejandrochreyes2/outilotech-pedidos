@@ -1607,7 +1607,11 @@ Desarrollamos soluciones tecnológicas a la medida:<br><br>
         "lo compro", "comprar este", "comprar eso", "quiero ese", "quiero esta",
         "quiero este", "lo pido", "hacer pedido", "realizar pedido", "pedir este",
         "añadir al carrito", "add to cart", "comprar ahora", "comprar ya",
-        "si quiero", "sí quiero", "si lo quiero", "me interesa comprarlo"
+        "si quiero", "sí quiero", "si lo quiero", "me interesa comprarlo",
+        "saber mas y comprar", "saber más y comprar", "saber mas y compra",
+        "quiero comprarlo ahora", "llevarlo", "me lo llevo", "donde compro",
+        "como compro", "cómo compro", "quiero ese producto", "hacer la compra",
+        "proceder a comprar", "continuar con la compra"
     }.Any(k => mensajeLower.Contains(k));
 
     if (intentoCompra)
@@ -1665,7 +1669,8 @@ Desarrollamos soluciones tecnológicas a la medida:<br><br>
         "infinix","tecno","redmi","xiaomi","oppo","huawei","motorola","samsung","recibo","garantía","devolución",
         "gratis","producto","catalogo","portafolio","calidad","marca","nuevo","segunda","exhibicion","reacondicionado",
         "hola","buenas","buenos dias","buenas tardes","buenas noches","quien eres","qué puedes","ayuda","necesito",
-        "carrito","agregar","agrega","quiero","llevar","pedir","pedido","comprar","interesa","me lo","lo quiero","si quiero"
+        "carrito","agregar","agrega","quiero","llevar","pedir","pedido","comprar","interesa","me lo","lo quiero","si quiero",
+        "fold","zfold","z fold","flip","galaxy fold","galaxy flip","reno","s25","s24","s23","a79","a80"
     };
     bool esContexto = intencion != "neutro" || keywordsContexto.Any(k => mensajeLower.Contains(k));
     if (!esContexto && mensaje.Trim().Length >= 10)
@@ -1687,7 +1692,8 @@ Desarrollamos soluciones tecnológicas a la medida:<br><br>
             "airpods","apple watch","watch","redmi","infinix","tecno","oppo",
             "android","celular","movil","telefono","tablet","galaxy","segway",
             "huawei","motorola","a79","a80","a58","reno","s25","s24","s23",
-            "iphone 15","iphone 14","iphone 13","iphone 12","iphone 11"
+            "iphone 15","iphone 14","iphone 13","iphone 12","iphone 11",
+            "fold","zfold","z fold","galaxy fold","s fold","flip","galaxy flip"
         }.Any(k => m05.Contains(k));
 
         var tieneIntentoPrecio = new[] {
@@ -2108,10 +2114,67 @@ SERVICIOS OUTILTECH:
             @"\[([^\]]+)\]\((https?://[^\)]+)\)",
             "<a href='$2' target='_blank' style='color:#FF6B00;font-weight:700;text-decoration:none;'>$1</a>");
 
-        // Agregar link clickeable al producto más económico si el usuario quiere ver/comprar
-        var linkProducto = await GenerarLinkProducto(mensaje);
-        if (linkProducto != null && !respuestaFinal.Contains("outiltech.co"))
-            respuestaFinal += $"\n\n{linkProducto}";
+        // Agregar link directo al producto si Groq respondió sobre uno concreto
+        if (!respuestaFinal.Contains("outiltech.co/productos/"))
+        {
+            bool respHablaProducto = respuestaFinal.Contains("COP") ||
+                new[] {"iphone","samsung","galaxy","macbook","redmi","infinix","tecno",
+                       "fold","flip","airpods","ipad","motorola","oppo","huawei","reno"}
+                .Any(k => respuestaFinal.ToLowerInvariant().Contains(k));
+
+            if (respHablaProducto)
+            {
+                try
+                {
+                    var stopwordsLnk = new HashSet<string>{"que","del","los","las","una","uno","con","por","para","quiero",
+                        "comprar","tiene","tienen","esta","disponible","precio","cuanto","cuesta","vale","el","la","de",
+                        "en","un","su","ver","mas","me","hay","si","hola","buenas","necesito","dame","puedes","podrias",
+                        "favor","alguno","algun","tengo","saber","sobre","acerca","cual","como","donde","cuando"};
+                    var m05lnk = mensajeLower.Replace("á","a").Replace("é","e").Replace("í","i").Replace("ó","o").Replace("ú","u");
+                    var palabraBusq = m05lnk.Split(new[]{' ',',','.',';','?','!'}, StringSplitOptions.RemoveEmptyEntries)
+                        .Where(p => p.Length >= 3 && !stopwordsLnk.Contains(p))
+                        .OrderByDescending(p => p.Length)
+                        .FirstOrDefault();
+                    if (palabraBusq != null)
+                    {
+                        await using var connLnk = new NpgsqlConnection(pgConnectionString);
+                        await connLnk.OpenAsync();
+                        var cmdLnk = new NpgsqlCommand(@"
+                            SELECT nombre, precio, slug FROM inventario_productos
+                            WHERE disponibilidad='Si' AND unidades>0
+                              AND (LOWER(nombre) ILIKE '%'||@q||'%' OR LOWER(modelo) ILIKE '%'||@q||'%')
+                            ORDER BY unidades DESC LIMIT 1", connLnk);
+                        cmdLnk.Parameters.AddWithValue("q", palabraBusq);
+                        await using var rdrLnk = await cmdLnk.ExecuteReaderAsync();
+                        if (await rdrLnk.ReadAsync())
+                        {
+                            var nomLnk = rdrLnk.GetString(0);
+                            var preLnk = rdrLnk.GetDecimal(1);
+                            var slgLnk = rdrLnk.GetString(2);
+                            respuestaFinal += $"\n\n<a href='https://outiltech.co/productos/{slgLnk}' target='_blank' " +
+                                $"style='display:inline-block;background:#FF6B00;color:#fff;padding:9px 16px;" +
+                                $"border-radius:8px;font-weight:700;text-decoration:none;font-size:13px;'>" +
+                                $"🛒 Ver y comprar {nomLnk} →</a>";
+                        }
+                        else
+                        {
+                            var linkProducto = await GenerarLinkProducto(mensaje);
+                            if (linkProducto != null) respuestaFinal += $"\n\n{linkProducto}";
+                        }
+                    }
+                    else
+                    {
+                        var linkProducto = await GenerarLinkProducto(mensaje);
+                        if (linkProducto != null) respuestaFinal += $"\n\n{linkProducto}";
+                    }
+                }
+                catch
+                {
+                    var linkProducto = await GenerarLinkProducto(mensaje);
+                    if (linkProducto != null) respuestaFinal += $"\n\n{linkProducto}";
+                }
+            }
+        }
 
         bool tieneHtml = respuestaFinal.Contains("<a href");
 
