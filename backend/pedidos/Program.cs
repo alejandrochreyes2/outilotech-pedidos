@@ -1700,7 +1700,8 @@ Desarrollamos soluciones tecnológicas a la medida:<br><br>
             "precio","cuanto","cuanto","vale","cuesta","costo","barat","econom",
             "disponible","tienen","stock","cual tienen","muestrame","ver los",
             "catalogo","listar","que tienen","mas barat","mas econom",
-            "comprar","adquirir","llevar","quiero el","pedir","ordenar","compro"
+            "comprar","adquirir","llevar","quiero el","pedir","ordenar","compro",
+            "necesito","busco","necesitas","muestra","dame","quiero ver","mostrar","cual es","quiero un","quiero una"
         }.Any(k => m05.Contains(k));
 
         if (tieneProducto && tieneIntentoPrecio)
@@ -1740,9 +1741,10 @@ Desarrollamos soluciones tecnológicas a la medida:<br><br>
                     FROM inventario_productos
                     WHERE LOWER(nombre) ILIKE '%' || LOWER(@q) || '%'
                        OR LOWER(modelo) ILIKE '%' || LOWER(@q) || '%'
+                       OR LOWER(REPLACE(nombre,' ','')) ILIKE '%' || LOWER(@q) || '%'
                     ORDER BY unidades DESC LIMIT 3", connMod);
                 // Extraer palabras clave del mensaje (mínimo 3 letras, no stopwords)
-                var stopwords = new HashSet<string>{"que","del","los","las","una","uno","con","por","para","quiero","comprar","tiene","tienen","esta","disponible","precio","cuanto","cuesta","vale","el","la","de","en","un","su","ver","mas","me","hay","si"};
+                var stopwords = new HashSet<string>{"que","del","los","las","una","uno","con","por","para","quiero","comprar","tiene","tienen","esta","disponible","precio","cuanto","cuesta","vale","el","la","de","en","un","su","ver","mas","me","hay","si","necesito","busco","muestra","dame","necesitas","mostrar","cual"};
                 var palabrasBusqueda = m05.Split(new[]{' ',',','.',';','?','!'}, StringSplitOptions.RemoveEmptyEntries)
                     .Where(p => p.Length >= 3 && !stopwords.Contains(p))
                     .OrderByDescending(p => p.Length)
@@ -2131,18 +2133,22 @@ SERVICIOS OUTILTECH:
                         "en","un","su","ver","mas","me","hay","si","hola","buenas","necesito","dame","puedes","podrias",
                         "favor","alguno","algun","tengo","saber","sobre","acerca","cual","como","donde","cuando"};
                     var m05lnk = mensajeLower.Replace("á","a").Replace("é","e").Replace("í","i").Replace("ó","o").Replace("ú","u");
-                    var palabraBusq = m05lnk.Split(new[]{' ',',','.',';','?','!'}, StringSplitOptions.RemoveEmptyEntries)
+                    var palabrasBusq = m05lnk.Split(new[]{' ',',','.',';','?','!'}, StringSplitOptions.RemoveEmptyEntries)
                         .Where(p => p.Length >= 3 && !stopwordsLnk.Contains(p))
                         .OrderByDescending(p => p.Length)
-                        .FirstOrDefault();
-                    if (palabraBusq != null)
+                        .ToList();
+                    bool linkEncontrado = false;
+                    foreach (var palabraBusq in palabrasBusq)
                     {
+                        if (linkEncontrado) break;
                         await using var connLnk = new NpgsqlConnection(pgConnectionString);
                         await connLnk.OpenAsync();
                         var cmdLnk = new NpgsqlCommand(@"
                             SELECT nombre, precio, slug FROM inventario_productos
                             WHERE disponibilidad='Si' AND unidades>0
-                              AND (LOWER(nombre) ILIKE '%'||@q||'%' OR LOWER(modelo) ILIKE '%'||@q||'%')
+                              AND (LOWER(nombre) ILIKE '%'||@q||'%'
+                                OR LOWER(modelo) ILIKE '%'||@q||'%'
+                                OR LOWER(REPLACE(nombre,' ','')) ILIKE '%'||@q||'%')
                             ORDER BY unidades DESC LIMIT 1", connLnk);
                         cmdLnk.Parameters.AddWithValue("q", palabraBusq);
                         await using var rdrLnk = await cmdLnk.ExecuteReaderAsync();
@@ -2155,14 +2161,10 @@ SERVICIOS OUTILTECH:
                                 $"style='display:inline-block;background:#FF6B00;color:#fff;padding:9px 16px;" +
                                 $"border-radius:8px;font-weight:700;text-decoration:none;font-size:13px;'>" +
                                 $"🛒 Ver y comprar {nomLnk} →</a>";
-                        }
-                        else
-                        {
-                            var linkProducto = await GenerarLinkProducto(mensaje);
-                            if (linkProducto != null) respuestaFinal += $"\n\n{linkProducto}";
+                            linkEncontrado = true;
                         }
                     }
-                    else
+                    if (!linkEncontrado)
                     {
                         var linkProducto = await GenerarLinkProducto(mensaje);
                         if (linkProducto != null) respuestaFinal += $"\n\n{linkProducto}";
