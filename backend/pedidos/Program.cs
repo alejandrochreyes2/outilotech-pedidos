@@ -2442,22 +2442,31 @@ app.MapPost("/webhook/whatsapp/twilio", async (HttpRequest request, ILogger<Prog
         var respuesta = await ProcesarMensajeJhonWA(fromPhone, nombreWaTwilio, texto, logger);
         logger.LogInformation("[WA-TWILIO] Enviando respuesta ({Len} chars): {Preview}", respuesta.Length, respuesta[..Math.Min(respuesta.Length, 80)]);
 
-        // Enviar respuesta vía API Twilio
+        // Enviar respuesta vía API Twilio con retry para 429
         using var client = new HttpClient();
         var credentials = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{twilioSid}:{twilioToken}"));
         client.DefaultRequestHeaders.Add("Authorization", $"Basic {credentials}");
 
         var toWa   = $"whatsapp:{fromPhone}";
         var fromWa = twilioFrom.StartsWith("whatsapp:") ? twilioFrom : $"whatsapp:{twilioFrom}";
-        var payload = new FormUrlEncodedContent(new[]
+
+        int[] retryDelays = [1000, 2000, 4000];
+        HttpResponseMessage? resp = null;
+        foreach (var delay in retryDelays.Prepend(0))
         {
-            new KeyValuePair<string,string>("From", fromWa),
-            new KeyValuePair<string,string>("To",   toWa),
-            new KeyValuePair<string,string>("Body", respuesta)
-        });
-        var resp = await client.PostAsync(
-            $"https://api.twilio.com/2010-04-01/Accounts/{twilioSid}/Messages.json", payload);
-        logger.LogInformation("[WA-TWILIO] Respuesta enviada a {Phone} — HTTP {Status}", fromPhone, (int)resp.StatusCode);
+            if (delay > 0) await Task.Delay(delay);
+            var payload = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string,string>("From", fromWa),
+                new KeyValuePair<string,string>("To",   toWa),
+                new KeyValuePair<string,string>("Body", respuesta)
+            });
+            resp = await client.PostAsync(
+                $"https://api.twilio.com/2010-04-01/Accounts/{twilioSid}/Messages.json", payload);
+            if ((int)resp.StatusCode != 429) break;
+            logger.LogWarning("[WA-TWILIO] 429 rate limit — reintentando en {D}ms", delay == 0 ? retryDelays[0] : delay);
+        }
+        logger.LogInformation("[WA-TWILIO] Respuesta enviada a {Phone} — HTTP {Status}", fromPhone, resp == null ? 0 : (int)resp.StatusCode);
     }
     catch (Exception ex) { logger.LogError(ex, "[WA-TWILIO] Error"); }
 
