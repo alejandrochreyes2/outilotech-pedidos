@@ -1427,6 +1427,14 @@ app.MapPost("/chatbot/mensaje", async (HttpRequest request, IConfiguration confi
     var nombreUsuario = body.TryGetProperty("nombreUsuario", out var np) && np.ValueKind != JsonValueKind.Null ? np.GetString() : null;
     var emailEsNuevo  = body.TryGetProperty("emailEsNuevo",  out var en) && en.GetBoolean();
 
+    // Extraer historial para detectar último producto mencionado
+    var historialMsgs = (body.TryGetProperty("historial", out var hp) && hp.ValueKind == JsonValueKind.Array
+        ? hp.EnumerateArray().Select(h => (
+            role:    h.TryGetProperty("role",    out var r) ? r.GetString() ?? "" : "",
+            content: h.TryGetProperty("content", out var c) ? c.GetString() ?? "" : ""
+          )).ToList()
+        : new List<(string role, string content)>());
+
     if (string.IsNullOrWhiteSpace(mensaje))
         return Results.BadRequest(new { error = "El mensaje no puede estar vacío" });
     if (mensaje.Length > 500)
@@ -1584,6 +1592,59 @@ Desarrollamos soluciones tecnológicas a la medida:<br><br>
         return Results.Ok(new { respuesta = despedida, fuente = "salida", tieneHtml = false, accion = (object?)null, mostrarBannerGuardar = true, intencion = "salida" });
     }
 
+    // ── INTENTO DE COMPRA: "agregar al carrito", "lo quiero", "comprar" ──
+    var intentoCompra = new[] {
+        "agregar al carrito", "agrega al carrito", "agregar a carrito",
+        "quiero comprarlo", "quiero comprar", "lo quiero", "me lo llevo",
+        "lo compro", "comprar este", "comprar eso", "quiero ese", "quiero esta",
+        "quiero este", "lo pido", "hacer pedido", "realizar pedido", "pedir este",
+        "añadir al carrito", "add to cart", "comprar ahora", "comprar ya",
+        "si quiero", "sí quiero", "si lo quiero", "me interesa comprarlo"
+    }.Any(k => mensajeLower.Contains(k));
+
+    if (intentoCompra)
+    {
+        // Buscar el último enlace de producto en el historial (outiltech.co/productos/slug)
+        var slugRegex = new System.Text.RegularExpressions.Regex(@"outiltech\.co/productos/([a-z0-9\-]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        string? ultimoSlug = null;
+        string? ultimoNombre = null;
+
+        // Revisar historial de más reciente a más antiguo
+        foreach (var msg in historialMsgs.Reverse<(string role, string content)>())
+        {
+            if (msg.role == "assistant")
+            {
+                var match = slugRegex.Match(msg.content);
+                if (match.Success)
+                {
+                    ultimoSlug = match.Groups[1].Value;
+                    // Extraer nombre del producto del texto (buscar entre * o **)
+                    var nombreMatch = System.Text.RegularExpressions.Regex.Match(msg.content, @"\*{1,2}([^*]{3,60}?)\*{1,2}");
+                    if (nombreMatch.Success) ultimoNombre = nombreMatch.Groups[1].Value.Trim();
+                    break;
+                }
+            }
+        }
+
+        if (ultimoSlug != null)
+        {
+            var nombre = ultimoNombre ?? ultimoSlug.Replace("-", " ");
+            var respCompra = $"¡Perfecto! Puedes ver el producto y realizar tu compra aquí:<br><br>" +
+                $"<a href='https://outiltech.co/productos/{ultimoSlug}' target='_blank' " +
+                $"style='display:inline-block;background:#FF6B00;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;text-decoration:none;font-size:14px;'>" +
+                $"🛒 Comprar {nombre} →</a><br><br>" +
+                $"<span style='font-size:12px;color:rgba(255,255,255,0.6)'>En la página del producto puedes seleccionar cantidad y proceder al pago con tarjeta, Nequi o PSE.</span>";
+            return Results.Ok(new { respuesta = respCompra, fuente = "compra", tieneHtml = true, accion = (object?)null, mostrarBannerGuardar = false });
+        }
+        else
+        {
+            // No hay producto previo — dirigir al catálogo
+            var respSinProducto = $"Para realizar una compra, primero dime qué producto te interesa y te doy el enlace directo 😊<br><br>" +
+                $"<a href='https://outiltech.co/productos' target='_blank' style='color:#FF6B00;font-weight:700'>🛍️ Ver catálogo completo →</a>";
+            return Results.Ok(new { respuesta = respSinProducto, fuente = "compra", tieneHtml = true, accion = (object?)null, mostrarBannerGuardar = false });
+        }
+    }
+
     // ── FUERA DE CONTEXTO: redirigir al menú principal ───────────────
     var keywordsContexto = new[]
     {
@@ -1595,7 +1656,8 @@ Desarrollamos soluciones tecnológicas a la medida:<br><br>
         "oferta","promocion","factura","seguro","dato","correo","email","direccion","ciudad","colombia","envíos",
         "infinix","tecno","redmi","xiaomi","oppo","huawei","motorola","samsung","recibo","garantía","devolución",
         "gratis","producto","catalogo","portafolio","calidad","marca","nuevo","segunda","exhibicion","reacondicionado",
-        "hola","buenas","buenos dias","buenas tardes","buenas noches","quien eres","qué puedes","ayuda","necesito"
+        "hola","buenas","buenos dias","buenas tardes","buenas noches","quien eres","qué puedes","ayuda","necesito",
+        "carrito","agregar","agrega","quiero","llevar","pedir","pedido","comprar","interesa","me lo","lo quiero","si quiero"
     };
     bool esContexto = intencion != "neutro" || keywordsContexto.Any(k => mensajeLower.Contains(k));
     if (!esContexto && mensaje.Trim().Length >= 10)
@@ -2464,9 +2526,11 @@ app.MapPost("/webhook/whatsapp/twilio", async (HttpRequest request, ILogger<Prog
             resp = await client.PostAsync(
                 $"https://api.twilio.com/2010-04-01/Accounts/{twilioSid}/Messages.json", payload);
             if ((int)resp.StatusCode != 429) break;
-            logger.LogWarning("[WA-TWILIO] 429 rate limit — reintentando en {D}ms", delay == 0 ? retryDelays[0] : delay);
+            var errorBody = await resp.Content.ReadAsStringAsync();
+            logger.LogWarning("[WA-TWILIO] 429 — body: {Body}", errorBody[..Math.Min(errorBody.Length, 200)]);
         }
-        logger.LogInformation("[WA-TWILIO] Respuesta enviada a {Phone} — HTTP {Status}", fromPhone, resp == null ? 0 : (int)resp.StatusCode);
+        var statusCode = resp == null ? 0 : (int)resp.StatusCode;
+        logger.LogInformation("[WA-TWILIO] Respuesta enviada a {Phone} — HTTP {Status}", fromPhone, statusCode);
     }
     catch (Exception ex) { logger.LogError(ex, "[WA-TWILIO] Error"); }
 
