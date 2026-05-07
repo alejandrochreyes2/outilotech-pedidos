@@ -320,6 +320,35 @@
   border-color: #FF6B00;
 }
 
+/* ── Barra guardar contacto ──────────────────────────────────── */
+.save-contact-bar {
+  padding: 6px 12px;
+  background: linear-gradient(90deg, rgba(37,211,102,0.08), rgba(37,211,102,0.04));
+  border-top: 1px solid rgba(37,211,102,0.2);
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.save-contact-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #25d366;
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(37,211,102,0.35);
+  transition: background 0.18s, border-color 0.18s;
+  letter-spacing: 0.01em;
+}
+.save-contact-btn:hover {
+  background: rgba(37,211,102,0.15);
+  border-color: #25d366;
+  text-decoration: none;
+}
+
 /* ── Input ───────────────────────────────────────────────────── */
 .chat-input-area {
   padding: 10px 12px;
@@ -454,6 +483,45 @@
 
 .btn-email-skip:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.25); }
 
+/* ── Encuesta satisfacción ───────────────────────────────────── */
+.encuesta {
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid rgba(255, 107, 0, 0.1);
+  background: rgba(255, 107, 0, 0.04);
+  flex-shrink: 0;
+}
+.encuesta-txt { font-size: 12px; color: rgba(255,255,255,0.6); flex: 1; }
+.voto-btn {
+  font-size: 18px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.voto-btn.positivo:hover { background: rgba(34,197,94,0.15); border-color: #22c55e; }
+.voto-btn.negativo:hover { background: rgba(239,68,68,0.15); border-color: #ef4444; }
+
+.escalada-wa {
+  padding: 8px 12px;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  background: rgba(34,197,94,0.05);
+  border-top: 1px solid rgba(34,197,94,0.15);
+}
+.quick-btn.escalada {
+  background: rgba(34,197,94,0.15);
+  border-color: rgba(34,197,94,0.5);
+  color: #86efac;
+  font-weight: 700;
+}
+.quick-btn.escalada:hover { background: rgba(34,197,94,0.25); }
+
 /* ── Responsive móvil ────────────────────────────────────────── */
 @media (max-width: 420px) {
   .chatbot-host {
@@ -466,4 +534,87 @@
     height: calc(100svh - 160px);
     max-height: 520px;
   }
+}
+
+/* ── Banner guardar conversación (PUNTO 3) ──────────────────────── */
+.banner-guardar {
+  background: linear-gradient(135deg, #1a2035 0%, #0d1117 100%);
+  border: 1px solid rgba(255,107,0,0.5);
+  border-radius: 12px;
+  margin: 8px 12px;
+  padding: 14px 16px;
+  animation: fadeInUp 0.3s ease;
+}
+
+.banner-guardar-titulo {
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.banner-guardar-sub {
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.banner-guardar-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.banner-btn-si {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FF6B00;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-align: left;
+}
+
+.banner-btn-si:hover { background: #e85d00; }
+
+.banner-btn-no {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.06);
+  color: #94a3b8;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-align: left;
+}
+
+.banner-btn-no:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+
+.banner-num {
+  background: rgba(255,255,255,0.15);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

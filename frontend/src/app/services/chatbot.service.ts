@@ -19,6 +19,12 @@ export interface ChatRequest {
 
 export interface ChatResponse {
   respuesta: string;
+  accion?: { tipo: string; url: string } | null;
+  fuente?: string;
+  mostrarEscaladaWA?: boolean;
+  intencion?: string;
+  tieneHtml?: boolean;
+  mostrarBannerGuardar?: boolean;
 }
 
 export interface HistorialResponse {

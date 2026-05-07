@@ -1,115 +1,141 @@
 <div class="chatbot-host">
 
   @if (isOpen) {
-    <div class="chatbot-panel">
+  <div class="chatbot-panel">
 
-      <!-- ── Header ─────────────────────────────────────────── -->
-      <div class="chatbot-header">
-        <div class="header-info">
-          @if (!avatarError) {
-            <img src="assets/images/jhon-avatar.png" class="header-avatar" alt="Jhon" (error)="onAvatarError()">
-          } @else {
-            <div class="header-avatar-fallback">🤖</div>
-          }
-          <div>
-            <div class="agent-name">Jhon IA</div>
-            <div class="agent-subtitle">
-              <span class="online-dot"></span>
-              @if (userName) { {{ userName }} · } Asistente Outiltech
-            </div>
-          </div>
-        </div>
-        <button class="close-btn" (click)="close()">✕</button>
-      </div>
-
-      <!-- ── Formulario de email (si no está autenticado ni capturado) ── -->
-      @if (mostrarEmailForm) {
-        <div class="email-capture-form">
-          <p class="email-capture-title">
-            📧 Registra tu correo para recibir el resumen de esta consulta
-          </p>
-          <input
-            class="email-input"
-            type="text"
-            [(ngModel)]="nombreInputValue"
-            placeholder="Tu nombre (opcional)"
-            autocomplete="name">
-          <input
-            class="email-input"
-            type="email"
-            [(ngModel)]="emailInputValue"
-            (keydown)="onEmailKeyDown($event)"
-            placeholder="tucorreo@email.com"
-            autocomplete="email">
-          <div class="email-capture-actions">
-            <button class="btn-email-save" (click)="capturarEmail()">Guardar y continuar</button>
-            <button class="btn-email-skip" (click)="omitirEmail()">Omitir</button>
-          </div>
-        </div>
-      }
-
-      <!-- ── Área de mensajes ────────────────────────────────── -->
-      <div class="messages-area" #messagesContainer>
-        @for (msg of messages; track $index) {
-          <div class="msg-wrapper" [class.user]="msg.role === 'user'">
-
-            @if (msg.role === 'assistant') {
-              @if (!avatarError) {
-                <img src="assets/images/jhon-avatar.png" class="msg-avatar-sm" alt="Jhon" (error)="onAvatarError()">
-              } @else {
-                <div class="msg-avatar-sm-fallback">🤖</div>
-              }
-            }
-
-            @if (msg.isTyping) {
-              <div class="typing-indicator">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-              </div>
-            } @else {
-              <div class="msg-bubble">{{ msg.content }}</div>
-            }
-
-          </div>
+    <!-- ── Header ─────────────────────────────────────────── -->
+    <div class="chatbot-header">
+      <div class="header-info">
+        @if (!avatarError) {
+        <img src="assets/images/jhon-avatar.png" class="header-avatar" alt="Jhon" (error)="onAvatarError()">
+        } @else {
+        <div class="header-avatar-fallback">🤖</div>
         }
+        <div>
+          <div class="agent-name">Jhon IA</div>
+          <div class="agent-subtitle">
+            <span class="online-dot"></span>
+            @if (userName) { {{ userName }} · } Asistente Outiltech
+          </div>
+        </div>
       </div>
+      <button class="close-btn" (click)="close()">✕</button>
+    </div>
 
-      <!-- ── Accesos rápidos WhatsApp ───────────────────────── -->
-      <div class="quick-actions">
-        <button class="quick-btn" (click)="openWhatsApp('ventas')">💬 Ventas WA</button>
-        <button class="quick-btn" (click)="openWhatsApp('posventa')">🔧 Soporte WA</button>
+    <!-- ── Formulario de email (si no está autenticado ni capturado) ── -->
+    @if (mostrarEmailForm) {
+    <div class="email-capture-form">
+      <p class="email-capture-title">
+        📧 Registra tu correo para recibir el resumen de esta consulta
+      </p>
+      <input class="email-input" type="text" [(ngModel)]="nombreInputValue" placeholder="Tu nombre (opcional)"
+        autocomplete="name">
+      <input class="email-input" type="email" [(ngModel)]="emailInputValue" (keydown)="onEmailKeyDown($event)"
+        placeholder="tucorreo@email.com" autocomplete="email">
+      <div class="email-capture-actions">
+        <button class="btn-email-save" (click)="capturarEmail()">Guardar y continuar</button>
+        <button class="btn-email-skip" (click)="omitirEmail()">Omitir</button>
       </div>
+    </div>
+    }
 
-      <!-- ── Input de chat ──────────────────────────────────── -->
-      <div class="chat-input-area">
-        <input
-          class="chat-input"
-          [(ngModel)]="currentInput"
-          (keydown)="onKeyDown($event)"
-          placeholder="Escribe tu pregunta..."
-          [disabled]="isLoading"
-          autocomplete="off">
-        <button
-          class="send-btn"
-          (click)="sendMessage()"
-          [disabled]="isLoading || !currentInput.trim()">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M22 2L11 13" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+    <!-- ── Área de mensajes ────────────────────────────────── -->
+    <div class="messages-area" #messagesContainer (click)="onMessageAreaClick($event)">
+      @for (msg of messages; track $index) {
+      <div class="msg-wrapper" [class.user]="msg.role === 'user'">
+
+        @if (msg.role === 'assistant') {
+        @if (!avatarError) {
+        <img src="assets/images/jhon-avatar.png" class="msg-avatar-sm" alt="Jhon" (error)="onAvatarError()">
+        } @else {
+        <div class="msg-avatar-sm-fallback">🤖</div>
+        }
+        }
+
+        @if (msg.isTyping) {
+        <div class="typing-indicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+        } @else if (msg.tieneHtml) {
+        <div class="msg-bubble" [innerHTML]="msg.content | sanitizeHtml"></div>
+        } @else {
+        <div class="msg-bubble">{{ msg.content }}</div>
+        }
+
+      </div>
+      }
+    </div>
+
+    <!-- ── Encuesta de satisfacción ────────────────────────── -->
+    @if (mostrarEncuesta && !votoEnviado && !mostrarBannerGuardar) {
+    <div class="encuesta">
+      <span class="encuesta-txt">¿Te ayudé hoy?</span>
+      <button class="voto-btn positivo" (click)="votar('positivo')">👍</button>
+      <button class="voto-btn negativo" (click)="votar('negativo')">👎</button>
+    </div>
+    }
+
+    <!-- ── Banner guardar conversación (PUNTO 3) ─────────────── -->
+    @if (mostrarBannerGuardar) {
+    <div class="banner-guardar">
+      <div class="banner-guardar-titulo">💾 ¿Quieres guardar tu conversación?</div>
+      <div class="banner-guardar-sub">Te enviamos el resumen por correo electrónico</div>
+      <div class="banner-guardar-acciones">
+        <button class="banner-btn-si" (click)="guardarConversacion()">
+          <span class="banner-num">1</span> ✉️ Sí, envíame el resumen
+        </button>
+        <button class="banner-btn-no" (click)="cerrarSinGuardar()">
+          <span class="banner-num">2</span> ✕ No, cerrar el chat
         </button>
       </div>
-
     </div>
+    }
+
+    <!-- ── Escalada WA destacada ────────────────────────────── -->
+    @if (mostrarEscaladaWA) {
+    <div class="escalada-wa">
+      <button class="quick-btn escalada" (click)="openWhatsApp('ventas')">💬 Hablar con asesor de ventas</button>
+      <button class="quick-btn escalada" (click)="openWhatsApp('posventa')">🔧 Contactar soporte</button>
+    </div>
+    }
+
+    <!-- ── Accesos rápidos WhatsApp ───────────────────────── -->
+    <div class="quick-actions">
+      <button class="quick-btn" (click)="openWhatsApp('ventas')">💬 Ventas productos</button>
+      <button class="quick-btn" (click)="openWhatsApp('posventa')">🔧 Soporte tecnico y màs</button>
+    </div>
+
+    <!-- ── Guardar contacto Jhon IA ──────────────────────── -->
+    <div class="save-contact-bar">
+      <a class="save-contact-btn" href="assets/JhonIA-Outiltech.vcf" download="JhonIA-Outiltech.vcf">
+        📲 Guarda mi contacto en WhatsApp
+      </a>
+    </div>
+
+    <!-- ── Input de chat ──────────────────────────────────── -->
+    <div class="chat-input-area">
+      <input class="chat-input" [(ngModel)]="currentInput" (keydown)="onKeyDown($event)"
+        placeholder="Escribe tu pregunta..." [disabled]="isLoading" autocomplete="off">
+      <button class="send-btn" (click)="sendMessage()" [disabled]="isLoading || !currentInput.trim()">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M22 2L11 13" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
+
+  </div>
   }
 
   <!-- ── Botón flotante Jhon ────────────────────────────────── -->
   <button class="jhon-fab" (click)="toggleChat()" title="Chatear con Jhon IA">
     @if (!avatarError) {
-      <img src="assets/images/jhon-avatar.png" class="fab-avatar" alt="Jhon IA" (error)="onAvatarError()">
+    <img src="assets/images/jhon-avatar.png" class="fab-avatar" alt="Jhon IA" (error)="onAvatarError()">
     } @else {
-      <span class="fab-fallback">🤖</span>
+    <span class="fab-fallback">🤖</span>
     }
     <span class="fab-name">Jhon</span>
   </button>

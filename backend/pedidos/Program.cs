@@ -307,17 +307,90 @@ using (var scope = app.Services.CreateScope())
                 session_id     VARCHAR(100) NOT NULL,
                 email          VARCHAR(200),
                 nombre_usuario VARCHAR(200),
-                role           VARCHAR(20)  NOT NULL,
-                mensaje        TEXT         NOT NULL,
-                creado_en      TIMESTAMP    DEFAULT NOW()
+                role           VARCHAR(20),
+                mensaje        TEXT,
+                pregunta       TEXT,
+                respuesta      TEXT,
+                desde_cache    BOOLEAN DEFAULT FALSE,
+                nivel_respuesta VARCHAR(20),
+                intencion      VARCHAR(30),
+                sentimiento    VARCHAR(10),
+                tokens_usados  INTEGER,
+                duracion_ms    INTEGER,
+                creado_en      TIMESTAMP DEFAULT NOW()
             );
             CREATE INDEX IF NOT EXISTS idx_conv_session ON conversaciones(session_id);
             CREATE INDEX IF NOT EXISTS idx_conv_email   ON conversaciones(email);
+            CREATE EXTENSION IF NOT EXISTS pg_trgm;
+            CREATE INDEX IF NOT EXISTS idx_conversaciones_trgm
+              ON conversaciones USING gin(pregunta gin_trgm_ops)
+              WHERE pregunta IS NOT NULL;
         ";
         cmd3.ExecuteNonQuery();
 
+        // ── Crear tablas JhonIA avanzadas ───────────────────────────────
+        using var cmd4 = conn.CreateCommand();
+        cmd4.CommandText = @"
+            CREATE TABLE IF NOT EXISTS estadisticas_jhon (
+              id SERIAL PRIMARY KEY, fecha DATE NOT NULL UNIQUE,
+              total_conversaciones INTEGER DEFAULT 0,
+              respuestas_desde_cache INTEGER DEFAULT 0,
+              respuestas_desde_groq INTEGER DEFAULT 0,
+              respuestas_desde_entrenamiento INTEGER DEFAULT 0,
+              hora_pico INTEGER, producto_mas_consultado VARCHAR(200),
+              tasa_satisfaccion DECIMAL(5,2), total_escalaciones_wa INTEGER DEFAULT 0,
+              creado_en TIMESTAMP DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS conversaciones_fallidas (
+              id SERIAL PRIMARY KEY, session_id VARCHAR(100),
+              pregunta TEXT, respuesta_jhon TEXT, motivo_falla VARCHAR(50),
+              creado_en TIMESTAMP DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS gaps_conocimiento (
+              id SERIAL PRIMARY KEY, pregunta TEXT NOT NULL UNIQUE,
+              veces_fallida INTEGER DEFAULT 1, resuelta BOOLEAN DEFAULT FALSE,
+              respuesta_admin TEXT, creado_en TIMESTAMP DEFAULT NOW(), resuelta_en TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_gaps_resuelta ON gaps_conocimiento(resuelta, veces_fallida DESC);
+            CREATE TABLE IF NOT EXISTS conocimiento_jhon (
+              id SERIAL PRIMARY KEY, pregunta_clave TEXT NOT NULL,
+              respuesta_oficial TEXT NOT NULL, categoria VARCHAR(50),
+              veces_usada INTEGER DEFAULT 0, activo BOOLEAN DEFAULT TRUE,
+              creado_por VARCHAR(100) DEFAULT 'admin',
+              creado_en TIMESTAMP DEFAULT NOW(), actualizado_en TIMESTAMP DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_conocimiento_trgm ON conocimiento_jhon USING gin(pregunta_clave gin_trgm_ops);
+            CREATE INDEX IF NOT EXISTS idx_conocimiento_activo ON conocimiento_jhon(activo) WHERE activo = TRUE;
+            DO $$ BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='uq_conocimiento_pregunta') THEN
+                ALTER TABLE conocimiento_jhon ADD CONSTRAINT uq_conocimiento_pregunta UNIQUE (pregunta_clave);
+              END IF;
+            END $$;
+            CREATE TABLE IF NOT EXISTS perfiles_clientes (
+              id SERIAL PRIMARY KEY, session_id VARCHAR(100) UNIQUE NOT NULL,
+              email VARCHAR(200), nombre VARCHAR(200),
+              productos_consultados TEXT[] DEFAULT '{}',
+              total_visitas INTEGER DEFAULT 1, satisfaccion_promedio DECIMAL(3,2) DEFAULT 0.5,
+              segmento VARCHAR(20) DEFAULT 'nuevo',
+              ultima_visita TIMESTAMP DEFAULT NOW(), primera_visita TIMESTAMP DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_perfiles_session ON perfiles_clientes(session_id);
+            CREATE TABLE IF NOT EXISTS productos_relacionados (
+              id SERIAL PRIMARY KEY, producto_a VARCHAR(200), producto_b VARCHAR(200),
+              veces_consultados_juntos INTEGER DEFAULT 1,
+              actualizado_en TIMESTAMP DEFAULT NOW(), UNIQUE(producto_a, producto_b)
+            );
+            CREATE TABLE IF NOT EXISTS control_api (
+              id SERIAL PRIMARY KEY, proveedor VARCHAR(50) DEFAULT 'groq',
+              timestamp_llamada TIMESTAMP DEFAULT NOW(), tokens_usados INTEGER,
+              modelo VARCHAR(100), session_id VARCHAR(100), duracion_ms INTEGER
+            );
+            CREATE INDEX IF NOT EXISTS idx_control_api_timestamp ON control_api(timestamp_llamada DESC);
+        ";
+        cmd4.ExecuteNonQuery();
+
         conn.Close();
-        Console.WriteLine("[DB] Tablas inventario_productos y conversaciones verificadas/creadas.");
+        Console.WriteLine("[DB] Tablas inventario_productos, conversaciones y JhonIA verificadas/creadas.");
     }
     catch (Exception ex)
     {
@@ -328,8 +401,30 @@ using (var scope = app.Services.CreateScope())
 // ============================================================
 // SUPABASE SYNC — helper que corre en background
 // ============================================================
-const string SUPABASE_URL = "https://gklxdzhmpjwwmffjdmwv.supabase.co/rest/v1/pedidos";
-const string SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbHhkemhtcGp3d21mZmpkbXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NTM0MDEsImV4cCI6MjA5MTQyOTQwMX0.Es3YyKtLnx9lKiA_xyTHxK_IDSICb9kGf5-nu2XE_jg";
+const string SUPABASE_URL  = "https://gklxdzhmpjwwmffjdmwv.supabase.co/rest/v1/pedidos";
+const string SUPABASE_BASE = "https://gklxdzhmpjwwmffjdmwv.supabase.co/rest/v1/";
+const string SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbHhkemhtcGp3d21mZmpkbXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NTM0MDEsImV4cCI6MjA5MTQyOTQwMX0.Es3YyKtLnx9lKiA_xyTHxK_IDSICb9kGf5-nu2XE_jg";
+
+// Cliente HTTP reutilizable para sync JhonIA (evita threading factory por todas las funciones helper)
+var supabaseClient = new HttpClient();
+supabaseClient.DefaultRequestHeaders.Add("apikey", SUPABASE_KEY);
+supabaseClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {SUPABASE_KEY}");
+
+async Task SyncJhonToSupabase(string tabla, object payload)
+{
+    try
+    {
+        var json    = JsonSerializer.Serialize(payload);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        content.Headers.Add("Prefer", "return=minimal");
+        var resp = await supabaseClient.PostAsync($"{SUPABASE_BASE}{tabla}", content);
+        Console.WriteLine($"[SUPABASE JHON] Sync {tabla} → HTTP {(int)resp.StatusCode}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[SUPABASE JHON] Sync {tabla} falló (no crítico): {ex.Message}");
+    }
+}
 
 async Task SyncPedidoToSupabase(Pedido p, IHttpClientFactory factory)
 {
@@ -733,25 +828,6 @@ app.MapPatch("/nequi-comprobante/{id}", async (int id, NequiComprobanteDto dto, 
 // ============================================================
 // CHATBOT IA — helpers de base de datos y email
 // ============================================================
-async Task GuardarMensajeChat(string sessionId, string? email, string? nombre, string role, string mensaje)
-{
-    try
-    {
-        await using var conn = new NpgsqlConnection(pgConnectionString);
-        await conn.OpenAsync();
-        var cmd = new NpgsqlCommand(
-            "INSERT INTO conversaciones (session_id, email, nombre_usuario, role, mensaje) " +
-            "VALUES (@sid, @email, @nombre, @role, @msg)", conn);
-        cmd.Parameters.AddWithValue("sid",    sessionId);
-        cmd.Parameters.AddWithValue("email",  (object?)email  ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("nombre", (object?)nombre ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("role",   role);
-        cmd.Parameters.AddWithValue("msg",    mensaje);
-        await cmd.ExecuteNonQueryAsync();
-    }
-    catch (Exception ex) { Console.WriteLine($"[CHATBOT DB] Error guardando mensaje: {ex.Message}"); }
-}
-
 async Task AsociarEmailSesion(string sessionId, string email, string? nombre)
 {
     try
@@ -865,8 +941,479 @@ async Task EnviarTranscriptoEmail(string emailDestino, string? nombre, string se
     catch (Exception ex) { Console.WriteLine($"[CHATBOT EMAIL] Error transcripto: {ex.Message}"); }
 }
 
+// ── Herramienta: búsqueda de productos en tiempo real ─────────────────────────
+async Task<string> EjecutarBuscarProductos(string query, string? categoria, ILogger<Program> logger)
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+
+        var paramQuery = $"%{query}%";
+        var sql = @"SELECT nombre, precio, unidades, marca, categoria, modelo, garantia, disponibilidad
+                    FROM inventario_productos
+                    WHERE disponibilidad = 'Si' AND unidades > 0
+                      AND (nombre ILIKE @q OR marca ILIKE @q OR categoria ILIKE @q OR modelo ILIKE @q)";
+
+        if (!string.IsNullOrEmpty(categoria))
+            sql += " AND categoria ILIKE @cat";
+
+        sql += " ORDER BY unidades DESC LIMIT 8";
+
+        var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("q", paramQuery);
+        if (!string.IsNullOrEmpty(categoria))
+            cmd.Parameters.AddWithValue("cat", $"%{categoria}%");
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var resultados = new System.Text.StringBuilder();
+        int count = 0;
+        while (await reader.ReadAsync())
+        {
+            count++;
+            var nombre   = reader.IsDBNull(0) ? "" : reader.GetString(0);
+            var precio   = reader.IsDBNull(1) ? 0m : reader.GetDecimal(1);
+            var unidades = reader.IsDBNull(2) ? 0  : reader.GetInt32(2);
+            var marca    = reader.IsDBNull(3) ? "" : reader.GetString(3);
+            var cat      = reader.IsDBNull(4) ? "" : reader.GetString(4);
+            var modelo   = reader.IsDBNull(5) ? "" : reader.GetString(5);
+            var garantia = reader.IsDBNull(6) ? "" : reader.GetString(6);
+            resultados.AppendLine($"- {nombre} ({marca} {modelo}) | Precio: ${precio:N0} COP | Stock: {unidades} unidades | Garantía: {garantia} | Categoría: {cat}");
+        }
+
+        if (count == 0)
+            return $"No se encontraron productos disponibles para '{query}'" + (string.IsNullOrEmpty(categoria) ? "." : $" en categoría '{categoria}'.");
+
+        logger.LogInformation("[CHATBOT TOOL] buscar_productos '{Query}' → {Count} resultados", query, count);
+        return $"Productos encontrados para '{query}':\n{resultados}";
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CHATBOT TOOL] Error buscando productos");
+        return "No se pudo consultar el catálogo en este momento.";
+    }
+}
+
+// ── Contexto productos para system prompt ─────────────────────────────────────
+async Task<string> ObtenerContextoProductos(string mensajeUsuario)
+{
+    try
+    {
+        var m = mensajeUsuario.ToLowerInvariant()
+            .Replace("á","a").Replace("é","e").Replace("í","i")
+            .Replace("ó","o").Replace("ú","u").Replace("ñ","n");
+
+        string? filtro = null;
+        if (m.Contains("iphone") || m.Contains("apple") || m.Contains("ios"))
+            filtro = "iphone";
+        else if (m.Contains("samsung") || m.Contains("galaxy"))
+            filtro = "samsung";
+        else if (m.Contains("laptop") || m.Contains("computador") || m.Contains("portatil") || m.Contains("notebook"))
+            filtro = "laptop";
+        else if (m.Contains("tablet") || m.Contains("ipad"))
+            filtro = "tablet";
+        else if (m.Contains("software") || m.Contains("sistema") || m.Contains("desarrollo") || m.Contains("app") || m.Contains("web"))
+            return "SERVICIOS SOFTWARE: Desarrollo a la medida desde $30.000/hora. Primera consulta GRATIS. ISO 27001, Forense Digital, PWA, DevOps, IA.";
+        else if (m.Contains("patineta") || m.Contains("segway"))
+            filtro = "Patinetas";
+        else if (m.Contains("redmi") || m.Contains("xiaomi"))
+            filtro = "redmi";
+        else if (m.Contains("infinix"))
+            filtro = "infinix";
+
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+
+        string sql;
+        NpgsqlCommand cmd;
+
+        if (filtro == null)
+        {
+            sql = @"SELECT nombre, precio, unidades, marca, garantia, slug
+                    FROM inventario_productos
+                    WHERE disponibilidad = 'Si' AND unidades > 0
+                    ORDER BY precio ASC LIMIT 6";
+            cmd = new NpgsqlCommand(sql, conn);
+        }
+        else
+        {
+            sql = @"SELECT nombre, precio, unidades, marca, garantia, slug
+                    FROM inventario_productos
+                    WHERE disponibilidad = 'Si' AND unidades > 0
+                      AND (LOWER(nombre) LIKE @f OR LOWER(marca) LIKE @f
+                           OR LOWER(categoria) LIKE @f OR LOWER(categoria) = @fexact)
+                    ORDER BY precio ASC LIMIT 8";
+            cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("f", $"%{filtro.ToLower()}%");
+            cmd.Parameters.AddWithValue("fexact", filtro.ToLower());
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine(filtro == null
+            ? "PRODUCTOS DISPONIBLES (más económicos del catálogo):"
+            : $"PRODUCTOS {filtro.ToUpper()} DISPONIBLES (menor a mayor precio):");
+
+        await using var rdr = await cmd.ExecuteReaderAsync();
+        bool hayProductos = false;
+        while (await rdr.ReadAsync())
+        {
+            hayProductos = true;
+            var nombre   = rdr.IsDBNull(0) ? "" : rdr.GetString(0);
+            var precio   = rdr.IsDBNull(1) ? 0m : rdr.GetDecimal(1);
+            var unidades = rdr.IsDBNull(2) ? 0  : rdr.GetInt32(2);
+            var marca    = rdr.IsDBNull(3) ? "" : rdr.GetString(3);
+            var garantia = rdr.IsDBNull(4) ? "" : rdr.GetString(4);
+            var slug     = rdr.IsDBNull(5) ? "" : rdr.GetString(5);
+            sb.AppendLine($"- {nombre} | ${precio:N0} COP | Stock: {unidades} | Garantía: {garantia} | URL: /productos/{slug}");
+        }
+        if (!hayProductos)
+            sb.AppendLine("(Sin stock en esta categoría en este momento)");
+
+        return sb.ToString();
+    }
+    catch { return "Catálogo disponible en outiltech.co/tienda."; }
+}
+
+// ── Link inteligente al producto más económico de la categoría ────────────────
+async Task<string?> GenerarLinkProducto(string mensajeUsuario)
+{
+    try
+    {
+        var m = mensajeUsuario.ToLowerInvariant()
+            .Replace("á","a").Replace("é","e").Replace("í","i")
+            .Replace("ó","o").Replace("ú","u");
+
+        var quiereVer = new[] { "ver","mostrar","tienda","catalogo","precio","cuanto","barato",
+            "economico","disponible","stock","comprar","quiero","cual","tienen","muestrame" }
+            .Any(p => m.Contains(p));
+        if (!quiereVer) return null;
+
+        string? filtro = null;
+        if (m.Contains("iphone") || m.Contains("apple")) filtro = "iphone";
+        else if (m.Contains("samsung") || m.Contains("galaxy")) filtro = "samsung";
+        else if (m.Contains("laptop") || m.Contains("computador")) filtro = "laptop";
+        else if (m.Contains("redmi") || m.Contains("xiaomi")) filtro = "redmi";
+        else if (m.Contains("infinix")) filtro = "infinix";
+
+        if (filtro == null)
+            return "<a href='https://outiltech.co' target='_blank' style='color:#FF6B00;font-weight:700;text-decoration:none;'>🛍️ Ver catálogo completo →</a>";
+
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(@"
+            SELECT nombre, precio, slug FROM inventario_productos
+            WHERE disponibilidad = 'Si' AND unidades > 0
+              AND (LOWER(nombre) LIKE @f OR LOWER(marca) LIKE @f OR LOWER(categoria) LIKE @f)
+            ORDER BY precio ASC LIMIT 1", conn);
+        cmd.Parameters.AddWithValue("f", $"%{filtro}%");
+        await using var rdr = await cmd.ExecuteReaderAsync();
+        if (await rdr.ReadAsync())
+        {
+            var nombre = rdr.GetString(0);
+            var precio = rdr.GetDecimal(1);
+            var slug   = rdr.GetString(2);
+            return $"<a href='https://outiltech.co/productos/{slug}' target='_blank' style='color:#FF6B00;font-weight:700;text-decoration:none;'>📱 Ver {nombre} — ${precio:N0} COP →</a>";
+        }
+        return $"<a href='https://outiltech.co' target='_blank' style='color:#FF6B00;font-weight:700;text-decoration:none;'>🛍️ Ver {filtro} disponibles →</a>";
+    }
+    catch { return null; }
+}
+
+// ── Helpers JhonIA ────────────────────────────────────────────────────────────
+
+// Clasifica intención del mensaje sin llamar a ninguna API
+string ClasificarIntencion(string msg)
+{
+    var m = msg.ToLowerInvariant();
+    if (new[] { "precio","cuánto cuesta","cuanto cuesta","cuánto vale","cuanto vale",
+                "quiero","disponible","stock","comprar","cuotas","envío","envio",
+                "cotización","cotizacion","financiación","financiacion","pagar","adquirir" }
+        .Any(k => m.Contains(k))) return "compra";
+    if (new[] { "no funciona","dañado","danado","problema","garantía","garantia",
+                "reparar","falla","error","servicio técnico","servicio tecnico",
+                "avería","averia","reclamar" }
+        .Any(k => m.Contains(k))) return "soporte";
+    if (new[] { "qué es","que es","cómo funciona","como funciona","diferencia",
+                "comparar","características","caracteristicas","especificaciones",
+                "cuál","cual","mejor" }
+        .Any(k => m.Contains(k))) return "info";
+    if (new[] { "gracias","adiós","adios","chao","hasta luego","ya fue",
+                "listo","ok gracias","muchas gracias","fin","bye","hasta pronto",
+                "nos vemos","chau","hasta mañana","hasta la próxima","ciao","hasta prox" }
+        .Any(k => m.Contains(k))) return "salida";
+    return "neutro";
+}
+
+// Clasifica sentimiento sin llamar a ninguna API
+string ClasificarSentimiento(string msg)
+{
+    var m = msg.ToLowerInvariant();
+    if (new[] { "excelente","perfecto","genial","me gusta","bueno","rápido","rapido",
+                "recomiendo","feliz","satisfecho","increíble","increible" }
+        .Any(k => m.Contains(k))) return "positivo";
+    if (new[] { "malo","pésimo","pesimo","lento","caro","no sirve","decepcionado",
+                "terrible","horrible","fraude","no funciona","estafa" }
+        .Any(k => m.Contains(k))) return "negativo";
+    return "neutro";
+}
+
+// Verifica cuántas calls se han hecho a Groq en el último minuto
+async Task<int> ContarCallsGroqUltimoMinuto()
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(
+            "SELECT COUNT(*) FROM control_api WHERE proveedor='groq' AND timestamp_llamada > NOW() - INTERVAL '60 seconds'", conn);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+    }
+    catch { return 0; }
+}
+
+// Registra una llamada a Groq en control_api
+async Task RegistrarLlamadaGroq(string sessionId, int? tokens, int duracionMs)
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(
+            "INSERT INTO control_api (proveedor, modelo, session_id, tokens_usados, duracion_ms) VALUES ('groq','llama-3.3-70b-versatile',@sid,@tok,@dur)", conn);
+        cmd.Parameters.AddWithValue("sid", sessionId);
+        cmd.Parameters.AddWithValue("tok", (object?)tokens ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("dur", duracionMs);
+        await cmd.ExecuteNonQueryAsync();
+        _ = Task.Run(() => SyncJhonToSupabase("control_api", new {
+            proveedor = "groq", modelo = "llama-3.3-70b-versatile",
+            session_id = sessionId, tokens_usados = tokens, duracion_ms = duracionMs,
+            timestamp_llamada = DateTime.UtcNow
+        }));
+    }
+    catch { }
+}
+
+// Guarda o actualiza perfil del cliente
+async Task ActualizarPerfil(string sessionId, string? email, string? nombre, string? producto)
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(@"
+            INSERT INTO perfiles_clientes (session_id, email, nombre, ultima_visita)
+            VALUES (@sid, @email, @nombre, NOW())
+            ON CONFLICT (session_id) DO UPDATE SET
+              ultima_visita = NOW(),
+              total_visitas = perfiles_clientes.total_visitas + 1,
+              email = COALESCE(@email, perfiles_clientes.email),
+              nombre = COALESCE(@nombre, perfiles_clientes.nombre),
+              productos_consultados = CASE
+                WHEN @prod IS NOT NULL
+                THEN array_append(perfiles_clientes.productos_consultados, @prod::TEXT)
+                ELSE perfiles_clientes.productos_consultados END", conn);
+        cmd.Parameters.AddWithValue("sid",   sessionId);
+        cmd.Parameters.AddWithValue("email", (object?)email   ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("nombre",(object?)nombre  ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("prod",  (object?)producto ?? DBNull.Value);
+        await cmd.ExecuteNonQueryAsync();
+        _ = Task.Run(() => SyncJhonToSupabase("perfiles_clientes", new {
+            session_id = sessionId, email, nombre, ultima_visita = DateTime.UtcNow
+        }));
+    }
+    catch { }
+}
+
+// Guarda conversación completa (pregunta + respuesta en una fila)
+async Task GuardarConversacion(string sessionId, string? email, string? nombre,
+    string pregunta, string respuesta, string nivelRespuesta, string intencion, string sentimiento)
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(@"
+            INSERT INTO conversaciones
+              (session_id, email, nombre_usuario, role, mensaje, pregunta, respuesta,
+               nivel_respuesta, intencion, sentimiento, creado_en)
+            VALUES (@sid, @email, @nombre, 'assistant', @preg, @preg, @resp, @nivel, @int, @sent, NOW())", conn);
+        cmd.Parameters.AddWithValue("sid",   sessionId);
+        cmd.Parameters.AddWithValue("email", (object?)email  ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("nombre",(object?)nombre ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("preg",  pregunta);
+        cmd.Parameters.AddWithValue("resp",  respuesta);
+        cmd.Parameters.AddWithValue("nivel", nivelRespuesta);
+        cmd.Parameters.AddWithValue("int",   intencion);
+        cmd.Parameters.AddWithValue("sent",  sentimiento);
+        await cmd.ExecuteNonQueryAsync();
+        _ = Task.Run(() => SyncJhonToSupabase("conversaciones", new {
+            session_id = sessionId, email, nombre_usuario = nombre,
+            pregunta, respuesta, nivel_respuesta = nivelRespuesta,
+            intencion, sentimiento, creado_en = DateTime.UtcNow
+        }));
+    }
+    catch (Exception ex) { Console.WriteLine($"[CHATBOT DB] Error GuardarConversacion: {ex.Message}"); }
+}
+
+// Menú de bienvenida en formato WhatsApp (texto plano con negritas WhatsApp)
+const string WA_MENU = @"¡Hola! Soy *Jhon*, el asistente IA de Outiltech 🤖
+
+Escribe el *número* de la opción o hazme tu pregunta directamente:
+
+*1.* 🛍️ Productos (Precios, stock, disponibilidad)
+*2.* 💳 Pagos (Tarjetas, Nequi, cuotas)
+*3.* 🚚 Envíos (Tiempos, costos, cobertura nacional)
+*4.* 🛡️ Garantías (Apple, Samsung, devoluciones, CPO)
+*5.* ℹ️ Sobre nosotros / Contáctanos
+*6.* 📋 PQRS o Reclamos
+*7.* 👤 Hablar con un asesor personalizado
+*8.* 🛒 Soy cliente o mayorista
+*9.* 🔧 Servicio técnico (seguimiento)
+*10.* 💻 Quiero mi software
+
+¿En qué te puedo ayudar? 😊";
+
+// Procesa un mensaje de WhatsApp a través de JhonIA y devuelve respuesta en texto plano
+async Task<string> ProcesarMensajeJhonWA(string fromPhone, string? nombre, string texto, ILogger<Program> logger)
+{
+    try
+    {
+        var sessionId = $"wa_{fromPhone.Replace("+","").Replace(" ","")}";
+
+        // Saludos → devolver menú de bienvenida (no necesita DB)
+        var textoLower = texto.ToLowerInvariant().Trim();
+        var esSaludo = new[] { "hola", "buenos días", "buenas tardes", "buenas noches", "buenas", "hi ", "hey", "inicio", "empezar", "start", "quiero ver los productos", "menu", "menú", "ayuda", "help" }
+            .Any(g => textoLower.StartsWith(g) || textoLower == g);
+        if (esSaludo)
+        {
+            return nombre != null
+                ? WA_MENU.Replace("¡Hola!", $"¡Hola *{nombre}*!")
+                : WA_MENU;
+        }
+
+        using var jhonClient = new HttpClient { Timeout = TimeSpan.FromSeconds(28) };
+        var jhonPayload = new
+        {
+            mensaje       = texto,
+            historial     = Array.Empty<object>(),
+            sessionId,
+            email         = (string?)null,
+            nombreUsuario = nombre
+        };
+        var port     = Environment.GetEnvironmentVariable("ASPNETCORE_HTTP_PORT") ?? "3002";
+        var jhonResp = await jhonClient.PostAsJsonAsync($"http://localhost:{port}/chatbot/mensaje", jhonPayload);
+        var jhonJson = await jhonResp.Content.ReadFromJsonAsync<JsonElement>();
+        var respuesta = jhonJson.TryGetProperty("respuesta", out var rp) ? rp.GetString() ?? "" : "";
+
+        // Convertir HTML a texto plano amigable para WhatsApp
+        respuesta = System.Text.RegularExpressions.Regex.Replace(respuesta, @"<br\s*/?>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        respuesta = System.Text.RegularExpressions.Regex.Replace(respuesta, @"<b>(.*?)</b>", "*$1*", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        respuesta = System.Text.RegularExpressions.Regex.Replace(respuesta, @"<i>(.*?)</i>", "_$1_", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        respuesta = System.Text.RegularExpressions.Regex.Replace(respuesta, @"<a\s+href=['""]([^'""]+)['""][^>]*>(.*?)</a>", "$2: $1", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        respuesta = System.Text.RegularExpressions.Regex.Replace(respuesta, "<[^>]+>", "");
+        respuesta = System.Net.WebUtility.HtmlDecode(respuesta).Trim();
+
+        // Si la respuesta incluye el banner de guardar, agregar instrucción WA
+        if (respuesta.Contains("¡Fue un placer") || respuesta.Contains("Fue un placer"))
+            respuesta += "\n\n_Escribe *menu* para volver al menú principal_";
+
+        return respuesta;
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[WA] Error en ProcesarMensajeJhonWA");
+        return "Lo siento, en este momento no puedo responder. Escríbenos a ventas@outiltech.co o al +57 3133082905.";
+    }
+}
+
+// Registra par de productos consultados juntos en la misma sesión
+// Se llama fire-and-forget tras cada respuesta; detecta categorías en el texto de las preguntas
+async Task RegistrarProductosRelacionados(string sessionId)
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+
+        // Leer preguntas de la sesión en las últimas 2 horas
+        var cmdQ = new NpgsqlCommand(@"
+            SELECT pregunta FROM conversaciones
+            WHERE session_id=@sid AND pregunta IS NOT NULL
+              AND creado_en > NOW() - INTERVAL '2 hours'
+            LIMIT 30", conn);
+        cmdQ.Parameters.AddWithValue("sid", sessionId);
+        await using var rdr = await cmdQ.ExecuteReaderAsync();
+        var preguntas = new List<string>();
+        while (await rdr.ReadAsync()) preguntas.Add(rdr.GetString(0).ToLowerInvariant());
+        await rdr.CloseAsync();
+
+        // Detectar qué categoría de producto menciona cada pregunta
+        var mapaCategorias = new Dictionary<string, string[]>
+        {
+            ["iPhone"]   = new[] { "iphone", "apple" },
+            ["Samsung"]  = new[] { "samsung", "galaxy" },
+            ["MacBook"]  = new[] { "macbook", "mac book", "laptop apple" },
+            ["Patinetas"]= new[] { "patineta", "segway" },
+            ["iPad"]     = new[] { "ipad", "tablet apple" },
+            ["AirPods"]  = new[] { "airpods", "audífonos apple" },
+            ["Watch"]    = new[] { "apple watch", "watch" },
+            ["Redmi"]    = new[] { "redmi", "xiaomi" },
+            ["Infinix"]  = new[] { "infinix" },
+            ["Tecno"]    = new[] { "tecno" },
+        };
+
+        var categoriasMencionadas = new HashSet<string>();
+        foreach (var preg in preguntas)
+            foreach (var (cat, palabras) in mapaCategorias)
+                if (palabras.Any(p => preg.Contains(p)))
+                    categoriasMencionadas.Add(cat);
+
+        if (categoriasMencionadas.Count < 2) return;
+
+        var lista = categoriasMencionadas.ToList();
+        for (int i = 0; i < lista.Count; i++)
+        for (int j = i + 1; j < lista.Count; j++)
+        {
+            var a = string.Compare(lista[i], lista[j], StringComparison.Ordinal) <= 0 ? lista[i] : lista[j];
+            var b = string.Compare(lista[i], lista[j], StringComparison.Ordinal) <= 0 ? lista[j] : lista[i];
+            var cmdPar = new NpgsqlCommand(@"
+                INSERT INTO productos_relacionados (producto_a, producto_b, veces_consultados_juntos, actualizado_en)
+                VALUES (@a, @b, 1, NOW())
+                ON CONFLICT (producto_a, producto_b) DO UPDATE SET
+                  veces_consultados_juntos = productos_relacionados.veces_consultados_juntos + 1,
+                  actualizado_en = NOW()", conn);
+            cmdPar.Parameters.AddWithValue("a", a);
+            cmdPar.Parameters.AddWithValue("b", b);
+            await cmdPar.ExecuteNonQueryAsync();
+        }
+    }
+    catch { }
+}
+
+// Registra gap de conocimiento cuando JhonIA falla
+async Task RegistrarGap(string pregunta)
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(@"
+            INSERT INTO gaps_conocimiento (pregunta, veces_fallida)
+            VALUES (@preg, 1)
+            ON CONFLICT (pregunta) DO UPDATE SET
+              veces_fallida = gaps_conocimiento.veces_fallida + 1", conn);
+        cmd.Parameters.AddWithValue("preg", pregunta);
+        await cmd.ExecuteNonQueryAsync();
+        _ = Task.Run(() => SyncJhonToSupabase("gaps_conocimiento", new { pregunta, veces_fallida = 1, resuelta = false, creado_en = DateTime.UtcNow }));
+    }
+    catch { }
+}
+
 // ============================================================
-// CHATBOT IA — POST /chatbot/mensaje (público)
+// CHATBOT IA — POST /chatbot/mensaje — 4 Niveles (Groq gratis)
+// Nivel 0: clasificación local | Nivel 1: conocimiento_jhon
+// Nivel 2: cache trigram       | Nivel 3: límite Groq
+// Nivel 4: Groq API con Tool Use
 // ============================================================
 app.MapPost("/chatbot/mensaje", async (HttpRequest request, IConfiguration configuration, IHttpClientFactory factory, ILogger<Program> logger) =>
 {
@@ -874,122 +1421,656 @@ app.MapPost("/chatbot/mensaje", async (HttpRequest request, IConfiguration confi
     try { body = await request.ReadFromJsonAsync<JsonElement>(); }
     catch { return Results.BadRequest(new { error = "JSON inválido" }); }
 
-    var mensaje        = body.TryGetProperty("mensaje",        out var mp) ? mp.GetString() ?? "" : "";
-    var sessionId      = body.TryGetProperty("sessionId",      out var sp) ? sp.GetString() ?? Guid.NewGuid().ToString() : Guid.NewGuid().ToString();
-    var email          = body.TryGetProperty("email",          out var ep) && ep.ValueKind != JsonValueKind.Null ? ep.GetString() : null;
-    var nombreUsuario  = body.TryGetProperty("nombreUsuario",  out var np) && np.ValueKind != JsonValueKind.Null ? np.GetString() : null;
-    var emailEsNuevo   = body.TryGetProperty("emailEsNuevo",   out var en) && en.GetBoolean();
+    var mensaje       = body.TryGetProperty("mensaje",       out var mp) ? mp.GetString() ?? "" : "";
+    var sessionId     = body.TryGetProperty("sessionId",     out var sp) ? sp.GetString() ?? Guid.NewGuid().ToString() : Guid.NewGuid().ToString();
+    var email         = body.TryGetProperty("email",         out var ep) && ep.ValueKind != JsonValueKind.Null ? ep.GetString() : null;
+    var nombreUsuario = body.TryGetProperty("nombreUsuario", out var np) && np.ValueKind != JsonValueKind.Null ? np.GetString() : null;
+    var emailEsNuevo  = body.TryGetProperty("emailEsNuevo",  out var en) && en.GetBoolean();
 
     if (string.IsNullOrWhiteSpace(mensaje))
         return Results.BadRequest(new { error = "El mensaje no puede estar vacío" });
     if (mensaje.Length > 500)
         return Results.BadRequest(new { error = "El mensaje no puede exceder 500 caracteres" });
 
-    // Guardar mensaje del usuario en DB
-    _ = Task.Run(() => GuardarMensajeChat(sessionId, email, nombreUsuario, "user", mensaje));
-
-    // Si el email es nuevo en esta sesión → asociar mensajes anteriores y enviar bienvenida
     if (emailEsNuevo && !string.IsNullOrEmpty(email))
-    {
         _ = Task.Run(async () => {
             await AsociarEmailSesion(sessionId, email, nombreUsuario);
             await EnviarEmailBienvenidaChatbot(email, nombreUsuario, sessionId);
         });
+
+    // ── NIVEL 0: Clasificación local (0ms, sin BD) ────────────────────
+    var intencion   = ClasificarIntencion(mensaje);
+    var sentimiento = ClasificarSentimiento(mensaje);
+    _ = Task.Run(() => ActualizarPerfil(sessionId, email, nombreUsuario, null));
+
+    // Detectar si usuario indicó insatisfacción
+    var mensajeLower = mensaje.ToLowerInvariant();
+    var esQueja = new[] { "no entendí","eso no","incorrecto","equivocado","no es lo que","mal","no me ayudaste" }
+        .Any(k => mensajeLower.Contains(k));
+
+    var apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY")
+              ?? configuration["GROQ_API_KEY"] ?? "";
+
+    // ── HTML del Menú Principal (reutilizado en salida fuera de contexto y bienvenida) ──
+    const string MENU_HTML = @"<div style='line-height:2'>
+📋 <b>Menú Principal</b><br><br>
+Escribe el número de la opción:<br><br>
+<b>1.</b> 🛍️ Productos (Precios, stock, disponibilidad)<br>
+<b>2.</b> 💳 Pagos (Tarjetas, Nequi, cuotas)<br>
+<b>3.</b> 🚚 Envíos (Tiempos, costos, cobertura nacional)<br>
+<b>4.</b> 🛡️ Garantías (Apple, Samsung, devoluciones, CPO)<br>
+<b>5.</b> ℹ️ Sobre nosotros / Contáctanos<br>
+<b>6.</b> 📋 PQRS o Reclamos<br>
+<b>7.</b> 👤 Hablar con un asesor personalizado<br>
+<b>8.</b> 🛒 Soy cliente o mayorista<br>
+<b>9.</b> 🔧 Servicio técnico (seguimiento)<br>
+<b>10.</b> 💻 Quiero mi software
+</div>";
+
+    // ── "menu" o "menú" → devolver menú principal ────────────────────
+    if (System.Text.RegularExpressions.Regex.IsMatch(mensajeLower.Trim(), @"^men[uú]$"))
+        return Results.Ok(new { respuesta = MENU_HTML, fuente = "menu", tieneHtml = true, accion = (object?)null, mostrarBannerGuardar = false });
+
+    // ── OPCIONES DEL MENÚ PRINCIPAL (1-10) ───────────────────────────
+    var matchMenu = System.Text.RegularExpressions.Regex.Match(mensaje.Trim(), @"^\s*(10|[1-9])\s*$");
+    if (matchMenu.Success)
+    {
+        var opcion = int.Parse(matchMenu.Value.Trim());
+        var mockups = new Dictionary<int, string>
+        {
+            [1] = @"<div style='line-height:1.8'>🛍️ <b>PRODUCTOS — Precios y Disponibilidad</b><br><br>
+Tenemos disponibles:<br>
+📱 <b>Celulares:</b> iPhone, Samsung, Redmi, Infinix, Tecno, Oppo, Huawei, Motorola<br>
+💻 <b>Computadores:</b> MacBook<br>
+🎧 <b>Accesorios Apple:</b> AirPods, Apple Watch, iPad<br>
+🛴 <b>Patinetas:</b> Segway<br><br>
+Pregúntame por cualquier producto. Ejemplo: ¿cuál es el iPhone más barato?<br><br>
+➡️ <a href='https://outiltech.co/productos' target='_blank' style='color:#FF6B00;font-weight:700'>Ver catálogo completo →</a></div>",
+
+            [2] = @"<div style='line-height:1.8'>💳 <b>PAGOS — Métodos disponibles</b><br><br>
+✅ Tarjetas de crédito/débito (Visa, Mastercard, Amex)<br>
+✅ Nequi / Daviplata<br>
+✅ Transferencia bancaria<br>
+✅ Cuotas sin intereses (con tarjeta de crédito)<br><br>
+Todos los pagos son procesados de forma 100% segura por <b>Wompi</b>.<br><br>
+¿Tienes alguna duda sobre un pago? Escríbeme.<br>
+➡️ <a href='https://outiltech.co/checkout' target='_blank' style='color:#FF6B00;font-weight:700'>Ir al checkout →</a></div>",
+
+            [3] = @"<div style='line-height:1.8'>🚚 <b>ENVÍOS — Tiempos y Costos</b><br><br>
+📍 <b>Bogotá:</b> 1-2 días hábiles<br>
+📍 <b>Ciudades principales:</b> 2-3 días hábiles<br>
+📍 <b>Resto del país:</b> 3-5 días hábiles<br><br>
+El costo se calcula automáticamente al ingresar tu dirección en el checkout.<br>
+Realizamos envíos a <b>todo Colombia</b>.<br><br>
+➡️ <a href='https://outiltech.co/checkout' target='_blank' style='color:#FF6B00;font-weight:700'>Calcular costo de envío →</a></div>",
+
+            [4] = @"<div style='line-height:1.8'>🛡️ <b>GARANTÍAS Y DEVOLUCIONES</b><br><br>
+✅ Apple nuevos: <b>1 año</b> de garantía oficial con el fabricante<br>
+✅ Apple CPO (Certified Pre-Owned): <b>6 meses</b> de garantía<br>
+✅ Samsung nuevos: <b>1 año</b> con red de servicio autorizada<br>
+✅ Devoluciones: hasta <b>15 días</b> después de la entrega<br><br>
+¿Tienes un problema con tu producto?<br>
+📱 WhatsApp: <b>+57 3133082905</b><br>
+📧 ventas@outiltech.co</div>",
+
+            [5] = @"<div style='line-height:1.8'>ℹ️ <b>SOBRE OUTILTECH</b><br><br>
+Somos una empresa colombiana con más de <b>8 años</b> de experiencia en tecnología y software a la medida.<br><br>
+📍 <b>Tienda física:</b> Carrera 2A No 18A-52, Bogotá<br>
+⏰ <b>Lunes-Viernes:</b> 9am-7pm | <b>Sábados:</b> 9am-4pm<br>
+📧 ventas@outiltech.co<br>
+📱 WhatsApp: +57 3133082905<br><br>
+➡️ <a href='https://outiltech.co/contacto' target='_blank' style='color:#FF6B00;font-weight:700'>Ver todos los canales de contacto →</a></div>",
+
+            [6] = @"<div style='line-height:1.8'>📋 <b>PQRS Y RECLAMOS</b><br><br>
+Para radicar una <b>Petición, Queja, Reclamo o Sugerencia</b>:<br><br>
+📱 WhatsApp: <b>+57 3133082905</b><br>
+📧 ventas@outiltech.co<br>
+Asunto: <i>[PQRS] + describe tu caso</i><br><br>
+Nuestro equipo te responderá en máximo <b>3 días hábiles</b>.<br><br>
+➡️ <a href='https://outiltech.co/contacto' target='_blank' style='color:#FF6B00;font-weight:700'>Formulario de contacto →</a></div>",
+
+            [7] = @"<div style='line-height:1.8'>👤 <b>HABLAR CON UN ASESOR</b><br><br>
+Nuestro equipo está disponible:<br>
+⏰ <b>Lunes-Viernes:</b> 8am-5pm<br>
+⏰ <b>Sábados:</b> 9am-1pm<br><br>
+📱 WhatsApp: <b>+57 3133082905</b><br>
+📧 ventas@outiltech.co<br><br>
+➡️ <a href='https://wa.me/573133082905?text=Hola%20quiero%20hablar%20con%20un%20asesor' target='_blank' style='color:#FF6B00;font-weight:700'>💬 Chatear con un asesor ahora →</a></div>",
+
+            [8] = @"<div style='line-height:1.8'>🛒 <b>CLIENTES Y MAYORISTAS</b><br><br>
+<b>Si eres cliente:</b><br>
+➡️ <a href='https://outiltech.co/productos' target='_blank' style='color:#FF6B00;font-weight:700'>Ver catálogo y precios →</a><br><br>
+<b>Si eres mayorista o empresa:</b><br>
+Manejamos precios especiales por volumen.<br>
+📱 WhatsApp: <b>+57 3133082905</b><br>
+📧 ventas@outiltech.co<br><br>
+Cuéntanos qué productos y cuántas unidades necesitas y te cotizamos.</div>",
+
+            [9] = @"<div style='line-height:1.8'>🔧 <b>SERVICIO TÉCNICO</b><br><br>
+Para hacer seguimiento a tu servicio técnico, indícanos:<br><br>
+1️⃣ Número de orden o ticket de servicio<br>
+2️⃣ Tipo de equipo (marca y modelo)<br>
+3️⃣ Descripción del problema<br><br>
+📱 WhatsApp: <b>+57 3133082905</b><br>
+📧 ventas@outiltech.co<br><br>
+Atención: <b>Lunes-Viernes 9am-7pm</b> | <b>Sábados 9am-4pm</b></div>",
+
+            [10] = @"<div style='line-height:1.8'>💻 <b>QUIERO MI SOFTWARE</b><br><br>
+Desarrollamos soluciones tecnológicas a la medida:<br><br>
+✅ Aplicaciones Web y PWA<br>
+✅ Implementación ISO 27001 (Seguridad de la información)<br>
+✅ Análisis Forense Digital<br>
+✅ Consultoría DevOps<br>
+✅ Creación de IA personalizada (como Jhon!)<br>
+✅ Desarrollo Angular + .NET<br><br>
+📱 WhatsApp: <b>+57 3133082905</b><br>
+📧 ventas@outiltech.co<br><br>
+➡️ <a href='https://outiltech.co/servicios' target='_blank' style='color:#FF6B00;font-weight:700'>Ver todos los servicios →</a></div>"
+        };
+
+        if (mockups.TryGetValue(opcion, out var mockupHtml))
+        {
+            _ = Task.Run(() => GuardarConversacion(sessionId, email, nombreUsuario, mensaje, mockupHtml, "menu", intencion, sentimiento));
+            return Results.Ok(new { respuesta = mockupHtml, fuente = "menu", tieneHtml = true, accion = (object?)null, mostrarBannerGuardar = false });
+        }
     }
 
-    var apiKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY")
-              ?? configuration["ANTHROPIC_API_KEY"]
-              ?? "";
+    // ── SALIDA: Despedida directa sin Groq + banner guardar conversación ──
+    if (intencion == "salida")
+    {
+        var nb = !string.IsNullOrEmpty(nombreUsuario) ? $", {nombreUsuario}" : "";
+        var despedida = $"¡Fue un placer ayudarte{nb}! 😊 Espero verte pronto en Outiltech. Si tienes más dudas en el futuro, aquí estaré. ¡Hasta pronto! 👋";
+        _ = Task.Run(() => GuardarConversacion(sessionId, email, nombreUsuario, mensaje, despedida, "salida", intencion, sentimiento));
+        return Results.Ok(new { respuesta = despedida, fuente = "salida", tieneHtml = false, accion = (object?)null, mostrarBannerGuardar = true, intencion = "salida" });
+    }
 
+    // ── FUERA DE CONTEXTO: redirigir al menú principal ───────────────
+    var keywordsContexto = new[]
+    {
+        "iphone","samsung","apple","mac","ipad","watch","airpods","celular","telefono","movil","telefono",
+        "patineta","segway","precio","cuanto","barato","caro","disponible","stock","envio","enviar",
+        "entrega","garantia","devolucion","cambio","pago","nequi","tarjeta","cuota","cuenta","pedido",
+        "compra","orden","software","iso","forense","devops","pwa","outiltech","tienda","asesor","whatsapp",
+        "servicio","soporte","tecnico","reclamo","pqrs","mayorista","credito","debito","wompi","descuento",
+        "oferta","promocion","factura","seguro","dato","correo","email","direccion","ciudad","colombia","envíos",
+        "infinix","tecno","redmi","xiaomi","oppo","huawei","motorola","samsung","recibo","garantía","devolución",
+        "gratis","producto","catalogo","portafolio","calidad","marca","nuevo","segunda","exhibicion","reacondicionado",
+        "hola","buenas","buenos dias","buenas tardes","buenas noches","quien eres","qué puedes","ayuda","necesito"
+    };
+    bool esContexto = intencion != "neutro" || keywordsContexto.Any(k => mensajeLower.Contains(k));
+    if (!esContexto && mensaje.Trim().Length >= 10)
+    {
+        var respFuera = "Tu pregunta está fuera de contexto, por favor pregúntame sobre Outiltech y sus servicios o escoge alguna de las opciones del menú principal:<br><br>" + MENU_HTML;
+        return Results.Ok(new { respuesta = respFuera, fuente = "menu", tieneHtml = true, accion = (object?)null, mostrarBannerGuardar = false });
+    }
+
+    // ── NIVEL 0.5: Consulta dinámica inventario (~15ms, sin Groq) ────
+    // Responde preguntas de precio/disponibilidad con datos en tiempo real
+    try
+    {
+        var m05 = mensajeLower
+            .Replace("á","a").Replace("é","e").Replace("í","i")
+            .Replace("ó","o").Replace("ú","u").Replace("ñ","n");
+
+        var tieneProducto = new[] {
+            "iphone","samsung","macbook","laptop","mac ","patineta","ipad",
+            "airpods","apple watch","watch","redmi","infinix","tecno","oppo",
+            "android","celular","movil","telefono","tablet","galaxy","segway"
+        }.Any(k => m05.Contains(k));
+
+        var tieneIntentoPrecio = new[] {
+            "precio","cuanto","cuanto","vale","cuesta","costo","barat","econom",
+            "disponible","tienen","stock","cual tienen","muestrame","ver los",
+            "catalogo","listar","que tienen","mas barat","mas econom"
+        }.Any(k => m05.Contains(k));
+
+        if (tieneProducto && tieneIntentoPrecio)
+        {
+            // Detectar categoría
+            string? cat05 = null;
+            if (m05.Contains("iphone") || (m05.Contains("apple") && !m05.Contains("watch") && !m05.Contains("mac") && !m05.Contains("ipad")))
+                cat05 = "iPhone";
+            else if (m05.Contains("samsung") || m05.Contains("galaxy"))
+                cat05 = "Samsung";
+            else if (m05.Contains("macbook") || m05.Contains("laptop") || (m05.Contains("mac ") && !m05.Contains("samsung")))
+                cat05 = "Mac";
+            else if (m05.Contains("patineta") || m05.Contains("segway"))
+                cat05 = "Patinetas";
+            else if (m05.Contains("ipad") || (m05.Contains("tablet") && m05.Contains("apple")))
+                cat05 = "iPad";
+            else if (m05.Contains("airpods"))
+                cat05 = "AirPods";
+            else if (m05.Contains("watch") || m05.Contains("reloj"))
+                cat05 = "Watch";
+            else if (m05.Contains("redmi") || m05.Contains("xiaomi"))
+                cat05 = "Redmi";
+            else if (m05.Contains("infinix"))
+                cat05 = "Infinix";
+            else if (m05.Contains("tecno"))
+                cat05 = "Tecno";
+            else if (m05.Contains("samsung"))
+                cat05 = "Samsung";
+
+            if (cat05 != null)
+            {
+                await using var conn05 = new NpgsqlConnection(pgConnectionString);
+                await conn05.OpenAsync();
+
+                // ¿Pregunta por el más barato?
+                bool quiereMasBarato = new[] { "barat","econom","menor precio","mas bajo","minimo" }
+                    .Any(k => m05.Contains(k));
+
+                if (quiereMasBarato)
+                {
+                    var cmdMin = new NpgsqlCommand(@"
+                        SELECT nombre, precio, garantia, slug FROM inventario_productos
+                        WHERE disponibilidad='Si' AND unidades>0 AND LOWER(categoria)=LOWER(@cat)
+                        ORDER BY precio ASC LIMIT 1", conn05);
+                    cmdMin.Parameters.AddWithValue("cat", cat05);
+                    await using var rdrMin = await cmdMin.ExecuteReaderAsync();
+                    if (await rdrMin.ReadAsync())
+                    {
+                        var nom = rdrMin.GetString(0);
+                        var pre = rdrMin.GetDecimal(1);
+                        var gar = rdrMin.GetString(2);
+                        var slg = rdrMin.GetString(3);
+                        var resp05 = $"El {cat05} más económico que tenemos es el **{nom}** a **${pre:N0} COP** con garantía de {gar}. " +
+                                     $"\n\n<a href='https://outiltech.co/productos/{slg}' target='_blank' style='color:#FF6B00;font-weight:700;text-decoration:none;'>📱 Ver {nom} — ${pre:N0} COP →</a>";
+                        _ = Task.Run(() => GuardarConversacion(sessionId, email, nombreUsuario, mensaje, resp05, "inventario", intencion, sentimiento));
+                        logger.LogInformation("[JHON N0.5] Respuesta directa inventario — más barato {Cat}", cat05);
+                        return Results.Ok(new { respuesta = resp05, fuente = "inventario", tieneHtml = true, accion = (object?)null });
+                    }
+                }
+                else
+                {
+                    // Listar los primeros 6 ordenados por precio
+                    var cmdLst = new NpgsqlCommand(@"
+                        SELECT nombre, precio, garantia, slug FROM inventario_productos
+                        WHERE disponibilidad='Si' AND unidades>0 AND LOWER(categoria)=LOWER(@cat)
+                        ORDER BY precio ASC LIMIT 6", conn05);
+                    cmdLst.Parameters.AddWithValue("cat", cat05);
+                    await using var rdrLst = await cmdLst.ExecuteReaderAsync();
+                    var sb05 = new System.Text.StringBuilder();
+                    sb05.AppendLine($"Tenemos estos {cat05} disponibles:\n");
+                    bool hay05 = false;
+                    string? primerSlug = null; string? primerNombre = null; decimal primerPrecio = 0;
+                    while (await rdrLst.ReadAsync())
+                    {
+                        hay05 = true;
+                        var nom = rdrLst.GetString(0);
+                        var pre = rdrLst.GetDecimal(1);
+                        var gar = rdrLst.GetString(2);
+                        var slg = rdrLst.GetString(3);
+                        sb05.AppendLine($"• {nom} — ${pre:N0} COP | Garantía: {gar}");
+                        if (primerSlug == null) { primerSlug = slg; primerNombre = nom; primerPrecio = pre; }
+                    }
+                    if (hay05)
+                    {
+                        sb05.AppendLine($"\n<a href='https://outiltech.co/productos/{primerSlug}' target='_blank' style='color:#FF6B00;font-weight:700;text-decoration:none;'>🛍️ Ver {primerNombre} desde ${primerPrecio:N0} COP →</a>");
+                        var resp05 = sb05.ToString();
+                        _ = Task.Run(() => GuardarConversacion(sessionId, email, nombreUsuario, mensaje, resp05, "inventario", intencion, sentimiento));
+                        logger.LogInformation("[JHON N0.5] Respuesta directa inventario — lista {Cat}", cat05);
+                        return Results.Ok(new { respuesta = resp05, fuente = "inventario", tieneHtml = true, accion = (object?)null });
+                    }
+                }
+            }
+        }
+    }
+    catch (Exception ex) { logger.LogWarning("[JHON N0.5] Error: {M}", ex.Message); }
+
+    // ── NIVEL 1: Conocimiento entrenado por admin (0ms Groq) ──────────
+    try
+    {
+        await using var connN1 = new NpgsqlConnection(pgConnectionString);
+        await connN1.OpenAsync();
+        var cmdN1 = new NpgsqlCommand(
+            "SELECT respuesta_oficial, categoria FROM buscar_en_conocimiento_jhon(@preg, 0.70)", connN1);
+        cmdN1.Parameters.AddWithValue("preg", mensaje);
+        await using var rdrN1 = await cmdN1.ExecuteReaderAsync();
+        if (await rdrN1.ReadAsync())
+        {
+            var respN1 = rdrN1.GetString(0);
+            await rdrN1.CloseAsync();
+            var cmdUpd = new NpgsqlCommand(
+                "UPDATE conocimiento_jhon SET veces_usada = veces_usada + 1 WHERE similarity(pregunta_clave, @preg) > 0.70 AND activo = TRUE", connN1);
+            cmdUpd.Parameters.AddWithValue("preg", mensaje);
+            await cmdUpd.ExecuteNonQueryAsync();
+            _ = Task.Run(() => GuardarConversacion(sessionId, email, nombreUsuario, mensaje, respN1, "entrenamiento", intencion, sentimiento));
+            _ = Task.Run(() => RegistrarProductosRelacionados(sessionId));
+            logger.LogInformation("[JHON N1] Respuesta desde conocimiento_jhon");
+            return Results.Ok(new { respuesta = respN1, fuente = "entrenamiento", accion = (object?)null });
+        }
+    }
+    catch (Exception ex) { logger.LogWarning("[JHON N1] Error: {M}", ex.Message); }
+
+    // ── NIVEL 2: Cache semántico trigram (0ms Groq) ───────────────────
+    try
+    {
+        await using var connN2 = new NpgsqlConnection(pgConnectionString);
+        await connN2.OpenAsync();
+        var cmdN2 = new NpgsqlCommand(
+            "SELECT pregunta_original, respuesta, similitud FROM buscar_respuesta_similar(@preg, 0.65)", connN2);
+        cmdN2.Parameters.AddWithValue("preg", mensaje);
+        await using var rdrN2 = await cmdN2.ExecuteReaderAsync();
+        if (await rdrN2.ReadAsync())
+        {
+            var respN2 = rdrN2.GetString(1);
+            var simN2  = rdrN2.GetFloat(2);
+            await rdrN2.CloseAsync();
+            var cmdReg = new NpgsqlCommand(
+                "SELECT registrar_uso_cache(@sid, @preg, @resp, @sim)", connN2);
+            cmdReg.Parameters.AddWithValue("sid",  sessionId);
+            cmdReg.Parameters.AddWithValue("preg", mensaje);
+            cmdReg.Parameters.AddWithValue("resp", respN2);
+            cmdReg.Parameters.AddWithValue("sim",  simN2);
+            await cmdReg.ExecuteNonQueryAsync();
+            logger.LogInformation("[JHON N2] Respuesta desde cache trigram sim={S:F2}", simN2);
+            return Results.Ok(new { respuesta = respN2, fuente = "cache", similitud = simN2, accion = (object?)null });
+        }
+    }
+    catch (Exception ex) { logger.LogWarning("[JHON N2] Error: {M}", ex.Message); }
+
+    // ── NIVEL 3: Verificar límite Groq ───────────────────────────────
     if (string.IsNullOrEmpty(apiKey))
     {
-        logger.LogWarning("[CHATBOT] ANTHROPIC_API_KEY no configurada");
-        _ = Task.Run(() => GuardarMensajeChat(sessionId, email, nombreUsuario, "assistant",
-            "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co"));
-        return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co o al WhatsApp +57 3133082905" });
+        logger.LogWarning("[CHATBOT] GROQ_API_KEY no configurada");
+        return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co o WhatsApp +57 3133082905", accion = (object?)null });
     }
 
-    var messages = new List<object>();
+    for (int intento = 0; intento < 3; intento++)
+    {
+        var callsMinuto = await ContarCallsGroqUltimoMinuto();
+        if (callsMinuto < 28) break;
+        if (intento == 2)
+        {
+            logger.LogWarning("[JHON N3] Rate limit Groq alcanzado, retornando mensaje de espera");
+            return Results.Ok(new { respuesta = "Jhon está procesando muchas consultas. En unos segundos respondo ⏳ También puedes escribirnos directamente a contactanos@outiltech.co", accion = (object?)null });
+        }
+        await Task.Delay(2000);
+    }
+
+    // ── NIVEL 4: Groq API con Tool Use ───────────────────────────────
+    var tzId    = OperatingSystem.IsWindows() ? "SA Pacific Standard Time" : "America/Bogota";
+    var horaCol = TimeZoneInfo.ConvertTime(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById(tzId));
+    var saludo  = horaCol.Hour switch { >= 5 and < 12 => "buenos días", >= 12 and < 18 => "buenas tardes", _ => "buenas noches" };
+    var nombreCtx = string.IsNullOrEmpty(nombreUsuario) ? "" : $" El cliente se llama {nombreUsuario}.";
+
+    // Prefijo por sentimiento
+    var prefijo = sentimiento switch {
+        "negativo" => "Entiendo tu frustración. Permíteme ayudarte de la mejor manera posible. ",
+        _ => ""
+    };
+
+    // Inyectar inventario real en el contexto
+    var contextoProductos = await ObtenerContextoProductos(mensaje);
+
+    var systemPrompt = $@"Eres Jhon, el asistente IA de Outiltech (outiltech.co). Respondes en español colombiano, tono amable, natural y profesional. Son las {horaCol:HH:mm} ({saludo}).{nombreCtx}
+
+REGLAS OBLIGATORIAS — NUNCA LAS ROMPAS:
+1. NUNCA digas 'lo siento', 'no puedo', 'no tengo acceso', 'no encontré' ni ninguna disculpa. SIEMPRE da una respuesta útil.
+2. Cuando el cliente pregunta por precios o disponibilidad, usa los datos reales del INVENTARIO que tienes abajo.
+3. Si no tienes el dato exacto, orienta al cliente con tu conocimiento de tecnología y sugiere contactarnos.
+4. Usa la herramienta buscar_productos para búsquedas más detalladas o cuando el inventario abajo no sea suficiente.
+5. Máximo 4 líneas de respuesta. Sé directo y concreto.
+
+INVENTARIO ACTUAL EN TIEMPO REAL:
+{contextoProductos}
+SERVICIOS OUTILTECH:
+- Tienda E-Commerce: 114+ productos (Apple, Samsung, Redmi, Infinix)
+- Software a la medida: desde $30.000 COP/hora | Primera consulta GRATIS
+- ISO 27001, Forense Digital, PWA, DevOps, Creación de IA y chatbots
+- Horario: Lun-Vie 8am-5pm, Sáb 9am-1pm
+- Envíos: todo Colombia 1-3 días | Garantías: Apple/Samsung 1 año
+- Pagos: tarjeta (Wompi), PSE, Nequi, Efecty, Addi cuotas
+- Contacto: contactanos@outiltech.co | WhatsApp +57 3133082905";
+
+    var messagesArr = new System.Text.Json.Nodes.JsonArray();
+    messagesArr.Add(new System.Text.Json.Nodes.JsonObject { ["role"] = "system", ["content"] = systemPrompt });
+
     if (body.TryGetProperty("historial", out var hist) && hist.ValueKind == JsonValueKind.Array)
     {
         foreach (var item in hist.EnumerateArray())
         {
-            var role    = item.TryGetProperty("role",    out var rp) ? rp.GetString() ?? "" : "";
-            var content = item.TryGetProperty("content", out var cp) ? cp.GetString() ?? "" : "";
-            if (!string.IsNullOrEmpty(role) && !string.IsNullOrEmpty(content))
-                messages.Add(new { role, content });
+            var r = item.TryGetProperty("role",    out var rp) ? rp.GetString() ?? "" : "";
+            var c = item.TryGetProperty("content", out var cp) ? cp.GetString() ?? "" : "";
+            if (!string.IsNullOrEmpty(r) && !string.IsNullOrEmpty(c))
+                messagesArr.Add(new System.Text.Json.Nodes.JsonObject { ["role"] = r, ["content"] = c });
         }
     }
-    messages.Add(new { role = "user", content = mensaje });
+    messagesArr.Add(new System.Text.Json.Nodes.JsonObject { ["role"] = "user", ["content"] = mensaje });
 
+    var tools = new System.Text.Json.Nodes.JsonArray
+    {
+        new System.Text.Json.Nodes.JsonObject
+        {
+            ["type"] = "function",
+            ["function"] = new System.Text.Json.Nodes.JsonObject
+            {
+                ["name"] = "buscar_productos",
+                ["description"] = "Busca productos en el catálogo de Outiltech.",
+                ["parameters"] = System.Text.Json.Nodes.JsonNode.Parse(@"{""type"":""object"",""properties"":{""query"":{""type"":""string"",""description"":""Nombre, marca o categoría""},""categoria"":{""type"":""string"",""description"":""Apple, Samsung, Redmi, Infinix, etc""}},""required"":[""query""]}")
+            }
+        },
+        new System.Text.Json.Nodes.JsonObject
+        {
+            ["type"] = "function",
+            ["function"] = new System.Text.Json.Nodes.JsonObject
+            {
+                ["name"] = "redirigir_pagina",
+                ["description"] = "Navega al usuario a una sección del sitio web de Outiltech.",
+                ["parameters"] = System.Text.Json.Nodes.JsonNode.Parse(@"{""type"":""object"",""properties"":{""seccion"":{""type"":""string"",""description"":""tienda, servicios, contacto, portafolio, iso27001, software, seguridad""}},""required"":[""seccion""]}")
+            }
+        }
+    };
+
+    var swGroq = System.Diagnostics.Stopwatch.StartNew();
     try
     {
         using var client = factory.CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(30);
-        client.DefaultRequestHeaders.Add("x-api-key", apiKey);
-        client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+        client.Timeout = TimeSpan.FromSeconds(45);
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
 
-        var nombreCtx = string.IsNullOrEmpty(nombreUsuario) ? "" : $" El nombre del cliente es {nombreUsuario}.";
-        var payload = new
+        var payload = new System.Text.Json.Nodes.JsonObject
         {
-            model      = "claude-haiku-4-5-20251001",
-            max_tokens = 1024,
-            system     = $@"Eres Jhon, el asistente virtual inteligente de Outiltech (outiltech.co). Respondes en español colombiano, tono amable y profesional.{nombreCtx}
-Solo respondes temas relacionados con los servicios de Outiltech:
-- Tienda E-Commerce de tecnología: 114+ productos Apple (iPhone, MacBook, iPad, Watch, AirPods), Samsung, Redmi, Infinix, ZTE, Tecno, Oppo, Segway, accesorios
-- Software a la medida desde $30.000/hora: PWA, apps móviles, e-commerce, DevOps
-- Servicios de seguridad: ISO 27001, Forense Digital
-- Creación de IA y chatbots personalizados
-- Métodos de pago: tarjeta (Wompi), PSE, Nequi/Daviplata, efectivo (Efecty/Baloto), Addi en cuotas
-- Envíos a todo Colombia (1-3 días hábiles) o recogida en tienda
-- Garantías: Apple 1 año, Samsung 1 año, otros 6 meses-1 año
-- Contacto directo: contactanos@outiltech.co | WhatsApp +57 3133082905
-Si preguntan algo fuera de estos temas, redirige amablemente. Sé conciso (máximo 3 párrafos). Nunca inventes precios — di que pueden consultar en outiltech.co.",
-            messages
+            ["model"] = "llama-3.3-70b-versatile", ["max_tokens"] = 1024,
+            ["temperature"] = 0.7, ["tools"] = tools, ["tool_choice"] = "auto",
+            ["messages"] = messagesArr
         };
 
-        var resp = await client.PostAsJsonAsync("https://api.anthropic.com/v1/messages", payload);
+        var resp = await client.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", payload);
         var json = await resp.Content.ReadAsStringAsync();
+        swGroq.Stop();
+
+        _ = Task.Run(() => RegistrarLlamadaGroq(sessionId, null, (int)swGroq.ElapsedMilliseconds));
 
         if (!resp.IsSuccessStatusCode)
         {
-            logger.LogError("[CHATBOT] Anthropic error {Status}: {Body}", resp.StatusCode, json);
-            return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co" });
+            logger.LogError("[CHATBOT] Groq error {Status}: {Body}", resp.StatusCode, json);
+            _ = Task.Run(() => RegistrarGap(mensaje));
+            return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co", accion = (object?)null });
         }
 
-        var parsed    = JsonSerializer.Deserialize<JsonElement>(json);
-        var respuesta = parsed.GetProperty("content")[0].GetProperty("text").GetString() ?? "";
+        var parsed       = System.Text.Json.Nodes.JsonNode.Parse(json)!;
+        var choice       = parsed["choices"]?[0];
+        var finishReason = choice?["finish_reason"]?.GetValue<string>() ?? "";
+        var aiMessage    = choice?["message"];
 
-        // Guardar respuesta de Jhon en DB
-        _ = Task.Run(() => GuardarMensajeChat(sessionId, email, nombreUsuario, "assistant", respuesta));
+        string respuestaFinal;
+        object? accionFinal = null;
 
-        logger.LogInformation("[CHATBOT] Respuesta OK — sesión {Sid}", sessionId[..8]);
-        return Results.Ok(new { respuesta });
+        if (finishReason == "tool_calls")
+        {
+            var toolCall   = aiMessage?["tool_calls"]?.AsArray()?[0];
+            var toolCallId = toolCall?["id"]?.GetValue<string>() ?? "";
+            var toolName   = toolCall?["function"]?["name"]?.GetValue<string>() ?? "";
+            var argsStr    = toolCall?["function"]?["arguments"]?.GetValue<string>() ?? "{}";
+            var toolArgs   = System.Text.Json.Nodes.JsonNode.Parse(argsStr);
+
+            string toolResult;
+            if (toolName == "buscar_productos")
+            {
+                var query     = toolArgs?["query"]?.GetValue<string>() ?? "";
+                var categoria = toolArgs?["categoria"]?.GetValue<string>() ?? "";
+                toolResult = await EjecutarBuscarProductos(query, categoria, logger);
+                _ = Task.Run(() => ActualizarPerfil(sessionId, email, nombreUsuario, query));
+            }
+            else if (toolName == "redirigir_pagina")
+            {
+                var seccion = toolArgs?["seccion"]?.GetValue<string>() ?? "";
+                var urlMap  = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                { ["tienda"]="/",["servicios"]="/servicios",["contacto"]="/contacto",
+                  ["portafolio"]="/portafolio",["iso27001"]="/iso27001",
+                  ["software"]="/software-medida",["seguridad"]="/seguridad-forense" };
+                var url = urlMap.TryGetValue(seccion, out var u) ? u : "/";
+                accionFinal = new { tipo = "navegar", url };
+                toolResult  = $"Redirigiendo a '{seccion}' ({url}).";
+            }
+            else { toolResult = "Herramienta no disponible."; }
+
+            var messages2 = messagesArr.DeepClone().AsArray();
+            messages2.Add(new System.Text.Json.Nodes.JsonObject
+            {
+                ["role"] = "assistant",
+                ["tool_calls"] = new System.Text.Json.Nodes.JsonArray {
+                    new System.Text.Json.Nodes.JsonObject {
+                        ["id"]="",["type"]="function",
+                        ["function"]=new System.Text.Json.Nodes.JsonObject{["name"]=toolName,["arguments"]=argsStr}
+                    }
+                }
+            });
+            messages2.Add(new System.Text.Json.Nodes.JsonObject
+            { ["role"]="tool", ["tool_call_id"]=toolCallId, ["content"]=toolResult });
+
+            var payload2 = new System.Text.Json.Nodes.JsonObject
+            { ["model"]="llama-3.3-70b-versatile",["max_tokens"]=1024,
+              ["temperature"]=0.7,["tool_choice"]="none",["tools"]=tools.DeepClone(),["messages"]=messages2 };
+
+            _ = Task.Run(() => RegistrarLlamadaGroq(sessionId, null, 0));
+            var resp2 = await client.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", payload2);
+            var json2 = await resp2.Content.ReadAsStringAsync();
+
+            if (!resp2.IsSuccessStatusCode)
+            {
+                logger.LogError("[CHATBOT] Groq error 2da llamada: {Body}", json2);
+                return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co", accion = (object?)null });
+            }
+            var parsed2 = System.Text.Json.Nodes.JsonNode.Parse(json2)!;
+            respuestaFinal = parsed2["choices"]?[0]?["message"]?["content"]?.GetValue<string>() ?? "";
+        }
+        else
+        {
+            respuestaFinal = aiMessage?["content"]?.GetValue<string>() ?? "";
+        }
+
+        // Sufijo por intención y sentimiento
+        if (intencion == "salida")
+            respuestaFinal += "\n\n¡Fue un placer ayudarte! ¿Te ayudé hoy? 👍 👎";
+        else if (sentimiento == "positivo")
+            respuestaFinal += "\n\n¡Me alegra poder ayudarte! ¿Hay algo más en lo que pueda orientarte?";
+
+        bool esFallback = respuestaFinal.Contains("contactanos@outiltech.co") && respuestaFinal.Length < 120;
+        if (esFallback || esQueja)
+        {
+            _ = Task.Run(() => RegistrarGap(mensaje));
+            _ = Task.Run(async () => {
+                await using var connF = new NpgsqlConnection(pgConnectionString);
+                await connF.OpenAsync();
+                var cmdF = new NpgsqlCommand(
+                    "INSERT INTO conversaciones_fallidas (session_id,pregunta,respuesta_jhon,motivo_falla) VALUES (@s,@p,@r,@m)", connF);
+                cmdF.Parameters.AddWithValue("s", sessionId);
+                cmdF.Parameters.AddWithValue("p", mensaje);
+                cmdF.Parameters.AddWithValue("r", respuestaFinal);
+                cmdF.Parameters.AddWithValue("m", esQueja ? "insatisfecho" : "fallback");
+                await cmdF.ExecuteNonQueryAsync();
+            });
+        }
+
+        // ── Post-proceso: markdown → HTML + link producto ─────────────
+        // Convertir [texto](url) a <a href>
+        respuestaFinal = System.Text.RegularExpressions.Regex.Replace(
+            respuestaFinal,
+            @"\[([^\]]+)\]\((https?://[^\)]+)\)",
+            "<a href='$2' target='_blank' style='color:#FF6B00;font-weight:700;text-decoration:none;'>$1</a>");
+
+        // Agregar link clickeable al producto más económico si el usuario quiere ver/comprar
+        var linkProducto = await GenerarLinkProducto(mensaje);
+        if (linkProducto != null && !respuestaFinal.Contains("outiltech.co"))
+            respuestaFinal += $"\n\n{linkProducto}";
+
+        bool tieneHtml = respuestaFinal.Contains("<a href");
+
+        // ── Auto-aprendizaje: guardar respuestas valiosas en conocimiento_jhon ──
+        bool esRespuestaNegativa =
+            respuestaFinal.Contains("no tenemos") || respuestaFinal.Contains("no contamos") ||
+            respuestaFinal.Contains("no disponible") || respuestaFinal.Contains("no están disponible") ||
+            respuestaFinal.Contains("no se encuentra") || respuestaFinal.Contains("no hay stock");
+
+        bool esRespuestaValiosa =
+            !esRespuestaNegativa &&
+            (respuestaFinal.Contains("COP") || respuestaFinal.Contains("stock") ||
+             respuestaFinal.Contains("disponible") || respuestaFinal.Contains("precio") ||
+             respuestaFinal.Contains("garantía") || respuestaFinal.Contains("garantia") ||
+             respuestaFinal.Contains("envío") || respuestaFinal.Contains("envio"));
+
+        if (esRespuestaValiosa && (intencion == "info" || intencion == "compra"))
+        {
+            _ = Task.Run(async () => {
+                try
+                {
+                    await using var connAL = new NpgsqlConnection(pgConnectionString);
+                    await connAL.OpenAsync();
+                    var respLimpia = System.Text.RegularExpressions.Regex.Replace(respuestaFinal, "<[^>]+>", "").Trim();
+                    var cmdAL = new NpgsqlCommand(@"
+                        INSERT INTO conocimiento_jhon (pregunta_clave, respuesta_oficial, categoria, creado_por)
+                        VALUES (@preg, @resp, @cat, 'jhon_autolearn')
+                        ON CONFLICT DO NOTHING", connAL);
+                    cmdAL.Parameters.AddWithValue("preg", mensaje);
+                    cmdAL.Parameters.AddWithValue("resp", respLimpia[..Math.Min(respLimpia.Length, 800)]);
+                    cmdAL.Parameters.AddWithValue("cat",  intencion == "compra" ? "PRODUCTOS" : "INFO");
+                    await cmdAL.ExecuteNonQueryAsync();
+                }
+                catch { }
+            });
+        }
+
+        _ = Task.Run(() => GuardarConversacion(sessionId, email, nombreUsuario, mensaje, respuestaFinal, "groq_api", intencion, sentimiento));
+        _ = Task.Run(() => RegistrarProductosRelacionados(sessionId));
+        logger.LogInformation("[CHATBOT N4] Groq OK — sesión {Sid} intencion={I} sent={S}", sessionId.Length >= 8 ? sessionId[..8] : sessionId, intencion, sentimiento);
+
+        var mostrarEscaladaWA = (intencion == "soporte") ||
+            (sentimiento == "negativo");
+        return Results.Ok(new { respuesta = prefijo + respuestaFinal, fuente = "groq", accion = accionFinal, mostrarEscaladaWA, intencion, tieneHtml });
     }
     catch (TaskCanceledException)
     {
-        logger.LogWarning("[CHATBOT] Timeout Anthropic API");
-        return Results.Ok(new { respuesta = "Lo siento, la respuesta tardó demasiado. Escríbenos a contactanos@outiltech.co" });
+        logger.LogWarning("[CHATBOT] Timeout Groq API");
+        return Results.Ok(new { respuesta = "Lo siento, la respuesta tardó demasiado. Escríbenos a contactanos@outiltech.co", accion = (object?)null });
     }
     catch (Exception ex)
     {
         logger.LogError(ex, "[CHATBOT] Error inesperado");
-        return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co" });
+        return Results.Ok(new { respuesta = "Lo siento, en este momento no puedo responder. Escríbenos a contactanos@outiltech.co", accion = (object?)null });
     }
 });
 
-// ============================================================
-// CHATBOT IA — GET /chatbot/historial/{sessionId}
-// Carga mensajes previos de la sesión actual
-// ============================================================
+// ── GET /chatbot/historial/{sessionId} ────────────────────────────────────────
 app.MapGet("/chatbot/historial/{sessionId}", async (string sessionId, ILogger<Program> logger) =>
 {
     try
     {
         await using var conn = new NpgsqlConnection(pgConnectionString);
         await conn.OpenAsync();
-        var cmd = new NpgsqlCommand(
-            "SELECT role, mensaje, creado_en FROM conversaciones WHERE session_id = @sid ORDER BY creado_en ASC LIMIT 50", conn);
+        // Devuelve tanto filas role/mensaje antiguas como nuevas pregunta/respuesta
+        var cmd = new NpgsqlCommand(@"
+            SELECT
+              COALESCE(role, 'user')           AS role,
+              COALESCE(mensaje, pregunta, '')  AS content,
+              creado_en
+            FROM conversaciones
+            WHERE session_id = @sid
+              AND (mensaje IS NOT NULL OR pregunta IS NOT NULL)
+            ORDER BY creado_en ASC LIMIT 50", conn);
         cmd.Parameters.AddWithValue("sid", sessionId);
         await using var reader = await cmd.ExecuteReaderAsync();
         var mensajes = new List<object>();
@@ -1004,10 +2085,207 @@ app.MapGet("/chatbot/historial/{sessionId}", async (string sessionId, ILogger<Pr
     }
 });
 
-// ============================================================
-// CHATBOT IA — POST /chatbot/fin-sesion
-// Envía transcripto completo al cerrar el chat
-// ============================================================
+// ── GET /chatbot/perfil/{sessionId} ───────────────────────────────────────────
+app.MapGet("/chatbot/perfil/{sessionId}", async (string sessionId) =>
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(
+            "SELECT session_id,email,nombre,productos_consultados,total_visitas,satisfaccion_promedio,segmento,ultima_visita,primera_visita FROM perfiles_clientes WHERE session_id=@sid", conn);
+        cmd.Parameters.AddWithValue("sid", sessionId);
+        await using var r = await cmd.ExecuteReaderAsync();
+        if (!await r.ReadAsync()) return Results.Ok(new { perfil = (object?)null });
+        return Results.Ok(new { perfil = new {
+            sessionId       = r.GetString(0),
+            email           = r.IsDBNull(1) ? null : r.GetString(1),
+            nombre          = r.IsDBNull(2) ? null : r.GetString(2),
+            totalVisitas    = r.GetInt32(4),
+            satisfaccion    = r.IsDBNull(5) ? 0m : r.GetDecimal(5),
+            segmento        = r.GetString(6),
+            ultimaVisita    = r.GetDateTime(7),
+            primeraVisita   = r.GetDateTime(8)
+        }});
+    }
+    catch { return Results.Ok(new { perfil = (object?)null }); }
+});
+
+// ── GET /chatbot/estadisticas/hoy ─────────────────────────────────────────────
+app.MapGet("/chatbot/estadisticas/hoy", async () =>
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmdStat = new NpgsqlCommand(
+            "SELECT total_conversaciones,respuestas_desde_cache,respuestas_desde_groq,respuestas_desde_entrenamiento,total_escalaciones_wa FROM estadisticas_jhon WHERE fecha=CURRENT_DATE", conn);
+        await using var r = await cmdStat.ExecuteReaderAsync();
+        int total=0,cache=0,groq=0,ent=0,esc=0;
+        if (await r.ReadAsync()) { total=r.GetInt32(0);cache=r.GetInt32(1);groq=r.GetInt32(2);ent=r.GetInt32(3);esc=r.GetInt32(4); }
+        await r.CloseAsync();
+        var cmdGroq = new NpgsqlCommand("SELECT calls_ultimo_minuto,limite_por_minuto,calls_hoy,limite_diario,porcentaje_usado_hoy FROM v_estado_groq", conn);
+        await using var r2 = await cmdGroq.ExecuteReaderAsync();
+        long callsMin=0,limMin=30,callsHoy=0,limDia=14400; decimal pct=0;
+        if (await r2.ReadAsync()) { callsMin=r2.GetInt64(0);limMin=r2.GetInt64(1);callsHoy=r2.GetInt64(2);limDia=r2.GetInt64(3);pct=r2.IsDBNull(4)?0m:r2.GetDecimal(4); }
+        return Results.Ok(new { total,cache,groq,entrenamiento=ent,escalacionesWA=esc,
+            ahorroSinGroq=total>0?Math.Round((cache+ent)*100.0/total,1):0.0,
+            groqHoy=callsHoy,groqLimiteDiario=limDia,groqPorcentajeUsado=pct,
+            groqUltimoMinuto=callsMin,groqLimiteMinuto=limMin });
+    }
+    catch { return Results.Ok(new { error = "Sin datos" }); }
+});
+
+// ── GET /chatbot/rendimiento ───────────────────────────────────────────────────
+app.MapGet("/chatbot/rendimiento", async () =>
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(
+            "SELECT fecha,total_conversaciones,respuestas_desde_cache,respuestas_desde_groq,respuestas_desde_entrenamiento FROM estadisticas_jhon WHERE fecha >= CURRENT_DATE - INTERVAL '7 days' ORDER BY fecha ASC", conn);
+        await using var r = await cmd.ExecuteReaderAsync();
+        var datos = new List<object>();
+        while (await r.ReadAsync())
+            datos.Add(new { fecha=r.GetDateTime(0).ToString("yyyy-MM-dd"),total=r.GetInt32(1),cache=r.GetInt32(2),groq=r.GetInt32(3),entrenamiento=r.GetInt32(4) });
+        return Results.Ok(new { datos });
+    }
+    catch { return Results.Ok(new { datos = new List<object>() }); }
+});
+
+// ── GET /chatbot/gaps ──────────────────────────────────────────────────────────
+app.MapGet("/chatbot/gaps", async () =>
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(
+            "SELECT id,pregunta,veces_fallida,resuelta,creado_en FROM gaps_conocimiento WHERE resuelta=FALSE ORDER BY veces_fallida DESC LIMIT 50", conn);
+        await using var r = await cmd.ExecuteReaderAsync();
+        var gaps = new List<object>();
+        while (await r.ReadAsync())
+            gaps.Add(new { id=r.GetInt32(0),pregunta=r.GetString(1),vecesFallida=r.GetInt32(2),resuelta=r.GetBoolean(3),creadoEn=r.GetDateTime(4) });
+        return Results.Ok(new { gaps });
+    }
+    catch { return Results.Ok(new { gaps = new List<object>() }); }
+});
+
+// ── POST /chatbot/entrenar ─────────────────────────────────────────────────────
+app.MapPost("/chatbot/entrenar", async (HttpRequest request) =>
+{
+    JsonElement body;
+    try { body = await request.ReadFromJsonAsync<JsonElement>(); }
+    catch { return Results.BadRequest(); }
+    var pregunta  = body.TryGetProperty("pregunta_clave",    out var pp) ? pp.GetString() ?? "" : "";
+    var respuesta = body.TryGetProperty("respuesta_oficial", out var rp) ? rp.GetString() ?? "" : "";
+    var categoria = body.TryGetProperty("categoria",         out var cp) ? cp.GetString() ?? "OTROS" : "OTROS";
+    var gapId     = body.TryGetProperty("gapId",             out var gp) && gp.ValueKind != JsonValueKind.Null ? (int?)gp.GetInt32() : null;
+    if (string.IsNullOrWhiteSpace(pregunta) || string.IsNullOrWhiteSpace(respuesta))
+        return Results.BadRequest(new { error = "pregunta_clave y respuesta_oficial son obligatorios" });
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(
+            "INSERT INTO conocimiento_jhon (pregunta_clave,respuesta_oficial,categoria) VALUES (@preg,@resp,@cat)", conn);
+        cmd.Parameters.AddWithValue("preg", pregunta);
+        cmd.Parameters.AddWithValue("resp", respuesta);
+        cmd.Parameters.AddWithValue("cat",  categoria);
+        await cmd.ExecuteNonQueryAsync();
+        _ = Task.Run(() => SyncJhonToSupabase("conocimiento_jhon", new {
+            pregunta_clave = pregunta, respuesta_oficial = respuesta, categoria, activo = true, creado_en = DateTime.UtcNow
+        }));
+        if (gapId.HasValue)
+        {
+            var cmdGap = new NpgsqlCommand(
+                "UPDATE gaps_conocimiento SET resuelta=TRUE,respuesta_admin=@resp,resuelta_en=NOW() WHERE id=@id", conn);
+            cmdGap.Parameters.AddWithValue("resp", respuesta);
+            cmdGap.Parameters.AddWithValue("id",   gapId.Value);
+            await cmdGap.ExecuteNonQueryAsync();
+        }
+        return Results.Ok(new { ok = true, mensaje = "Conocimiento agregado a JhonIA" });
+    }
+    catch (Exception ex) { return Results.Problem(ex.Message); }
+});
+
+// ── GET /chatbot/conocimiento ──────────────────────────────────────────────────
+app.MapGet("/chatbot/conocimiento", async () =>
+{
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(
+            "SELECT id,pregunta_clave,respuesta_oficial,categoria,veces_usada,activo,creado_en FROM conocimiento_jhon WHERE activo=TRUE ORDER BY veces_usada DESC", conn);
+        await using var r = await cmd.ExecuteReaderAsync();
+        var items = new List<object>();
+        while (await r.ReadAsync())
+            items.Add(new { id=r.GetInt32(0),preguntaClave=r.GetString(1),respuestaOficial=r.GetString(2),
+                categoria=r.IsDBNull(3)?null:r.GetString(3),vecesUsada=r.GetInt32(4),activo=r.GetBoolean(5),creadoEn=r.GetDateTime(6) });
+        return Results.Ok(new { items });
+    }
+    catch { return Results.Ok(new { items = new List<object>() }); }
+});
+
+// ── PUT /chatbot/conocimiento/{id} ────────────────────────────────────────────
+app.MapPut("/chatbot/conocimiento/{id:int}", async (int id, HttpRequest request) =>
+{
+    JsonElement body;
+    try { body = await request.ReadFromJsonAsync<JsonElement>(); }
+    catch { return Results.BadRequest(); }
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        if (body.TryGetProperty("activo", out var ap) && ap.ValueKind == JsonValueKind.False)
+        {
+            var cmd = new NpgsqlCommand("UPDATE conocimiento_jhon SET activo=FALSE,actualizado_en=NOW() WHERE id=@id", conn);
+            cmd.Parameters.AddWithValue("id", id);
+            await cmd.ExecuteNonQueryAsync();
+            return Results.Ok(new { ok = true });
+        }
+        if (body.TryGetProperty("respuesta_oficial", out var rp))
+        {
+            var cmd = new NpgsqlCommand("UPDATE conocimiento_jhon SET respuesta_oficial=@r,actualizado_en=NOW() WHERE id=@id", conn);
+            cmd.Parameters.AddWithValue("r", rp.GetString() ?? "");
+            cmd.Parameters.AddWithValue("id", id);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        return Results.Ok(new { ok = true });
+    }
+    catch (Exception ex) { return Results.Problem(ex.Message); }
+});
+
+// ── POST /chatbot/satisfaccion ─────────────────────────────────────────────────
+app.MapPost("/chatbot/satisfaccion", async (HttpRequest request) =>
+{
+    JsonElement body;
+    try { body = await request.ReadFromJsonAsync<JsonElement>(); }
+    catch { return Results.BadRequest(); }
+    var sessionId = body.TryGetProperty("sessionId", out var sp) ? sp.GetString() ?? "" : "";
+    var voto      = body.TryGetProperty("voto",      out var vp) ? vp.GetString() ?? "" : "";
+    var valor     = voto == "positivo" ? 1.0m : 0.0m;
+    try
+    {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        var cmd = new NpgsqlCommand(@"
+            INSERT INTO perfiles_clientes (session_id, satisfaccion_promedio)
+            VALUES (@sid, @val)
+            ON CONFLICT (session_id) DO UPDATE SET
+              satisfaccion_promedio = (perfiles_clientes.satisfaccion_promedio + @val) / 2.0,
+              ultima_visita = NOW()", conn);
+        cmd.Parameters.AddWithValue("sid", sessionId);
+        cmd.Parameters.AddWithValue("val", valor);
+        await cmd.ExecuteNonQueryAsync();
+        return Results.Ok(new { ok = true });
+    }
+    catch { return Results.Ok(new { ok = false }); }
+});
+
+// ── POST /chatbot/fin-sesion ───────────────────────────────────────────────────
 app.MapPost("/chatbot/fin-sesion", async (HttpRequest request, ILogger<Program> logger) =>
 {
     JsonElement body;
@@ -1021,12 +2299,125 @@ app.MapPost("/chatbot/fin-sesion", async (HttpRequest request, ILogger<Program> 
     if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(sessionId))
     {
         var total = await ContarMensajesSesion(sessionId);
-        if (total >= 4) // Mínimo 2 intercambios para enviar transcripto
+        if (total >= 4)
             _ = Task.Run(() => EnviarTranscriptoEmail(email, nombre, sessionId));
     }
 
     logger.LogInformation("[CHATBOT] Sesión cerrada: {Sid}", sessionId.Length > 8 ? sessionId[..8] : sessionId);
     return Results.Ok();
+});
+
+// ════════════════════════════════════════════════════════════════
+// WHATSAPP BUSINESS CLOUD API — JhonIA en WhatsApp
+// Credenciales: WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN
+// ════════════════════════════════════════════════════════════════
+
+// ── GET /webhook/whatsapp — Verificación Meta ─────────────────
+app.MapGet("/webhook/whatsapp", (HttpRequest request) =>
+{
+    var mode      = request.Query["hub.mode"].FirstOrDefault()         ?? "";
+    var token     = request.Query["hub.verify_token"].FirstOrDefault() ?? "";
+    var challenge = request.Query["hub.challenge"].FirstOrDefault()    ?? "";
+
+    var verifyToken = Environment.GetEnvironmentVariable("WHATSAPP_VERIFY_TOKEN") ?? "jhon_outiltech_2026";
+
+    if (mode == "subscribe" && token == verifyToken)
+        return Results.Text(challenge, "text/plain");
+
+    return Results.Forbid();
+});
+
+// ── POST /webhook/whatsapp — Mensajes entrantes (Meta Cloud API) ──
+app.MapPost("/webhook/whatsapp", async (HttpRequest request, ILogger<Program> logger) =>
+{
+    JsonElement body;
+    try { body = await request.ReadFromJsonAsync<JsonElement>(); }
+    catch { return Results.Ok(); }
+
+    try
+    {
+        var waToken = Environment.GetEnvironmentVariable("WHATSAPP_TOKEN")           ?? "";
+        var phoneId = Environment.GetEnvironmentVariable("WHATSAPP_PHONE_NUMBER_ID") ?? "";
+        if (string.IsNullOrEmpty(waToken) || string.IsNullOrEmpty(phoneId))
+        { logger.LogWarning("[WA-META] Variables no configuradas"); return Results.Ok(); }
+
+        if (!body.TryGetProperty("entry", out var entries) || entries.GetArrayLength() == 0) return Results.Ok();
+        var change = entries[0].GetProperty("changes")[0].GetProperty("value");
+        if (!change.TryGetProperty("messages", out var msgs) || msgs.GetArrayLength() == 0) return Results.Ok();
+
+        var msgObj = msgs[0];
+        if (msgObj.TryGetProperty("type", out var t) && t.GetString() != "text") return Results.Ok();
+        var fromPhone = msgObj.GetProperty("from").GetString() ?? "";
+        var texto     = msgObj.GetProperty("text").GetProperty("body").GetString() ?? "";
+        string? nombreWa = null;
+        if (change.TryGetProperty("contacts", out var contacts) && contacts.GetArrayLength() > 0)
+            nombreWa = contacts[0].TryGetProperty("profile", out var prof) && prof.TryGetProperty("name", out var n) ? n.GetString() : null;
+
+        var respuesta = await ProcesarMensajeJhonWA(fromPhone, nombreWa, texto, logger);
+
+        using var waClient = new HttpClient();
+        waClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {waToken}");
+        var waResp = await waClient.PostAsJsonAsync($"https://graph.facebook.com/v20.0/{phoneId}/messages",
+            new { messaging_product = "whatsapp", to = fromPhone, type = "text", text = new { body = respuesta } });
+        var waRespBody = await waResp.Content.ReadAsStringAsync();
+        if (waResp.IsSuccessStatusCode)
+            logger.LogInformation("[WA-META] OK enviado a {Phone}: {Body}", fromPhone, waRespBody);
+        else
+            logger.LogError("[WA-META] ERROR enviando a {Phone} ({Status}): {Body}", fromPhone, (int)waResp.StatusCode, waRespBody);
+    }
+    catch (Exception ex) { logger.LogError(ex, "[WA-META] Error"); }
+    return Results.Ok();
+});
+
+// ── POST /webhook/whatsapp/twilio — Mensajes entrantes (Twilio) ──
+// Twilio envía form-urlencoded: From=whatsapp:+57XXX, Body=texto
+app.MapPost("/webhook/whatsapp/twilio", async (HttpRequest request, ILogger<Program> logger) =>
+{
+    try
+    {
+        var twilioSid   = Environment.GetEnvironmentVariable("TWILIO_ACCOUNT_SID")  ?? "";
+        var twilioToken = Environment.GetEnvironmentVariable("TWILIO_AUTH_TOKEN")   ?? "";
+        var twilioFrom  = Environment.GetEnvironmentVariable("TWILIO_WHATSAPP_FROM") ?? ""; // ej: whatsapp:+14155238886
+
+        if (string.IsNullOrEmpty(twilioSid) || string.IsNullOrEmpty(twilioToken))
+        { logger.LogWarning("[WA-TWILIO] Variables TWILIO_* no configuradas"); return Results.Ok(); }
+
+        var form        = await request.ReadFormAsync();
+        var fromRaw     = form["From"].FirstOrDefault()        ?? ""; // "whatsapp:+573133082905"
+        var texto       = form["Body"].FirstOrDefault()        ?? "";
+        var profileName = form["ProfileName"].FirstOrDefault() ?? "";
+        var fromPhone   = fromRaw.Replace("whatsapp:", "").Trim();
+        var nombreWaTwilio = string.IsNullOrWhiteSpace(profileName) ? (string?)null : profileName;
+
+        if (string.IsNullOrWhiteSpace(fromPhone) || string.IsNullOrWhiteSpace(texto))
+            return Results.Ok();
+
+        logger.LogInformation("[WA-TWILIO] Mensaje de {Phone} ({Nombre}): {Txt}", fromPhone, profileName, texto[..Math.Min(texto.Length, 60)]);
+
+        var respuesta = await ProcesarMensajeJhonWA(fromPhone, nombreWaTwilio, texto, logger);
+        logger.LogInformation("[WA-TWILIO] Enviando respuesta ({Len} chars): {Preview}", respuesta.Length, respuesta[..Math.Min(respuesta.Length, 80)]);
+
+        // Enviar respuesta vía API Twilio
+        using var client = new HttpClient();
+        var credentials = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{twilioSid}:{twilioToken}"));
+        client.DefaultRequestHeaders.Add("Authorization", $"Basic {credentials}");
+
+        var toWa   = $"whatsapp:{fromPhone}";
+        var fromWa = twilioFrom.StartsWith("whatsapp:") ? twilioFrom : $"whatsapp:{twilioFrom}";
+        var payload = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string,string>("From", fromWa),
+            new KeyValuePair<string,string>("To",   toWa),
+            new KeyValuePair<string,string>("Body", respuesta)
+        });
+        var resp = await client.PostAsync(
+            $"https://api.twilio.com/2010-04-01/Accounts/{twilioSid}/Messages.json", payload);
+        logger.LogInformation("[WA-TWILIO] Respuesta enviada a {Phone} — HTTP {Status}", fromPhone, (int)resp.StatusCode);
+    }
+    catch (Exception ex) { logger.LogError(ex, "[WA-TWILIO] Error"); }
+
+    // Twilio espera TwiML vacío o 200 OK
+    return Results.Content("<?xml version='1.0' encoding='UTF-8'?><Response></Response>", "text/xml");
 });
 
 app.UseSwagger();

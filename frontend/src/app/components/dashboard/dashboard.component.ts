@@ -1,11 +1,13 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { catchError, switchMap } from 'rxjs/operators';
 import { of, BehaviorSubject } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
+import { JhonStatsMiniComponent } from '../jhon-stats-mini/jhon-stats-mini.component';
 
 const SUPABASE_URL = 'https://gklxdzhmpjwwmffjdmwv.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbHhkemhtcGp3d21mZmpkbXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NTM0MDEsImV4cCI6MjA5MTQyOTQwMX0.Es3YyKtLnx9lKiA_xyTHxK_IDSICb9kGf5-nu2XE_jg';
@@ -18,7 +20,7 @@ const supabaseHeaders = new HttpHeaders({
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, DecimalPipe, DatePipe],
+  imports: [CommonModule, DecimalPipe, DatePipe, RouterLink, JhonStatsMiniComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })

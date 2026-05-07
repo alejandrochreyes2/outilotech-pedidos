@@ -44,7 +44,14 @@ services:
       - Email__User=alejandrochreyes2@gmail.com
       - Email__Password=PONER_APP_PASSWORD_AQUI
       - Email__AdminEmail=alejandrochreyes2@gmail.com
-      - ANTHROPIC_API_KEY=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
+      - GROQ_API_KEY=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
+      - TWILIO_ACCOUNT_SID=ACbbb40f636dd136d886989836187fa5b5
+      - TWILIO_AUTH_TOKEN=831e6bfc8c2316153bf2903fe6362f65
+      - TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+      - WHATSAPP_TOKEN=EAActggL703IBRbwzpf9nuHLg4BPjPCpZCKd8Uak5wYj1Q6uvtLwpEnAI6BepSHlRJ8C5GKX6NZATtHXtYGn7EdH7GDi154iT1MmjQ3hCI7G7ncatycdZCZCfkndfwklfS5nyVTsAZBgi4uCLGUblGZAZAfywwUlXkJoB9jOx6TeVHnqRSDN1rdBEfbWfk8BGMZAarapKplQbn31n
+      - WHATSAPP_PHONE_NUMBER_ID=1101871603010077
+      - WHATSAPP_BUSINESS_ID=852307780563030
+      - WHATSAPP_VERIFY_TOKEN=jhon_outiltech_2026
     ports:
       - "3002:3002"
 

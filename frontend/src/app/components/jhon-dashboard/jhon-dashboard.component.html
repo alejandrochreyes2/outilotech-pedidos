@@ -1,0 +1,180 @@
+<div class="jhon-dash">
+
+  <!-- Header -->
+  <div class="dash-header">
+    <div class="dash-title">
+      <span class="jhon-icon">🤖</span>
+      <div>
+        <h2>JhonIA — Panel de Control</h2>
+        <p>Monitoreo, entrenamiento y estadísticas en tiempo real</p>
+      </div>
+    </div>
+    <div class="tabs">
+      <button [class.active]="tabActiva() === 'metricas'"    (click)="cambiarTab('metricas')">📊 Métricas</button>
+      <button [class.active]="tabActiva() === 'gaps'"         (click)="cambiarTab('gaps')">🧠 Entrenar</button>
+      <button [class.active]="tabActiva() === 'conocimiento'" (click)="cambiarTab('conocimiento')">📚 Conocimiento</button>
+    </div>
+  </div>
+
+  @if (mensaje()) {
+  <div class="alert" [class.ok]="mensaje()!.startsWith('✅')" [class.warn]="mensaje()!.startsWith('⚠️')">
+    {{ mensaje() }}
+  </div>
+  }
+
+  @if (cargando()) {
+  <div class="loading">Cargando...</div>
+  }
+
+  <!-- ── TAB MÉTRICAS ────────────────────────────────────────────── -->
+  @if (tabActiva() === 'metricas' && stats()) {
+  <div class="seccion">
+
+    <!-- Tarjetas -->
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-label">Conversaciones hoy</div>
+        <div class="card-val">{{ stats().total }}</div>
+      </div>
+      <div class="card green">
+        <div class="card-label">Ahorro sin Groq</div>
+        <div class="card-val">{{ stats().ahorroSinGroq }}%</div>
+        <div class="card-sub">Cache + Entrenamiento</div>
+      </div>
+      <div class="card blue">
+        <div class="card-label">Desde entrenamiento</div>
+        <div class="card-val">{{ stats().entrenamiento }}</div>
+        <div class="card-sub">sin consumir API</div>
+      </div>
+      <div class="card purple">
+        <div class="card-label">Desde caché</div>
+        <div class="card-val">{{ stats().cache }}</div>
+        <div class="card-sub">respuestas similares</div>
+      </div>
+      <div class="card orange">
+        <div class="card-label">Calls Groq hoy</div>
+        <div class="card-val">{{ stats().groqHoy }} / {{ stats().groqLimiteDiario }}</div>
+        <div class="card-sub">Último minuto: {{ stats().groqUltimoMinuto }}/30</div>
+      </div>
+    </div>
+
+    <!-- Barra Groq -->
+    <div class="groq-bar-wrap">
+      <div class="groq-bar-label">
+        <span>Uso Groq hoy: {{ stats().groqPorcentajeUsado }}%</span>
+        <span [style.color]="barraColor" style="font-weight:700">
+          @if ((stats().groqPorcentajeUsado ?? 0) > 80) { 🔴 CRÍTICO }
+          @else if ((stats().groqPorcentajeUsado ?? 0) > 50) { 🟡 MODERADO }
+          @else { 🟢 NORMAL }
+        </span>
+      </div>
+      <div class="groq-bar-bg">
+        <div class="groq-bar-fill" [style.width]="(stats().groqPorcentajeUsado || 0) + '%'" [style.background]="barraColor"></div>
+      </div>
+    </div>
+
+    <!-- Gráfico 7 días -->
+    @if (rendimiento().length > 0) {
+    <div class="chart-section">
+      <h3>Rendimiento últimos 7 días</h3>
+      <div class="legend">
+        <span class="legend-dot blue"></span> Groq API &nbsp;
+        <span class="legend-dot green"></span> Caché &nbsp;
+        <span class="legend-dot orange"></span> Entrenamiento
+      </div>
+      <div class="bar-chart">
+        @for (dia of rendimiento(); track dia.fecha) {
+        <div class="bar-group">
+          <div class="bars">
+            <div class="bar blue"   [style.height]="barHeight(dia.groq)"         title="Groq: {{ dia.groq }}"></div>
+            <div class="bar green"  [style.height]="barHeight(dia.cache)"        title="Cache: {{ dia.cache }}"></div>
+            <div class="bar orange" [style.height]="barHeight(dia.entrenamiento)" title="Entrenamiento: {{ dia.entrenamiento }}"></div>
+          </div>
+          <div class="bar-label">{{ dia.fecha.slice(5) }}</div>
+        </div>
+        }
+      </div>
+    </div>
+    }
+
+  </div>
+  }
+
+  <!-- ── TAB ENTRENAR ────────────────────────────────────────────── -->
+  @if (tabActiva() === 'gaps') {
+  <div class="seccion">
+
+    <!-- Agregar conocimiento manual -->
+    <div class="train-manual">
+      <h3>➕ Agregar conocimiento nuevo</h3>
+      <input class="inp" [(ngModel)]="nuevaPregunta" placeholder="Pregunta clave que haría un cliente..." />
+      <textarea class="inp ta" [(ngModel)]="nuevaRespuesta" placeholder="Respuesta oficial completa de Outiltech..." rows="3"></textarea>
+      <div class="row-gap">
+        <select class="sel" [(ngModel)]="nuevaCategoria">
+          @for (cat of categorias; track cat) { <option [value]="cat">{{ cat }}</option> }
+        </select>
+        <button class="btn-train" (click)="agregarConocimiento()">✅ Agregar</button>
+      </div>
+    </div>
+
+    <!-- Lista de gaps -->
+    <h3>🧠 Preguntas sin respuesta ({{ gaps().length }})</h3>
+    <p class="sub-text">Estas son preguntas que JhonIA no pudo responder bien. Entrénala escribiendo la respuesta correcta.</p>
+
+    @if (gaps().length === 0) {
+    <div class="empty">🎉 ¡JhonIA no tiene preguntas pendientes! Todo está cubierto.</div>
+    }
+
+    @for (gap of gaps(); track gap.id) {
+    <div class="gap-card">
+      <div class="gap-top">
+        <span class="gap-pregunta">❓ {{ gap.pregunta }}</span>
+        <span class="gap-badge">{{ gap.vecesFallida }}x sin respuesta</span>
+      </div>
+      <textarea class="inp ta" [(ngModel)]="gapRespuestas[gap.id]"
+        placeholder="Escribe aquí la respuesta correcta para Jhon..." rows="2"></textarea>
+      <div class="row-gap">
+        <select class="sel" [(ngModel)]="gapCategorias[gap.id]">
+          @for (cat of categorias; track cat) { <option [value]="cat">{{ cat }}</option> }
+        </select>
+        <button class="btn-train" (click)="entrenarDesdeGap(gap)">🎯 Entrenar JhonIA</button>
+      </div>
+    </div>
+    }
+  </div>
+  }
+
+  <!-- ── TAB CONOCIMIENTO ────────────────────────────────────────── -->
+  @if (tabActiva() === 'conocimiento') {
+  <div class="seccion">
+    <h3>📚 Conocimiento activo de JhonIA ({{ conocimiento().length }} entradas)</h3>
+
+    @for (item of conocimiento(); track item.id) {
+    <div class="know-card">
+      <div class="know-top">
+        <div>
+          <span class="know-badge">{{ item.categoria }}</span>
+          <span class="know-uses">{{ item.vecesUsada }}x usada</span>
+        </div>
+        <div class="know-actions">
+          @if (editandoId() !== item.id) {
+          <button class="btn-sm edit" (click)="iniciarEdicion(item)">✏️ Editar</button>
+          <button class="btn-sm del"  (click)="desactivar(item.id)">🗑️ Desactivar</button>
+          } @else {
+          <button class="btn-sm save" (click)="guardarEdicion(item.id)">💾 Guardar</button>
+          <button class="btn-sm"      (click)="editandoId.set(null)">✕ Cancelar</button>
+          }
+        </div>
+      </div>
+      <div class="know-pregunta">❓ {{ item.preguntaClave }}</div>
+      @if (editandoId() === item.id) {
+      <textarea class="inp ta" [(ngModel)]="editTexto" rows="3"></textarea>
+      } @else {
+      <div class="know-respuesta">💬 {{ item.respuestaOficial }}</div>
+      }
+    </div>
+    }
+  </div>
+  }
+
+</div>
