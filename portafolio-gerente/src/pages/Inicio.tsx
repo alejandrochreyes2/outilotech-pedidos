@@ -80,7 +80,7 @@ export default function Inicio() {
                 <img
                   src="/foto-jhonnathan.PNG"
                   alt="Jhonnathan Hernández Medina - Gerente OutilTech"
-                  className="w-full h-full object-contain object-top grayscale-[10%] hover:grayscale-0 transition-all duration-600"
+                  className="w-full h-full object-cover object-center grayscale-[10%] hover:grayscale-0 transition-all duration-600"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent pointer-events-none"></div>
               </div>
@@ -104,7 +104,7 @@ export default function Inicio() {
               <p className="font-label text-[1.4rem] md:text-[1.8rem] tracking-[0.3rem] uppercase text-on-surface-variant mb-4">Jhonnathan Hernández Medina</p>
 
               <h1 className="font-headline font-bold text-[4.8rem] md:text-[7rem] lg:text-[9.6rem] leading-[0.95] tracking-tighter text-on-background mb-8 md:mb-12">
-                Gerente <span style={{ fontFamily: 'Georgia, "Palatino Linotype", Palatino, serif', fontStyle: 'italic', fontWeight: 400, letterSpacing: '0' }}>&</span><br />
+                Gerente — <br />
                 <span style={{ background: 'linear-gradient(135deg, #adc7ff 0%, #4a8eff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Ing. Especialista</span>
               </h1>
 
