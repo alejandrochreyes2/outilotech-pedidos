@@ -54,7 +54,8 @@ export const routes: Routes = [
   { path: 'iso27001', loadComponent: () => import('./components/iso27001/iso27001.component').then(m => m.Iso27001Component) },
   { path: 'certificados', loadComponent: () => import('./components/certificados/certificados.component').then(m => m.CertificadosComponent) },
   { path: 'software-medida', loadComponent: () => import('./components/software-medida/software-medida.component').then(m => m.SoftwareMedidaComponent) },
-  { path: 'portafolio', loadComponent: () => import('./components/portafolio/portafolio.component').then(m => m.PortafolioComponent) },
-  { path: 'portafolio-gerente', loadComponent: () => import('./components/portafolio-gerente/portafolio-gerente.component').then(m => m.PortafolioGerenteComponent) },
+  { path: 'portafolio-dev', loadComponent: () => import('./components/portafolio/portafolio.component').then(m => m.PortafolioComponent) },
+  { path: 'portafolio-gerente', redirectTo: '/portafolio', pathMatch: 'full' },
+  { path: 'portafolio', loadComponent: () => import('./components/portafolio-gerente/portafolio-gerente.component').then(m => m.PortafolioGerenteComponent) },
   { path: '**',        redirectTo: '/' }
 ];
