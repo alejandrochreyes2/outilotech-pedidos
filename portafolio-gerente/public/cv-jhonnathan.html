@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HV – Jhonnathan Hernández Medina</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #fff;
+      color: #1a1a2e;
+      font-size: 11pt;
+      line-height: 1.5;
+    }
+    .page {
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 20mm 18mm;
+    }
+    /* Header */
+    .cv-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #1a56db;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .cv-name { font-size: 22pt; font-weight: 700; color: #1a1a2e; letter-spacing: -0.5px; }
+    .cv-title { font-size: 12pt; color: #1a56db; font-weight: 600; margin-top: 4px; }
+    .cv-contact { text-align: right; font-size: 9pt; color: #555; line-height: 1.8; }
+    .cv-contact a { color: #1a56db; text-decoration: none; }
+    /* Section */
+    .section { margin-bottom: 20px; }
+    .section-title {
+      font-size: 11pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #1a56db;
+      border-bottom: 1px solid #d0d8f5;
+      padding-bottom: 4px;
+      margin-bottom: 12px;
+    }
+    /* Profile */
+    .profile-text { font-size: 10pt; color: #333; line-height: 1.7; }
+    /* Experience */
+    .exp-item { margin-bottom: 14px; }
+    .exp-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .exp-role { font-weight: 700; font-size: 11pt; color: #1a1a2e; }
+    .exp-company { font-size: 10pt; color: #1a56db; font-style: italic; margin-top: 2px; }
+    .exp-date { font-size: 9pt; color: #777; white-space: nowrap; margin-left: 10px; }
+    .exp-bullets { margin-top: 6px; padding-left: 16px; }
+    .exp-bullets li { font-size: 10pt; color: #444; margin-bottom: 2px; }
+    /* Education */
+    .edu-item { margin-bottom: 10px; }
+    .edu-degree { font-weight: 700; font-size: 10.5pt; color: #1a1a2e; }
+    .edu-inst { font-size: 10pt; color: #555; }
+    .edu-year { font-size: 9pt; color: #777; }
+    /* Skills */
+    .skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .skill-item { font-size: 10pt; color: #333; }
+    .skill-item::before { content: "▸ "; color: #1a56db; }
+    /* Tags */
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .tag {
+      background: #e8f0fe;
+      color: #1a56db;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 8.5pt;
+      font-weight: 600;
+    }
+    /* Two columns */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    /* Print */
+    @media print {
+      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .page { padding: 12mm 14mm; }
+      .no-break { page-break-inside: avoid; }
+    }
+    /* Print button */
+    .print-btn {
+      position: fixed; top: 16px; right: 16px;
+      background: #1a56db; color: #fff;
+      border: none; padding: 10px 20px;
+      border-radius: 8px; font-size: 11pt;
+      cursor: pointer; font-weight: 600;
+      box-shadow: 0 2px 8px rgba(26,86,219,0.4);
+    }
+    @media print { .print-btn { display: none; } }
+  </style>
+</head>
+<body>
+  <button class="print-btn" onclick="window.print()">Imprimir / Guardar PDF</button>
+
+  <div class="page">
+
+    <!-- HEADER -->
+    <div class="cv-header">
+      <div>
+        <div class="cv-name">Jhonnathan Hernández Medina</div>
+        <div class="cv-title">Ingeniero Industrial · Técnico Especialista en Electrónica & Seguridad Informática</div>
+        <div class="cv-title" style="color:#555;font-size:10pt;font-weight:400;margin-top:2px;">Gerente & Propietario — OutilTech · Bogotá, Colombia</div>
+      </div>
+      <div class="cv-contact">
+        <div>📞 +57 304 592 8793</div>
+        <div>✉ <a href="mailto:softhardgsm@gmail.com">softhardgsm@gmail.com</a></div>
+        <div>🌐 <a href="https://outiltech.co">outiltech.co</a></div>
+        <div>📍 Bogotá D.C., Colombia</div>
+      </div>
+    </div>
+
+    <!-- PERFIL -->
+    <div class="section no-break">
+      <div class="section-title">Perfil Profesional</div>
+      <p class="profile-text">
+        Ingeniero Industrial con especialización en Instrumentación Industrial, con más de 20 años de experiencia en diagnóstico, reparación y comercialización de equipos tecnológicos. Amplios conocimientos en electrónica, microsoldadura y lectura de planos electrónicos. Actualmente en formación en Seguridad Informática con enfoque en ciberseguridad, análisis forense digital y aplicación de controles bajo la norma ISO 27001. Complementa su perfil con formación en programación e inteligencia artificial, orientado a la automatización y resolución de problemas tecnológicos. Profesional con pensamiento analítico, capacidad de aprendizaje continuo y orientación a resultados.
+      </p>
+    </div>
+
+    <!-- EXPERIENCIA -->
+    <div class="section">
+      <div class="section-title">Experiencia Laboral</div>
+
+      <div class="exp-item no-break">
+        <div class="exp-header">
+          <div>
+            <div class="exp-role">Gerente & Propietario</div>
+            <div class="exp-company">OutilTech — Bogotá, Colombia</div>
+          </div>
+          <div class="exp-date">2017 — Actualmente</div>
+        </div>
+        <ul class="exp-bullets">
+          <li>Dirección y gestión integral de empresa de comercialización de tecnología.</li>
+          <li>Supervisión de la plataforma e-commerce outiltech.co.</li>
+          <li>Gestión de relaciones con proveedores nacionales e internacionales.</li>
+          <li>Control de inventario, logística y atención al cliente personalizada.</li>
+        </ul>
+      </div>
+
+      <div class="exp-item no-break">
+        <div class="exp-header">
+          <div>
+            <div class="exp-role">Técnico en Microsoldadura</div>
+            <div class="exp-company">OutilTech — Bogotá, Colombia</div>
+          </div>
+          <div class="exp-date">2017 — 2023</div>
+        </div>
+        <ul class="exp-bullets">
+          <li>Diagnóstico y reparación de fallas electrónicas complejas (MacBook, smartphones).</li>
+          <li>Lectura e interpretación de planos electrónicos.</li>
+          <li>Mantenimiento de computadores y dispositivos tecnológicos.</li>
+          <li>Análisis técnico de componentes electrónicos.</li>
+        </ul>
+      </div>
+
+      <div class="exp-item no-break">
+        <div class="exp-header">
+          <div>
+            <div class="exp-role">Propietario / Técnico en Soporte</div>
+            <div class="exp-company">Softhard PC — Bogotá, Colombia</div>
+          </div>
+          <div class="exp-date">2002 — 2013</div>
+        </div>
+        <ul class="exp-bullets">
+          <li>Diagnóstico y reparación de equipos electrónicos.</li>
+          <li>Venta de productos tecnológicos y atención al cliente.</li>
+          <li>Soporte postventa y gestión comercial.</li>
+          <li>Fidelización de clientes empresariales y residenciales.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- EDUCACIÓN -->
+    <div class="section no-break">
+      <div class="section-title">Educación y Formación</div>
+      <div class="two-col">
+        <div>
+          <div class="edu-item">
+            <div class="edu-degree">Especialización en Seguridad Informática</div>
+            <div class="edu-inst">UNIMINUTO — Bogotá</div>
+            <div class="edu-year">2025 — 2026 (En curso)</div>
+          </div>
+          <div class="edu-item">
+            <div class="edu-degree">Ingeniería Industrial</div>
+            <div class="edu-inst">Universitaria de Colombia — Bogotá</div>
+            <div class="edu-year">2017</div>
+          </div>
+          <div class="edu-item">
+            <div class="edu-degree">Especialización en Instrumentación Industrial</div>
+            <div class="edu-inst">Técnico Central La Salle — Bogotá</div>
+            <div class="edu-year">2012</div>
+          </div>
+        </div>
+        <div>
+          <div class="edu-item">
+            <div class="edu-degree">Técnico en Electromecánica</div>
+            <div class="edu-inst">Técnico Central La Salle — Bogotá</div>
+            <div class="edu-year">2010</div>
+          </div>
+          <div class="edu-item">
+            <div class="edu-degree">Programación con C#</div>
+            <div class="edu-inst">Platzi — Online</div>
+            <div class="edu-year">2023</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPETENCIAS -->
+    <div class="section no-break">
+      <div class="section-title">Competencias Técnicas & Digitales</div>
+      <div class="two-col">
+        <div>
+          <div class="section-title" style="font-size:8.5pt;border:none;margin-bottom:6px;">Electrónica & Hardware</div>
+          <div class="skills-grid" style="grid-template-columns:1fr;">
+            <div class="skill-item">Diagnóstico electrónico avanzado</div>
+            <div class="skill-item">Microsoldadura SMD / BGA</div>
+            <div class="skill-item">Lectura de esquemas electrónicos</div>
+            <div class="skill-item">Reparación MacBook (placa lógica, GPU)</div>
+            <div class="skill-item">Instrumentación Industrial</div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title" style="font-size:8.5pt;border:none;margin-bottom:6px;">Seguridad & Software</div>
+          <div class="skills-grid" style="grid-template-columns:1fr;">
+            <div class="skill-item">Seguridad de la información (ISO 27001)</div>
+            <div class="skill-item">Análisis forense digital básico</div>
+            <div class="skill-item">Análisis de riesgos tecnológicos</div>
+            <div class="skill-item">Programación básica en C#</div>
+            <div class="skill-item">Fundamentos de Inteligencia Artificial</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPETENCIAS ORGANIZATIVAS -->
+    <div class="section no-break">
+      <div class="section-title">Competencias Organizativas</div>
+      <div class="tags">
+        <span class="tag">Resolución de problemas técnicos</span>
+        <span class="tag">Pensamiento analítico</span>
+        <span class="tag">Orientación al cliente</span>
+        <span class="tag">Trabajo autónomo</span>
+        <span class="tag">Toma de decisiones</span>
+        <span class="tag">Adaptabilidad tecnológica</span>
+        <span class="tag">Gestión empresarial</span>
+        <span class="tag">Aprendizaje continuo</span>
+      </div>
+    </div>
+
+    <!-- IDIOMAS E INTERESES -->
+    <div class="two-col section no-break">
+      <div>
+        <div class="section-title">Idiomas</div>
+        <div class="skill-item">Español — Lengua materna</div>
+      </div>
+      <div>
+        <div class="section-title">Intereses</div>
+        <div class="tags">
+          <span class="tag">Ciberseguridad</span>
+          <span class="tag">Inteligencia Artificial</span>
+          <span class="tag">Automatización</span>
+          <span class="tag">Tecnología</span>
+          <span class="tag">Deporte</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,66 @@
+name: Deploy Portafolio Gerente to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'portafolio-gerente/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Build and Deploy Portafolio Gerente to Cloudflare Pages
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: portafolio-gerente/package-lock.json
+
+      - name: Install dependencies
+        working-directory: portafolio-gerente
+        run: npm ci
+
+      - name: Build portafolio gerente
+        working-directory: portafolio-gerente
+        run: npm run build
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Crear proyecto CF Pages si no existe
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/outiltech-gerente")
+          if [ "$STATUS" = "404" ]; then
+            echo "Creando proyecto outiltech-gerente..."
+            curl -s -X POST \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"outiltech-gerente","production_branch":"main"}' \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects"
+            echo "Proyecto creado"
+          else
+            echo "Proyecto ya existe (HTTP $STATUS)"
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        working-directory: portafolio-gerente
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: wrangler pages deploy dist --project-name=outiltech-gerente --branch=main --commit-dirty=true
