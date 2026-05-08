@@ -104,8 +104,8 @@ export default function Inicio() {
               <p className="font-label text-[1.4rem] md:text-[1.8rem] tracking-[0.3rem] uppercase text-on-surface-variant mb-4">Jhonnathan Hernández Medina</p>
 
               <h1 className="font-headline font-bold text-[4.8rem] md:text-[7rem] lg:text-[9.6rem] leading-[0.95] tracking-tighter text-on-background mb-8 md:mb-12">
-                Gerente &<br />
-                <span style={{ background: 'linear-gradient(135deg, #adc7ff 0%, #4a8eff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Técnico Especialista</span>
+                Gerente <span style={{ fontFamily: 'Georgia, "Palatino Linotype", Palatino, serif', fontStyle: 'italic', fontWeight: 400, letterSpacing: '0' }}>&</span><br />
+                <span style={{ background: 'linear-gradient(135deg, #adc7ff 0%, #4a8eff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Ing. Especialista</span>
               </h1>
 
               <p className="font-body text-[1.5rem] md:text-[1.8rem] text-on-surface-variant max-w-[55ch] leading-relaxed mb-[3rem] md:mb-[4.8rem]">
