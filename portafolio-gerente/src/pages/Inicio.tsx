@@ -56,8 +56,8 @@ export default function Inicio() {
             <a className="text-slate-400 font-['Manrope'] text-[1.4rem] hover:text-slate-100 transition-colors" href="#formacion">Formación</a>
             <Link className="text-slate-400 font-['Manrope'] text-[1.4rem] hover:text-slate-100 transition-colors" to="/contacto">Sobre Mí</Link>
             <a
-              href="/HV-Jhonnathan-Hernandez.pdf"
-              download="HV-Jhonnathan-Hernandez.pdf"
+              href="/HV – Jhonnathan Hernández Medina.pdf"
+              download="HV-Jhonnathan-Hernandez-Medina.pdf"
               className="inline-flex items-center gap-2 border border-blue-400 text-blue-300 font-['Manrope'] text-[1.3rem] font-bold px-5 py-2 rounded-xl hover:bg-blue-400/10 transition-colors"
             >
               <span className="material-symbols-outlined" style={{ fontSize: '1.8rem' }}>download</span>
@@ -78,7 +78,7 @@ export default function Inicio() {
             <div className="flex justify-center items-center relative order-1 lg:order-2">
               <div className="relative w-[20rem] h-[26rem] sm:w-[26rem] sm:h-[33rem] lg:w-[38rem] lg:h-[48rem] rounded-[2.4rem] lg:rounded-[3.2rem] overflow-hidden shadow-2xl shadow-primary/20 bg-surface-container-low">
                 <img
-                  src="/img/foto-jhonnathan.png"
+                  src="/foto-jhonnathan.PNG"
                   alt="Jhonnathan Hernández Medina - Gerente OutilTech"
                   className="w-full h-full object-contain object-top grayscale-[10%] hover:grayscale-0 transition-all duration-600"
                 />
@@ -309,7 +309,7 @@ export default function Inicio() {
           <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-[8rem]">
             <div className="lg:col-span-5 relative">
               <div className="aspect-[3/4] bg-surface-container-low rounded-xl overflow-hidden relative grayscale hover:grayscale-0 transition-all duration-700">
-                <img alt="Jhonnathan Hernández - Gerente OutilTech" className="w-full h-full object-cover" src="/img/foto-jhonnathan.png" />
+                <img alt="Jhonnathan Hernández - Gerente OutilTech" className="w-full h-full object-cover" src="/foto-jhonnathan.PNG" />
                 <div className="absolute inset-0 bg-primary/10 mix-blend-multiply"></div>
               </div>
               <div className="absolute -bottom-[4rem] -right-[4rem] bg-primary-container p-8 rounded-full hidden md:block">
@@ -401,8 +401,8 @@ export default function Inicio() {
           <span className="text-[1rem] font-label">Sobre Mí</span>
         </Link>
         <a
-          href="/HV-Jhonnathan-Hernandez.pdf"
-          download="HV-Jhonnathan-Hernandez.pdf"
+          href="/HV – Jhonnathan Hernández Medina.pdf"
+          download="HV-Jhonnathan-Hernandez-Medina.pdf"
           className="flex flex-col items-center text-blue-400"
         >
           <span className="material-symbols-outlined">download</span>

@@ -30,7 +30,7 @@ export default function Experiencia() {
         <div className="px-8 mb-12">
           <div className="flex items-center gap-4 mb-8">
             <div className="w-16 h-16 rounded-full overflow-hidden bg-surface-container-highest cursor-pointer flex items-center justify-center" onClick={() => navigate('/')}>
-              <img src="/img/foto-jhonnathan.png" alt="Jhonnathan" className="w-full h-full object-cover" />
+              <img src="/foto-jhonnathan.PNG" alt="Jhonnathan" className="w-full h-full object-cover" />
             </div>
             <div>
               <h2 className="font-['Space_Grotesk'] text-blue-100 text-xl font-bold">Jhonnathan Hernández</h2>

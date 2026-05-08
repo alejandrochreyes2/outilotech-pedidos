@@ -74,7 +74,7 @@ export default function Contacto() {
 
             {/* Foto */}
             <div className="relative h-80 w-full bg-surface-container rounded-xl overflow-hidden ghost-border">
-              <img className="w-full h-full object-cover object-top opacity-80" src="/img/foto-jhonnathan.png" alt="Jhonnathan Hernández" />
+              <img className="w-full h-full object-cover object-top opacity-80" src="/foto-jhonnathan.PNG" alt="Jhonnathan Hernández" />
               <div className="absolute inset-0 bg-gradient-to-t from-surface to-transparent z-10"></div>
               <div className="absolute bottom-6 left-6 z-20">
                 <p className="font-label text-primary text-xs uppercase tracking-widest">Localización</p>
