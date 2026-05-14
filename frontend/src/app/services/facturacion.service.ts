@@ -8,7 +8,7 @@ export interface ProductoPOS {
   stock: number;
   precio: number;
   costo: number;
-  fuente: 'stock' | 'catalogo' | 'manual';
+  fuente: 'stock' | 'catalogo' | 'manual' | 'imagen';
 }
 
 export interface ItemFactura {
@@ -16,7 +16,7 @@ export interface ItemFactura {
   descripcion: string;
   cantidad: number;
   precio: number;
-  fuente: 'stock' | 'catalogo' | 'manual';
+  fuente: 'stock' | 'catalogo' | 'manual' | 'imagen';
   subtotal: number;
 }
 
