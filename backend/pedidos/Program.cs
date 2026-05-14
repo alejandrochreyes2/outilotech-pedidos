@@ -5,6 +5,7 @@ using Microsoft.OpenApi.Models;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Collections.Concurrent;
 using Npgsql;
 using PedidosAPI.Data;
 using PedidosAPI.Repositories;
@@ -2610,6 +2611,51 @@ app.MapPost("/webhook/whatsapp/twilio", async (HttpRequest request, ILogger<Prog
     // Twilio espera TwiML vacío o 200 OK
     return Results.Content("<?xml version='1.0' encoding='UTF-8'?><Response></Response>", "text/xml");
 });
+
+// ============================================================
+// SCANNER MÓVIL — SESIONES DE ESCANEO REMOTO
+// Las sesiones son de corta vida (15 min) y sin autenticación JWT
+// protegidas solo por el token de sesión (UUID)
+// ============================================================
+var scanSessions = new ConcurrentDictionary<string, (string? Codigo, DateTime Creado)>();
+var cleanupTimer = new System.Threading.Timer(_ => {
+    var cutoff = DateTime.UtcNow.AddMinutes(-15);
+    foreach (var k in scanSessions.Keys.ToArray())
+        if (scanSessions.TryGetValue(k, out var s) && s.Creado < cutoff)
+            scanSessions.TryRemove(k, out _);
+}, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+
+// POST /scan/session — cajera crea sesión (requiere auth)
+app.MapPost("/scan/session", () => {
+    var token = Guid.NewGuid().ToString("N")[..20];
+    scanSessions[token] = (null, DateTime.UtcNow);
+    return Results.Ok(new { token });
+}).RequireAuthorization();
+
+// GET /scan/session/{token} — cajera consulta resultado (requiere auth)
+app.MapGet("/scan/session/{token}", (string token) => {
+    if (!scanSessions.TryGetValue(token, out var session))
+        return Results.NotFound(new { error = "Sesión no encontrada o expirada" });
+    return Results.Ok(new { token, resultado = session.Codigo, pendiente = session.Codigo == null });
+}).RequireAuthorization();
+
+// POST /scan/session/{token}/resultado — móvil envía el código (SIN auth)
+app.MapPost("/scan/session/{token}/resultado", async (string token, HttpContext ctx) => {
+    JsonElement body;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); }
+    catch { return Results.BadRequest(new { error = "JSON inválido" }); }
+    var codigo = body.TryGetProperty("codigo", out var c) ? c.GetString() : null;
+    if (string.IsNullOrEmpty(codigo)) return Results.BadRequest(new { error = "Código requerido" });
+    if (!scanSessions.ContainsKey(token)) return Results.NotFound(new { error = "Sesión no encontrada" });
+    scanSessions[token] = (codigo, scanSessions[token].Creado);
+    return Results.Ok(new { ok = true, mensaje = "Código recibido. Puedes cerrar esta página." });
+});
+
+// DELETE /scan/session/{token} — cajera cancela sesión (requiere auth)
+app.MapDelete("/scan/session/{token}", (string token) => {
+    scanSessions.TryRemove(token, out _);
+    return Results.Ok();
+}).RequireAuthorization();
 
 // ============================================================
 // POS — BÚSQUEDA DE PRODUCTOS

@@ -9,6 +9,8 @@ import {
 } from '../../services/facturacion.service';
 import { AuthService } from '../../services/auth.service';
 import { JhonIaService } from '../../services/jhon-ia.service';
+import { environment } from '../../../environments/environment';
+import QRCode from 'qrcode';
 
 @Component({
   selector: 'app-facturacion',
@@ -23,6 +25,8 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   auth            = inject(AuthService);
 
   @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
+  @ViewChild('qrCanvas') qrCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('captureCanvas') captureCanvas!: ElementRef<HTMLCanvasElement>;
 
   // ── Estado de la pantalla ──────────────────────────────
   pestana = signal<'pos' | 'historial'>('pos');
@@ -52,7 +56,6 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   mensajeError = signal('');
   metodoPagoSeleccionado = signal<string | null>(null);
 
-  // ── Catálogo de métodos de pago ────────────────────────
   readonly metodosPago = [
     { key: 'efectivo',  icon: '💵', label: 'Efectivo'  },
     { key: 'nequi',     icon: '📱', label: 'Nequi'     },
@@ -89,10 +92,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
         const texto = r.respuesta ?? r.mensaje ?? 'Sin respuesta';
         this.jhonMensajes.update(m => [...m, { rol: 'jhon', texto }]);
         this.jhonCargando.set(false);
-        setTimeout(() => {
-          const el = document.getElementById('jhon-chat-end');
-          el?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+        setTimeout(() => document.getElementById('jhon-chat-end')?.scrollIntoView({ behavior: 'smooth' }), 100);
       },
       error: () => {
         this.jhonMensajes.update(m => [...m, { rol: 'jhon', texto: 'Error al conectar con JhonIA.' }]);
@@ -105,27 +105,35 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.enviarAJhon(); }
   }
 
-  // ── Scanner ZXing ─────────────────────────────────────
-  mostrarScanner = signal(false);
-  scannerActivo = signal(false);
-  private scannerControls: any = null;
-  private codeReader: any = null;
+  // ── SCANNER — estado ───────────────────────────────────
+  mostrarScanner  = signal(false);
+  modoScanner     = signal<'opciones' | 'camara' | 'movil' | 'ocr'>('opciones');
+  scannerActivo   = signal(false);
   mediaStream: MediaStream | null = null;
+  private animFrame: number | null = null;
 
-  ngOnInit() {
-    this.cargarSiguienteNumero();
-  }
+  // ── SCANNER MÓVIL — sesión ─────────────────────────────
+  scanToken       = signal('');
+  scanQrUrl       = signal('');
+  scanEsperando   = signal(false);
+  scanRecibido    = signal(false);
+  private pollInterval: any;
+
+  // ── OCR — estado ──────────────────────────────────────
+  ocrProcesando   = signal(false);
+  ocrTextoExtraido = signal('');
+  ocrResultados   = signal<ProductoPOS[]>([]);
+
+  ngOnInit() { this.cargarSiguienteNumero(); }
 
   ngOnDestroy() {
     this.detenerScanner();
+    this.limpiarSesionMovil();
   }
 
   // ── Número de factura ──────────────────────────────────
   cargarSiguienteNumero() {
-    this.svc.siguienteNumero().subscribe({
-      next: r => this.numeroFactura.set(r.numero),
-      error: () => {}
-    });
+    this.svc.siguienteNumero().subscribe({ next: r => this.numeroFactura.set(r.numero), error: () => {} });
   }
 
   // ── Búsqueda de productos ──────────────────────────────
@@ -162,32 +170,17 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     }
   }
 
-  productosFiltrados() {
-    return this.productosBusqueda().filter(p => p.fuente === this.tabCatalogo());
-  }
-
   // ── Items de la factura ────────────────────────────────
   agregarProducto(p: ProductoPOS) {
-    if (p.stock === 0 && p.fuente === 'stock') {
-      this.mostrarError('Sin stock disponible para ' + p.descripcion);
-      return;
-    }
+    if (p.stock === 0 && p.fuente === 'stock') { this.mostrarError('Sin stock disponible para ' + p.descripcion); return; }
     const actuales = this.items();
     const existe = actuales.findIndex(i => i.codigo === p.codigo);
     if (existe >= 0) {
       const nuevo = [...actuales];
-      nuevo[existe] = {
-        ...nuevo[existe],
-        cantidad: nuevo[existe].cantidad + 1,
-        subtotal: (nuevo[existe].cantidad + 1) * nuevo[existe].precio
-      };
+      nuevo[existe] = { ...nuevo[existe], cantidad: nuevo[existe].cantidad + 1, subtotal: (nuevo[existe].cantidad + 1) * nuevo[existe].precio };
       this.items.set(nuevo);
     } else {
-      this.items.set([...actuales, {
-        codigo: p.codigo, descripcion: p.descripcion,
-        cantidad: 1, precio: p.precio, fuente: p.fuente,
-        subtotal: p.precio
-      }]);
+      this.items.set([...actuales, { codigo: p.codigo, descripcion: p.descripcion, cantidad: 1, precio: p.precio, fuente: p.fuente, subtotal: p.precio }]);
     }
   }
 
@@ -199,34 +192,23 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     this.items.set(actuales);
   }
 
-  quitarItem(idx: number) {
-    this.items.set(this.items().filter((_, i) => i !== idx));
-  }
+  quitarItem(idx: number) { this.items.set(this.items().filter((_, i) => i !== idx)); }
 
   limpiarFactura() {
-    this.items.set([]);
-    this.descuento.set(0);
-    this.clienteNombre.set('');
-    this.clienteId.set('');
-    this.clienteTelefono.set('');
-    this.notas.set('');
-    this.metodoPagoSeleccionado.set(null);
-    this.mensajeExito.set('');
-    this.mensajeError.set('');
+    this.items.set([]); this.descuento.set(0); this.clienteNombre.set('');
+    this.clienteId.set(''); this.clienteTelefono.set(''); this.notas.set('');
+    this.metodoPagoSeleccionado.set(null); this.mensajeExito.set(''); this.mensajeError.set('');
     this.cargarSiguienteNumero();
   }
 
   // ── Cobrar ─────────────────────────────────────────────
-  seleccionarMetodoPago(metodo: string) {
-    this.metodoPagoSeleccionado.set(metodo);
-  }
+  seleccionarMetodoPago(metodo: string) { this.metodoPagoSeleccionado.set(metodo); }
 
   cobrar() {
     if (this.items().length === 0) { this.mostrarError('Agregue productos a la factura'); return; }
     if (!this.metodoPagoSeleccionado()) { this.mostrarError('Seleccione un método de pago'); return; }
     this.cobrando.set(true);
     this.mensajeError.set('');
-
     const dto = {
       cajera: this.auth.currentUser()?.name ?? 'Cajera',
       clienteNombre: this.clienteNombre() || undefined,
@@ -234,33 +216,23 @@ export class FacturacionComponent implements OnInit, OnDestroy {
       clienteTelefono: this.clienteTelefono() || undefined,
       descuento: this.descuento(),
       notas: this.notas() || undefined,
-      items: this.items().map(i => ({
-        codigo: i.codigo, descripcion: i.descripcion,
-        cantidad: i.cantidad, precio: i.precio, fuente: i.fuente
-      }))
+      items: this.items().map(i => ({ codigo: i.codigo, descripcion: i.descripcion, cantidad: i.cantidad, precio: i.precio, fuente: i.fuente }))
     };
-
     this.svc.crearFactura(dto).subscribe({
       next: factura => {
         this.svc.pagarFactura(factura.id, this.metodoPagoSeleccionado()!).subscribe({
-          next: r => {
+          next: () => {
             this.cobrando.set(false);
-            this.mensajeExito.set(
-              `✅ ${factura.numeroFactura} cobrada por $${this.formatPeso(factura.total)} — ${this.metodoPagoSeleccionado()}`
-            );
+            this.mensajeExito.set(`✅ ${factura.numeroFactura} cobrada por $${this.formatPeso(factura.total)} — ${this.metodoPagoSeleccionado()}`);
             setTimeout(() => this.limpiarFactura(), 3500);
           },
           error: err => {
             this.cobrando.set(false);
-            const msg = err.error?.error ?? err.error?.detalle?.join(', ') ?? 'Error al pagar';
-            this.mostrarError(msg);
+            this.mostrarError(err.error?.error ?? err.error?.detalle?.join(', ') ?? 'Error al pagar');
           }
         });
       },
-      error: err => {
-        this.cobrando.set(false);
-        this.mostrarError(err.error?.error ?? 'Error al crear la factura');
-      }
+      error: err => { this.cobrando.set(false); this.mostrarError(err.error?.error ?? 'Error al crear la factura'); }
     });
   }
 
@@ -274,20 +246,39 @@ export class FacturacionComponent implements OnInit, OnDestroy {
       });
   }
 
-  verPestana(p: 'pos' | 'historial') {
-    this.pestana.set(p);
-    if (p === 'historial') this.cargarHistorial();
-  }
+  verPestana(p: 'pos' | 'historial') { this.pestana.set(p); if (p === 'historial') this.cargarHistorial(); }
 
-  // ── Scanner ZXing ─────────────────────────────────────
-  async abrirScanner() {
+  // ══════════════════════════════════════════════════════════
+  // SCANNER — MODAL CON 3 MODOS
+  // ══════════════════════════════════════════════════════════
+
+  abrirScanner() {
+    this.modoScanner.set('opciones');
+    this.ocrTextoExtraido.set('');
+    this.ocrResultados.set([]);
     this.mostrarScanner.set(true);
-    setTimeout(() => this.iniciarScanner(), 300);
   }
 
-  async iniciarScanner() {
+  cerrarScanner() {
+    this.detenerScanner();
+    this.limpiarSesionMovil();
+    this.mostrarScanner.set(false);
+    this.modoScanner.set('opciones');
+    this.ocrTextoExtraido.set('');
+    this.ocrResultados.set([]);
+  }
+
+  // ── Modo 1: cámara de este dispositivo ────────────────
+  usarCamaraDispositivo() {
+    this.modoScanner.set('camara');
+    setTimeout(() => this.iniciarCamaraLocal(), 300);
+  }
+
+  private async iniciarCamaraLocal() {
     try {
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 } }
+      });
       if (this.videoEl?.nativeElement) {
         this.videoEl.nativeElement.srcObject = this.mediaStream;
         await this.videoEl.nativeElement.play();
@@ -295,20 +286,20 @@ export class FacturacionComponent implements OnInit, OnDestroy {
       this.scannerActivo.set(true);
       this.escanearFrame();
     } catch (err) {
-      console.error('[SCANNER] Error al iniciar cámara:', err);
       this.mostrarError('No se pudo acceder a la cámara. Verifique los permisos.');
-      this.cerrarScanner();
+      this.modoScanner.set('opciones');
     }
   }
 
   private async escanearFrame() {
     if (!this.scannerActivo() || !this.videoEl?.nativeElement) return;
     const video = this.videoEl.nativeElement;
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    if (video.readyState >= 2) {
       try {
-        // Usa BarcodeDetector nativo (Chrome 83+ en Android) o fallback manual
         if ('BarcodeDetector' in window) {
-          const detector = new (window as any).BarcodeDetector({ formats: ['ean_13', 'code_128', 'qr_code', 'code_39', 'upc_a'] });
+          const detector = new (window as any).BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e', 'data_matrix', 'itf']
+          });
           const barcodes = await detector.detect(video);
           if (barcodes.length > 0) {
             await this.onCodigoDetectado(barcodes[0].rawValue);
@@ -317,36 +308,168 @@ export class FacturacionComponent implements OnInit, OnDestroy {
         }
       } catch {}
     }
-    if (this.scannerActivo()) requestAnimationFrame(() => this.escanearFrame());
+    if (this.scannerActivo()) {
+      this.animFrame = requestAnimationFrame(() => this.escanearFrame());
+    }
   }
 
   async onCodigoDetectado(codigo: string) {
     this.detenerScanner();
     const q = codigo.trim();
+    this.cerrarScanner();
+    // Poner el código en el buscador y buscar
+    this.searchQuery.set(q);
+    const input = document.getElementById('searchInput') as HTMLInputElement;
+    if (input) { input.value = q; input.dispatchEvent(new Event('input')); }
     this.svc.buscarProductos(q).subscribe({
       next: r => {
         if (r.length > 0) {
           this.agregarProducto(r[0]);
-          this.mensajeExito.set(`Producto escaneado: ${r[0].descripcion}`);
-          setTimeout(() => this.mensajeExito.set(''), 2500);
+          this.mensajeExito.set(`📷 Escaneado: ${r[0].descripcion}`);
+          setTimeout(() => this.mensajeExito.set(''), 3000);
         } else {
-          this.mostrarError(`Código ${q} no encontrado en inventario`);
+          this.mostrarError(`Código "${q}" no encontrado. Verifique el inventario.`);
         }
       }
     });
   }
 
-  cerrarScanner() {
-    this.detenerScanner();
-    this.mostrarScanner.set(false);
+  detenerScanner() {
+    this.scannerActivo.set(false);
+    if (this.animFrame) { cancelAnimationFrame(this.animFrame); this.animFrame = null; }
+    if (this.mediaStream) { this.mediaStream.getTracks().forEach(t => t.stop()); this.mediaStream = null; }
   }
 
-  private detenerScanner() {
-    this.scannerActivo.set(false);
-    if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach(t => t.stop());
-      this.mediaStream = null;
+  // ── OCR: capturar frame y extraer texto ───────────────
+  capturarOCR() {
+    if (!this.videoEl?.nativeElement) return;
+    const video = this.videoEl.nativeElement;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(video, 0, 0);
+    this.modoScanner.set('ocr');
+    this.detenerScanner();
+    this.ocrProcesando.set(true);
+    this.ocrTextoExtraido.set('');
+    this.ocrResultados.set([]);
+
+    // Guardar la imagen capturada en el canvas de previsualización
+    const previewCanvas = document.getElementById('ocr-preview') as HTMLCanvasElement;
+    if (previewCanvas) {
+      previewCanvas.width = canvas.width;
+      previewCanvas.height = canvas.height;
+      previewCanvas.getContext('2d')!.drawImage(canvas, 0, 0);
     }
+
+    // Cargar Tesseract.js dinámicamente
+    this.cargarTesseract().then(Tesseract => {
+      Tesseract.recognize(canvas, 'spa+eng', {})
+        .then(({ data }: any) => {
+          const texto = data.text.trim();
+          this.ocrTextoExtraido.set(texto);
+          this.ocrProcesando.set(false);
+          // Extraer palabras clave y buscar
+          const lineas = texto.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 2);
+          if (lineas.length > 0) this.buscarPorOCR(lineas[0]);
+        })
+        .catch(() => {
+          this.ocrProcesando.set(false);
+          this.ocrTextoExtraido.set('No se pudo extraer texto. Intente manualmente.');
+        });
+    });
+  }
+
+  private cargarTesseract(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if ((window as any).Tesseract) { resolve((window as any).Tesseract); return; }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      script.onload = () => resolve((window as any).Tesseract);
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  buscarPorOCR(texto: string) {
+    if (!texto.trim()) return;
+    this.ocrTextoExtraido.set(texto);
+    this.svc.buscarProductos(texto.trim()).subscribe({
+      next: r => this.ocrResultados.set(r.slice(0, 8)),
+      error: () => {}
+    });
+  }
+
+  agregarDesdeOCR(p: ProductoPOS) {
+    this.agregarProducto(p);
+    this.cerrarScanner();
+    this.mensajeExito.set(`📝 Agregado: ${p.descripcion}`);
+    setTimeout(() => this.mensajeExito.set(''), 3000);
+  }
+
+  // ── Modo 2: escáner móvil via QR ──────────────────────
+  usarMovil() {
+    this.modoScanner.set('movil');
+    this.scanRecibido.set(false);
+    this.scanEsperando.set(true);
+    this.svc.crearSesionScanner().subscribe({
+      next: r => {
+        this.scanToken.set(r.token);
+        const url = `${window.location.origin}/scanner/${r.token}`;
+        this.scanQrUrl.set(url);
+        // Generar QR en el canvas
+        setTimeout(() => this.generarQR(url), 200);
+        // Empezar a sondear resultado
+        this.iniciarPolling();
+      },
+      error: () => {
+        this.mostrarError('No se pudo crear la sesión de escaneo.');
+        this.modoScanner.set('opciones');
+      }
+    });
+  }
+
+  private async generarQR(url: string) {
+    const canvas = document.getElementById('qr-canvas') as HTMLCanvasElement;
+    if (!canvas) return;
+    try {
+      await QRCode.toCanvas(canvas, url, {
+        width: 220,
+        margin: 2,
+        color: { dark: '#ffffff', light: '#1a1a1a' }
+      });
+    } catch (e) { console.error('[QR]', e); }
+  }
+
+  private iniciarPolling() {
+    clearInterval(this.pollInterval);
+    this.pollInterval = setInterval(() => {
+      if (!this.scanToken()) { clearInterval(this.pollInterval); return; }
+      this.svc.consultarSesionScanner(this.scanToken()).subscribe({
+        next: r => {
+          if (!r.pendiente && r.resultado) {
+            clearInterval(this.pollInterval);
+            this.scanEsperando.set(false);
+            this.scanRecibido.set(true);
+            this.onCodigoDetectado(r.resultado);
+            this.limpiarSesionMovil();
+          }
+        },
+        error: () => {}
+      });
+    }, 2000);
+  }
+
+  limpiarSesionMovil() {
+    clearInterval(this.pollInterval);
+    if (this.scanToken()) {
+      this.svc.cancelarSesionScanner(this.scanToken()).subscribe({ error: () => {} });
+      this.scanToken.set('');
+      this.scanQrUrl.set('');
+    }
+    this.scanEsperando.set(false);
+    this.scanRecibido.set(false);
   }
 
   // ── Helpers ────────────────────────────────────────────

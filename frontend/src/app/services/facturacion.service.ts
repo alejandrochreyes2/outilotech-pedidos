@@ -114,4 +114,25 @@ export class FacturacionService {
       this.headers
     );
   }
+
+  // ── Scanner móvil ──────────────────────────────────────────
+  crearSesionScanner() {
+    return this.http.post<{ token: string }>(`${this.api}/api/scan/session`, {}, this.headers);
+  }
+
+  consultarSesionScanner(token: string) {
+    return this.http.get<{ token: string; resultado: string | null; pendiente: boolean }>(
+      `${this.api}/api/scan/session/${token}`,
+      this.headers
+    );
+  }
+
+  cancelarSesionScanner(token: string) {
+    return this.http.delete(`${this.api}/api/scan/session/${token}`, this.headers);
+  }
+
+  // Sin auth — lo llama el móvil directamente
+  enviarResultadoScanner(token: string, codigo: string) {
+    return this.http.post(`${this.api}/api/scan/session/${token}/resultado`, { codigo });
+  }
 }

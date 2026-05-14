@@ -303,24 +303,144 @@
   }
 
   <!-- ═══════════════════════════════════════════════════════
-       MODAL SCANNER
+       MODAL SCANNER — 3 MODOS
   ══════════════════════════════════════════════════════════ -->
   @if (mostrarScanner()) {
     <div class="scanner-overlay" (click)="cerrarScanner()">
       <div class="scanner-modal" (click)="$event.stopPropagation()">
+
+        <!-- Header -->
         <div class="scanner-header">
-          <h3>📷 Escanear Código de Barras</h3>
+          <h3>
+            @if (modoScanner() === 'opciones') { 📷 Escanear producto }
+            @if (modoScanner() === 'camara')   { 📷 Cámara de este dispositivo }
+            @if (modoScanner() === 'movil')    { 📲 Escáner desde celular / tablet }
+            @if (modoScanner() === 'ocr')      { 🔍 Reconocimiento de texto (OCR) }
+          </h3>
           <button class="btn-cerrar-scanner" (click)="cerrarScanner()">✕</button>
         </div>
-        <div class="scanner-video-wrapper">
-          <video #videoEl autoplay playsinline muted class="scanner-video"></video>
-          <div class="scanner-crosshair"></div>
-        </div>
-        <p class="scanner-hint">Apunte la cámara al código de barras del producto</p>
-        @if (!scannerActivo()) {
-          <p class="scanner-hint">Iniciando cámara...</p>
+
+        <!-- ── MODO OPCIONES ────────────────────────────── -->
+        @if (modoScanner() === 'opciones') {
+          <div class="scan-opciones">
+            <p class="scan-subtitle">¿Cómo quiere escanear el producto?</p>
+
+            <button class="scan-opcion-btn" (click)="usarCamaraDispositivo()">
+              <span class="scan-opcion-icon">💻</span>
+              <div>
+                <strong>Cámara de este computador</strong>
+                <small>Use la webcam para leer código de barras o QR</small>
+              </div>
+            </button>
+
+            <button class="scan-opcion-btn" (click)="usarMovil()">
+              <span class="scan-opcion-icon">📲</span>
+              <div>
+                <strong>Vincular celular / tablet</strong>
+                <small>Escanee el QR con su celular y use su cámara trasera</small>
+              </div>
+            </button>
+
+            <p class="scan-tip">
+              💡 Para productos <strong>sin código de barras</strong> (solo referencia de texto como JUQU JQ-13),
+              use la cámara y luego pulse <em>"Capturar texto"</em> para leer con OCR.
+            </p>
+          </div>
         }
-        <button class="btn-cerrar-scanner-txt" (click)="cerrarScanner()">Cancelar</button>
+
+        <!-- ── MODO CÁMARA ──────────────────────────────── -->
+        @if (modoScanner() === 'camara') {
+          <div class="scan-camara-wrapper">
+            <div class="scanner-video-wrapper">
+              <video #videoEl autoplay playsinline muted class="scanner-video"></video>
+              <div class="scanner-crosshair"></div>
+              <div class="scan-line"></div>
+            </div>
+
+            <p class="scanner-hint">
+              Apunte al <strong>código de barras</strong>, <strong>QR</strong> o <strong>referencia de texto</strong> del producto.<br>
+              <small>Compatible: EAN-13, CODE-128, QR, CODE-39, UPC, Data Matrix</small>
+            </p>
+
+            @if (!scannerActivo()) {
+              <p class="scanner-hint" style="color:#aaa">Iniciando cámara...</p>
+            }
+
+            <button class="btn-ocr" (click)="capturarOCR()">
+              🔍 Capturar texto (OCR) — para productos sin código de barras
+            </button>
+
+            <button class="btn-volver" (click)="modoScanner.set('opciones'); detenerScanner()">
+              ← Volver
+            </button>
+          </div>
+        }
+
+        <!-- ── MODO MÓVIL ───────────────────────────────── -->
+        @if (modoScanner() === 'movil') {
+          <div class="scan-movil-wrapper">
+            @if (scanEsperando()) {
+              <p class="scan-subtitle">Escanee este QR con su celular para abrir el escáner:</p>
+              <canvas id="qr-canvas" class="qr-canvas"></canvas>
+              <p class="scan-url-hint">{{ scanQrUrl() }}</p>
+              <div class="scan-esperando">
+                <span class="spin-dot"></span> Esperando escaneo desde el celular...
+              </div>
+            }
+            @if (scanRecibido()) {
+              <div class="scan-recibido">
+                ✅ Código recibido — agregando al carrito...
+              </div>
+            }
+            <button class="btn-volver" (click)="modoScanner.set('opciones'); limpiarSesionMovil()">
+              ← Volver
+            </button>
+          </div>
+        }
+
+        <!-- ── MODO OCR ─────────────────────────────────── -->
+        @if (modoScanner() === 'ocr') {
+          <div class="scan-ocr-wrapper">
+            <canvas id="ocr-preview" class="ocr-preview"></canvas>
+
+            @if (ocrProcesando()) {
+              <div class="scan-esperando">
+                <span class="spin-dot"></span> Analizando imagen con OCR...
+              </div>
+            } @else {
+              <div class="ocr-texto-section">
+                <label class="ocr-label">Texto detectado:</label>
+                <input type="text" class="ocr-input"
+                       [value]="ocrTextoExtraido()"
+                       (input)="ocrTextoExtraido.set($any($event.target).value)"
+                       placeholder="Edite el texto si es necesario..." />
+                <button class="btn-buscar-ocr" (click)="buscarPorOCR(ocrTextoExtraido())">
+                  🔍 Buscar este texto
+                </button>
+              </div>
+
+              @if (ocrResultados().length > 0) {
+                <div class="ocr-resultados">
+                  <p class="ocr-label">Seleccione el producto:</p>
+                  @for (p of ocrResultados(); track p.codigo) {
+                    <button class="ocr-item" (click)="agregarDesdeOCR(p)">
+                      <span class="ocr-cod">{{ p.codigo }}</span>
+                      <span class="ocr-desc">{{ p.descripcion }}</span>
+                      <span class="ocr-precio">${{ formatPeso(p.precio) }}</span>
+                    </button>
+                  }
+                </div>
+              } @else if (!ocrProcesando() && ocrTextoExtraido()) {
+                <p class="scan-hint-warn">Sin resultados. Edite el texto y pulse "Buscar".</p>
+              }
+            }
+
+            <button class="btn-volver" (click)="usarCamaraDispositivo()">
+              ← Volver a la cámara
+            </button>
+          </div>
+        }
+
       </div>
     </div>
   }
