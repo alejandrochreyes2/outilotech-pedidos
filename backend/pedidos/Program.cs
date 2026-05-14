@@ -387,11 +387,23 @@ using (var scope = app.Services.CreateScope())
               modelo VARCHAR(100), session_id VARCHAR(100), duracion_ms INTEGER
             );
             CREATE INDEX IF NOT EXISTS idx_control_api_timestamp ON control_api(timestamp_llamada DESC);
+            CREATE TABLE IF NOT EXISTS inventario_por_imagen (
+              id            SERIAL PRIMARY KEY,
+              referencia    TEXT,
+              notas         TEXT,
+              imagen_base64 TEXT,
+              mime_type     VARCHAR(50) DEFAULT 'image/jpeg',
+              fecha         TIMESTAMPTZ DEFAULT NOW(),
+              cajera        VARCHAR(200),
+              token_sesion  VARCHAR(100),
+              revisado      BOOLEAN DEFAULT FALSE
+            );
+            CREATE INDEX IF NOT EXISTS idx_inv_imagen_revisado ON inventario_por_imagen(revisado, fecha DESC);
         ";
         cmd4.ExecuteNonQuery();
 
         conn.Close();
-        Console.WriteLine("[DB] Tablas inventario_productos, conversaciones y JhonIA verificadas/creadas.");
+        Console.WriteLine("[DB] Tablas inventario_productos, conversaciones, JhonIA e inventario_por_imagen verificadas/creadas.");
     }
     catch (Exception ex)
     {
@@ -2655,6 +2667,95 @@ app.MapPost("/scan/session/{token}/resultado", async (string token, HttpContext 
 app.MapDelete("/scan/session/{token}", (string token) => {
     scanSessions.TryRemove(token, out var _removed);
     return Results.Ok();
+}).RequireAuthorization();
+
+// POST /scan/session/{token}/foto — móvil sube foto de producto no encontrado (SIN auth)
+app.MapPost("/scan/session/{token}/foto", async (string token, HttpContext ctx) => {
+    JsonElement body;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body, new JsonSerializerOptions(), ctx.RequestAborted); }
+    catch { return Results.BadRequest(new { error = "JSON inválido" }); }
+
+    var referencia  = body.TryGetProperty("referencia", out var rp)  ? rp.GetString() ?? "" : "";
+    var notas       = body.TryGetProperty("notas",       out var np)  ? np.GetString() ?? "" : "";
+    var imagenB64   = body.TryGetProperty("imagen",      out var ip)  ? ip.GetString() ?? "" : "";
+    var mimeType    = body.TryGetProperty("mimeType",    out var mp)  ? mp.GetString() ?? "image/jpeg" : "image/jpeg";
+    var tokenSesion = token;
+
+    if (string.IsNullOrEmpty(imagenB64))
+        return Results.BadRequest(new { error = "Imagen requerida" });
+
+    try {
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+        await using var cmd = new NpgsqlCommand(@"
+            INSERT INTO inventario_por_imagen (referencia, notas, imagen_base64, mime_type, token_sesion)
+            VALUES (@ref, @notas, @img, @mime, @tok)
+            RETURNING id", conn);
+        cmd.Parameters.AddWithValue("@ref",   referencia);
+        cmd.Parameters.AddWithValue("@notas", notas);
+        cmd.Parameters.AddWithValue("@img",   imagenB64);
+        cmd.Parameters.AddWithValue("@mime",  mimeType);
+        cmd.Parameters.AddWithValue("@tok",   tokenSesion);
+        var id = (int)(cmd.ExecuteScalar() ?? 0);
+        return Results.Ok(new { ok = true, id, mensaje = "Foto guardada. La cajera la revisará pronto." });
+    } catch (Exception ex) {
+        Console.WriteLine($"[SCAN FOTO] Error: {ex.Message}");
+        return Results.StatusCode(500);
+    }
+});
+
+// GET /scan/inventario-por-imagen — cajera lista fotos pendientes (requiere auth)
+app.MapGet("/scan/inventario-por-imagen", async (bool? revisado) => {
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    var filtro = revisado.HasValue ? "WHERE revisado = @rev" : "";
+    await using var cmd = new NpgsqlCommand($@"
+        SELECT id, referencia, notas, mime_type, fecha, cajera, token_sesion, revisado,
+               LEFT(imagen_base64, 100) as preview
+        FROM inventario_por_imagen
+        {filtro}
+        ORDER BY fecha DESC LIMIT 100", conn);
+    if (revisado.HasValue) cmd.Parameters.AddWithValue("@rev", revisado.Value);
+    await using var reader = await cmd.ExecuteReaderAsync();
+    var lista = new List<object>();
+    while (await reader.ReadAsync()) {
+        lista.Add(new {
+            id          = reader.GetInt32(0),
+            referencia  = reader.IsDBNull(1) ? "" : reader.GetString(1),
+            notas       = reader.IsDBNull(2) ? "" : reader.GetString(2),
+            mimeType    = reader.IsDBNull(3) ? "" : reader.GetString(3),
+            fecha       = reader.GetDateTime(4),
+            cajera      = reader.IsDBNull(5) ? "" : reader.GetString(5),
+            tokenSesion = reader.IsDBNull(6) ? "" : reader.GetString(6),
+            revisado    = reader.GetBoolean(7)
+        });
+    }
+    return Results.Ok(lista);
+}).RequireAuthorization();
+
+// GET /scan/inventario-por-imagen/{id}/imagen — retorna imagen base64 (requiere auth)
+app.MapGet("/scan/inventario-por-imagen/{id}/imagen", async (int id) => {
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    await using var cmd = new NpgsqlCommand(
+        "SELECT imagen_base64, mime_type FROM inventario_por_imagen WHERE id = @id", conn);
+    cmd.Parameters.AddWithValue("@id", id);
+    await using var r = await cmd.ExecuteReaderAsync();
+    if (!await r.ReadAsync()) return Results.NotFound();
+    var img  = r.IsDBNull(0) ? "" : r.GetString(0);
+    var mime = r.IsDBNull(1) ? "image/jpeg" : r.GetString(1);
+    return Results.Ok(new { imagen = img, mimeType = mime });
+}).RequireAuthorization();
+
+// PATCH /scan/inventario-por-imagen/{id}/revisar — marcar como revisado (requiere auth)
+app.MapPatch("/scan/inventario-por-imagen/{id}/revisar", async (int id) => {
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    await using var cmd = new NpgsqlCommand(
+        "UPDATE inventario_por_imagen SET revisado = TRUE WHERE id = @id", conn);
+    cmd.Parameters.AddWithValue("@id", id);
+    await cmd.ExecuteNonQueryAsync();
+    return Results.Ok(new { ok = true });
 }).RequireAuthorization();
 
 // ============================================================

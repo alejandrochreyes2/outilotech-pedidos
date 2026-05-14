@@ -1,8 +1,10 @@
-import { Component, OnInit, OnDestroy, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+
+type Estado = 'iniciando' | 'escaneando' | 'encontrado' | 'error' | 'enviado' | 'foto' | 'foto-enviada';
 
 @Component({
   selector: 'app-mobile-scanner',
@@ -11,16 +13,21 @@ import { environment } from '../../../environments/environment';
   templateUrl: './mobile-scanner.component.html',
 })
 export class MobileScannerComponent implements OnInit, OnDestroy {
-  @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
-  @ViewChild('canvasEl') canvasEl!: ElementRef<HTMLCanvasElement>;
 
   token = '';
-  estado = signal<'iniciando' | 'escaneando' | 'encontrado' | 'error' | 'enviado'>('iniciando');
+  estado       = signal<Estado>('iniciando');
   codigoDetectado = signal('');
-  mensajeError = signal('');
-  scanActivo = signal(false);
-  entradaManual = signal(false);
-  codigoManual = signal('');
+  mensajeError    = signal('');
+  scanActivo      = signal(false);
+  entradaManual   = signal(false);
+  codigoManual    = signal('');
+
+  // Foto
+  fotoDataUrl    = signal('');
+  fotoMimeType   = signal('image/jpeg');
+  fotoReferencia = signal('');
+  fotoNotas      = signal('');
+  fotoEnviando   = signal(false);
 
   private mediaStream: MediaStream | null = null;
   private animFrame: number | null = null;
@@ -37,26 +44,37 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
     setTimeout(() => this.iniciarCamara(), 400);
   }
 
-  ngOnDestroy() {
-    this.detener();
-  }
+  ngOnDestroy() { this.detener(); }
 
   async iniciarCamara() {
     try {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
       });
+
+      // Primero poner en estado 'escaneando' para que Angular renderice el <video>
+      this.estado.set('escaneando');
+
+      // Esperar que Angular renderice el DOM
+      await new Promise(r => setTimeout(r, 150));
+
       const video = document.getElementById('mov-video') as HTMLVideoElement;
       if (video) {
         video.srcObject = this.mediaStream;
-        await video.play();
+        video.setAttribute('playsinline', '');
+        video.setAttribute('autoplay', '');
+        video.muted = true;
+        try { await video.play(); } catch {}
       }
+
       this.scanActivo.set(true);
-      this.estado.set('escaneando');
       this.escanearFrame();
     } catch (err: any) {
       this.estado.set('error');
-      this.mensajeError.set('No se pudo acceder a la cámara. Verifique los permisos.');
+      const msg = (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError')
+        ? 'Permiso de cámara denegado. Pulse el ícono de cámara en la barra del navegador y permita el acceso.'
+        : 'No se pudo acceder a la cámara. Intente con otro navegador (Chrome recomendado).';
+      this.mensajeError.set(msg);
     }
   }
 
@@ -102,12 +120,71 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
       });
   }
 
-  async enviarManual() {
+  enviarManual() {
     const cod = this.codigoManual().trim();
     if (!cod) return;
     this.codigoDetectado.set(cod);
     this.estado.set('encontrado');
-    await this.enviarCodigo(cod);
+    this.enviarCodigo(cod);
+  }
+
+  // ── Captura de foto ───────────────────────────────────────
+  tomarFoto() {
+    const video = document.getElementById('mov-video') as HTMLVideoElement;
+    if (!video || video.readyState < 2) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(video, 0, 0);
+
+    const dataUrl  = canvas.toDataURL('image/jpeg', 0.82);
+    const base64   = dataUrl.split(',')[1];
+
+    this.fotoDataUrl.set(dataUrl);
+    this.fotoMimeType.set('image/jpeg');
+    // Guardar base64 temporalmente en una variable privada
+    this._fotoBase64 = base64;
+
+    this.detener();
+    this.estado.set('foto');
+  }
+
+  private _fotoBase64 = '';
+
+  enviarFoto() {
+    if (!this._fotoBase64 || this.fotoEnviando()) return;
+    this.fotoEnviando.set(true);
+
+    const payload = {
+      referencia : this.fotoReferencia().trim(),
+      notas      : this.fotoNotas().trim(),
+      imagen     : this._fotoBase64,
+      mimeType   : this.fotoMimeType(),
+    };
+
+    this.http.post(`${environment.apiUrl}/api/scan/session/${this.token}/foto`, payload)
+      .subscribe({
+        next: () => {
+          this.fotoEnviando.set(false);
+          this.estado.set('foto-enviada');
+        },
+        error: () => {
+          this.fotoEnviando.set(false);
+          this.mensajeError.set('Error al enviar la foto. Intente de nuevo.');
+          this.estado.set('error');
+        }
+      });
+  }
+
+  volverACamara() {
+    this.fotoDataUrl.set('');
+    this._fotoBase64 = '';
+    this.fotoReferencia.set('');
+    this.fotoNotas.set('');
+    this.estado.set('iniciando');
+    setTimeout(() => this.iniciarCamara(), 200);
   }
 
   reintentar() {
@@ -115,6 +192,8 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
     this.codigoDetectado.set('');
     this.codigoManual.set('');
     this.entradaManual.set(false);
+    this.fotoDataUrl.set('');
+    this._fotoBase64 = '';
     setTimeout(() => this.iniciarCamara(), 200);
   }
 
