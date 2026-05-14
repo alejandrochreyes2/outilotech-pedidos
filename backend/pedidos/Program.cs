@@ -2622,7 +2622,7 @@ var cleanupTimer = new System.Threading.Timer(_ => {
     var cutoff = DateTime.UtcNow.AddMinutes(-15);
     foreach (var k in scanSessions.Keys.ToArray())
         if (scanSessions.TryGetValue(k, out var s) && s.Creado < cutoff)
-            scanSessions.TryRemove(k, out _);
+            scanSessions.TryRemove(k, out var _removed);
 }, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
 
 // POST /scan/session — cajera crea sesión (requiere auth)
@@ -2653,7 +2653,7 @@ app.MapPost("/scan/session/{token}/resultado", async (string token, HttpContext 
 
 // DELETE /scan/session/{token} — cajera cancela sesión (requiere auth)
 app.MapDelete("/scan/session/{token}", (string token) => {
-    scanSessions.TryRemove(token, out _);
+    scanSessions.TryRemove(token, out var _removed);
     return Results.Ok();
 }).RequireAuthorization();
 
