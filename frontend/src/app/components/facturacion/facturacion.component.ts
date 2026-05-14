@@ -8,6 +8,7 @@ import {
   FacturacionService, ProductoPOS, ItemFactura
 } from '../../services/facturacion.service';
 import { AuthService } from '../../services/auth.service';
+import { JhonIaService } from '../../services/jhon-ia.service';
 
 @Component({
   selector: 'app-facturacion',
@@ -17,8 +18,9 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./facturacion.component.css']
 })
 export class FacturacionComponent implements OnInit, OnDestroy {
-  private svc = inject(FacturacionService);
-  private auth = inject(AuthService);
+  private svc    = inject(FacturacionService);
+  private jhonSvc = inject(JhonIaService);
+  auth            = inject(AuthService);
 
   @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
 
@@ -64,6 +66,44 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   cargandoHistorial = signal(false);
   filtroEstado = signal('');
   filtroFecha  = signal('');
+
+  // ── JhonIA Panel ──────────────────────────────────────
+  jhonPanelAbierto = signal(false);
+  jhonMensajes = signal<{rol: 'user'|'jhon'; texto: string}[]>([
+    { rol: 'jhon', texto: '¡Hola! Soy JhonIA. Puedo ayudarte con precios, stock y procesos de facturación. ¿En qué te ayudo?' }
+  ]);
+  jhonInput = signal('');
+  jhonCargando = signal(false);
+  private jhonSessionId = `pos-${Date.now()}`;
+
+  toggleJhon() { this.jhonPanelAbierto.update(v => !v); }
+
+  enviarAJhon() {
+    const msg = this.jhonInput().trim();
+    if (!msg || this.jhonCargando()) return;
+    this.jhonMensajes.update(m => [...m, { rol: 'user', texto: msg }]);
+    this.jhonInput.set('');
+    this.jhonCargando.set(true);
+    this.jhonSvc.enviarMensajePOS(msg, this.jhonSessionId).subscribe({
+      next: r => {
+        const texto = r.respuesta ?? r.mensaje ?? 'Sin respuesta';
+        this.jhonMensajes.update(m => [...m, { rol: 'jhon', texto }]);
+        this.jhonCargando.set(false);
+        setTimeout(() => {
+          const el = document.getElementById('jhon-chat-end');
+          el?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      },
+      error: () => {
+        this.jhonMensajes.update(m => [...m, { rol: 'jhon', texto: 'Error al conectar con JhonIA.' }]);
+        this.jhonCargando.set(false);
+      }
+    });
+  }
+
+  jhonKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.enviarAJhon(); }
+  }
 
   // ── Scanner ZXing ─────────────────────────────────────
   mostrarScanner = signal(false);

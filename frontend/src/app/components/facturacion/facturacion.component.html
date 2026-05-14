@@ -19,6 +19,35 @@
     </div>
   </div>
 
+  <!-- ── BOTÓN JHONIA ───────────────────────────────────────── -->
+  <button class="btn-jhon-toggle" (click)="toggleJhon()" [class.active]="jhonPanelAbierto()">
+    🤖 JhonIA {{ jhonPanelAbierto() ? '▼' : '▲' }}
+  </button>
+
+  <!-- ── PANEL JHONIA ──────────────────────────────────────── -->
+  @if (jhonPanelAbierto()) {
+    <div class="jhon-panel">
+      <div class="jhon-chat" id="jhon-chat">
+        @for (m of jhonMensajes(); track $index) {
+          <div class="jhon-msg" [class.jhon-msg-user]="m.rol === 'user'" [class.jhon-msg-bot]="m.rol === 'jhon'">
+            @if (m.rol === 'jhon') { <span class="jhon-avatar">🤖</span> }
+            <span class="jhon-txt">{{ m.texto }}</span>
+          </div>
+        }
+        @if (jhonCargando()) {
+          <div class="jhon-msg jhon-msg-bot"><span class="jhon-avatar">🤖</span><span class="jhon-dot">...</span></div>
+        }
+        <div id="jhon-chat-end"></div>
+      </div>
+      <div class="jhon-input-row">
+        <input type="text" placeholder="Preguntale a JhonIA..." [value]="jhonInput()"
+               (input)="jhonInput.set($any($event.target).value)"
+               (keydown)="jhonKeydown($event)" class="jhon-input" />
+        <button class="jhon-send" (click)="enviarAJhon()" [disabled]="jhonCargando()">▶</button>
+      </div>
+    </div>
+  }
+
   <!-- ── ALERTAS ─────────────────────────────────────────── -->
   @if (mensajeExito()) {
     <div class="alert alert-success">{{ mensajeExito() }}</div>

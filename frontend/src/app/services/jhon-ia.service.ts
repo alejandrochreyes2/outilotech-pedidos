@@ -41,4 +41,13 @@ export class JhonIaService {
   registrarSatisfaccion(sessionId: string, voto: 'positivo' | 'negativo'): Observable<any> {
     return this.http.post(`${BASE}/satisfaccion`, { sessionId, voto }).pipe(catchError(() => of({})));
   }
+
+  enviarMensajePOS(mensaje: string, sessionId: string): Observable<any> {
+    return this.http.post(`${BASE}/mensaje`, {
+      mensaje,
+      sessionId,
+      email: 'cajera@outiltech.co',
+      nombre: 'Cajera POS'
+    }).pipe(catchError(err => of({ respuesta: 'JhonIA no disponible en este momento.', error: true })));
+  }
 }
