@@ -59,6 +59,13 @@ export class FacturacionService {
     return { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) };
   }
 
+  listarTodosProductos() {
+    return this.http.get<ProductoPOS[]>(
+      `${this.api}/api/pos/todos`,
+      this.headers
+    );
+  }
+
   buscarProductos(q: string) {
     return this.http.get<ProductoPOS[]>(
       `${this.api}/api/pos/buscar?q=${encodeURIComponent(q)}`,

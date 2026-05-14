@@ -113,6 +113,8 @@
   transition: all 0.2s;
 }
 .cat-tab.active { color: #cc0000; border-bottom-color: #cc0000; font-weight: 700; }
+.cat-tab-todo { color: #0070cc; }
+.cat-tab-todo.active { color: #0070cc; border-bottom-color: #0070cc; }
 
 .productos-grid {
   flex: 1;

@@ -33,8 +33,10 @@ export class FacturacionComponent implements OnInit, OnDestroy {
 
   // ── Búsqueda ───────────────────────────────────────────
   searchQuery = signal('');
-  tabCatalogo = signal<'stock' | 'catalogo'>('stock');
+  tabCatalogo = signal<'stock' | 'catalogo' | 'todo'>('stock');
   productosBusqueda = signal<ProductoPOS[]>([]);
+  productosTodo = signal<ProductoPOS[]>([]);
+  cargandoTodo = signal(false);
   buscando = signal(false);
   private searchTimer: any;
 
@@ -179,8 +181,12 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     }, 280);
   }
 
-  cambiarTab(tab: 'stock' | 'catalogo') {
+  cambiarTab(tab: 'stock' | 'catalogo' | 'todo') {
     this.tabCatalogo.set(tab);
+    if (tab === 'todo') {
+      this.cargarTodos();
+      return;
+    }
     if (this.searchQuery().length >= 2) {
       const q = this.searchQuery();
       this.searchQuery.set('');
@@ -190,6 +196,15 @@ export class FacturacionComponent implements OnInit, OnDestroy {
         if (input) input.dispatchEvent(new Event('input'));
       }, 50);
     }
+  }
+
+  cargarTodos() {
+    if (this.cargandoTodo()) return;
+    this.cargandoTodo.set(true);
+    this.svc.listarTodosProductos().subscribe({
+      next: r => { this.productosTodo.set(r); this.cargandoTodo.set(false); },
+      error: () => this.cargandoTodo.set(false)
+    });
   }
 
   // ── Items de la factura ────────────────────────────────

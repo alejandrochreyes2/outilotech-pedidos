@@ -86,7 +86,7 @@
           </button>
         </div>
 
-        <!-- Tabs stock / catálogo -->
+        <!-- Tabs stock / catálogo / todo -->
         <div class="cat-tabs">
           <button class="cat-tab" [class.active]="tabCatalogo() === 'stock'" (click)="cambiarTab('stock')">
             📦 Inventario Stock (403)
@@ -94,11 +94,57 @@
           <button class="cat-tab" [class.active]="tabCatalogo() === 'catalogo'" (click)="cambiarTab('catalogo')">
             🛍️ Catálogo Web (114)
           </button>
+          <button class="cat-tab cat-tab-todo" [class.active]="tabCatalogo() === 'todo'" (click)="cambiarTab('todo')">
+            📋 Todo (656)
+          </button>
         </div>
 
         <!-- Grid de productos -->
         <div class="productos-grid">
-          @if (buscando()) {
+          @if (tabCatalogo() === 'todo') {
+            @if (cargandoTodo()) {
+              <div class="empty-state">Cargando todos los productos...</div>
+            } @else if (productosTodo().length === 0) {
+              <div class="empty-state">Sin productos</div>
+            } @else {
+              <table class="tabla-productos">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    <th>Stock</th>
+                    <th>Precio</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of productosTodo(); track p.codigo) {
+                    <tr [class.sin-stock]="p.stock === 0 && p.fuente === 'stock'"
+                        (click)="agregarProducto(p)">
+                      <td class="col-codigo">{{ p.codigo }}</td>
+                      <td class="col-desc">{{ p.descripcion }}</td>
+                      <td class="col-stock">
+                        @if (p.fuente === 'stock') {
+                          <span [class.stock-bajo]="p.stock < 3" [class.sin-stock-txt]="p.stock === 0">
+                            {{ p.stock === 0 ? 'AGOTADO' : p.stock }}
+                          </span>
+                        } @else {
+                          <span class="catalogo-tag">Web</span>
+                        }
+                      </td>
+                      <td class="col-precio">${{ formatPeso(p.precio) }}</td>
+                      <td>
+                        <button class="btn-add" [disabled]="p.stock === 0 && p.fuente === 'stock'"
+                                (click)="agregarProducto(p); $event.stopPropagation()">
+                          +
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          } @else if (buscando()) {
             <div class="empty-state">Buscando...</div>
           } @else if (searchQuery().length < 2) {
             <div class="empty-state">

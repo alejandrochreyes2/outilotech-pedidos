@@ -2823,6 +2823,47 @@ app.MapGet("/pos/buscar", async (string? q) =>
 }).RequireAuthorization();
 
 // ============================================================
+// POS — LISTAR TODOS LOS PRODUCTOS SIN FILTRO
+// GET /pos/todos — devuelve inventario_stock + inventario_productos completos
+// ============================================================
+app.MapGet("/pos/todos", async () =>
+{
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    var resultados = new List<object>();
+
+    // 1. Inventario físico (stock)
+    var cmdStock = new NpgsqlCommand(@"
+        SELECT codigo_producto, descripcion, stock_actual, precio_venta, costo_unitario
+        FROM inventario_stock
+        ORDER BY descripcion", conn);
+    await using var rStock = await cmdStock.ExecuteReaderAsync();
+    while (await rStock.ReadAsync())
+        resultados.Add(new {
+            codigo = rStock.GetString(0), descripcion = rStock.GetString(1),
+            stock = rStock.GetInt32(2), precio = rStock.GetDecimal(3),
+            costo = rStock.GetDecimal(4), fuente = "stock"
+        });
+    await rStock.CloseAsync();
+
+    // 2. Catálogo web
+    var cmdProd = new NpgsqlCommand(@"
+        SELECT producto_id, nombre, unidades, precio
+        FROM inventario_productos
+        WHERE disponibilidad = 'Si'
+        ORDER BY nombre", conn);
+    await using var rProd = await cmdProd.ExecuteReaderAsync();
+    while (await rProd.ReadAsync())
+        resultados.Add(new {
+            codigo = rProd.GetString(0), descripcion = rProd.GetString(1),
+            stock = rProd.GetInt32(2), precio = rProd.GetDecimal(3),
+            costo = (decimal)0, fuente = "catalogo"
+        });
+
+    return Results.Ok(resultados);
+}).RequireAuthorization();
+
+// ============================================================
 // INVENTARIO — AGREGAR PRODUCTO NUEVO (desde código de barras desconocido)
 // POST /inventario/nuevo-producto
 // ============================================================
