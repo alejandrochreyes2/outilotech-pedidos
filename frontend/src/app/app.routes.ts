@@ -44,6 +44,7 @@ export const routes: Routes = [
   { path: 'samsung',    redirectTo: '/',    pathMatch: 'full' },
   { path: 'motorola',   redirectTo: '/',    pathMatch: 'full' },
 
+  { path: 'facturacion', loadComponent: () => import('./components/facturacion/facturacion.component').then(m => m.FacturacionComponent), canActivate: [authGuard] },
   { path: 'jhon-ia', loadComponent: () => import('./components/jhon-dashboard/jhon-dashboard.component').then(m => m.JhonDashboardComponent), canActivate: [authGuard] },
   { path: 'checkout', loadComponent: () => import('./components/checkout/checkout.component').then(m => m.CheckoutComponent) },
   { path: 'payment-result', loadComponent: () => import('./components/payment-result/payment-result.component').then(m => m.PaymentResultComponent) },

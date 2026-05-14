@@ -1,0 +1,535 @@
+/* ── Wrapper principal ─────────────────────────────────── */
+.pos-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #1a1a1a;
+  color: #f0f0f0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  overflow: hidden;
+}
+
+/* ── Header ────────────────────────────────────────────── */
+.pos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #cc0000;
+  padding: 0.6rem 1.2rem;
+  flex-shrink: 0;
+}
+.pos-header-left { display: flex; align-items: center; gap: 0.75rem; }
+.pos-icon { font-size: 1.6rem; }
+.pos-header h1 { margin: 0; font-size: 1.2rem; font-weight: 700; color: #fff; }
+.pos-subtitle { font-size: 0.75rem; color: rgba(255,255,255,0.75); }
+
+.pos-tabs { display: flex; gap: 0.5rem; }
+.tab-btn {
+  padding: 0.4rem 1rem;
+  border: 1.5px solid rgba(255,255,255,0.4);
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn.active { background: #fff; color: #cc0000; font-weight: 700; border-color: #fff; }
+
+/* ── Alertas ─────────────────────────────────────────── */
+.alert {
+  padding: 0.5rem 1rem;
+  font-size: 0.88rem;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+.alert-success { background: #00662e; color: #a0ffc0; }
+.alert-error   { background: #7a1010; color: #ffc0c0; }
+
+/* ── Cuerpo POS ─────────────────────────────────────── */
+.pos-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+}
+
+/* ── Columna Catálogo ────────────────────────────────── */
+.col-catalogo {
+  flex: 1.4;
+  display: flex;
+  flex-direction: column;
+  background: #222;
+  border-right: 1px solid #333;
+  overflow: hidden;
+}
+
+.search-bar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  background: #1a1a1a;
+  flex-shrink: 0;
+}
+.search-input {
+  flex: 1;
+  padding: 0.5rem 0.8rem;
+  background: #2d2d2d;
+  border: 1.5px solid #444;
+  border-radius: 6px;
+  color: #f0f0f0;
+  font-size: 0.9rem;
+}
+.search-input:focus { outline: none; border-color: #cc0000; }
+
+.btn-scanner {
+  padding: 0.5rem 0.9rem;
+  background: #cc0000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.btn-scanner:hover { background: #aa0000; }
+
+.cat-tabs {
+  display: flex;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+}
+.cat-tab {
+  flex: 1;
+  padding: 0.45rem;
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.cat-tab.active { color: #cc0000; border-bottom-color: #cc0000; font-weight: 700; }
+
+.productos-grid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+.empty-state {
+  text-align: center;
+  color: #666;
+  padding: 2rem;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.tabla-productos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.tabla-productos thead tr {
+  background: #2d2d2d;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.tabla-productos th {
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  color: #ffc000;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.tabla-productos tbody tr {
+  border-bottom: 1px solid #2a2a2a;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.tabla-productos tbody tr:hover { background: #2d2d2d; }
+.tabla-productos tbody tr.sin-stock { opacity: 0.45; cursor: not-allowed; }
+.tabla-productos td { padding: 0.45rem 0.6rem; }
+
+.col-codigo { font-family: monospace; color: #ffc000; font-size: 0.78rem; }
+.col-desc { max-width: 220px; }
+.col-stock { text-align: center; }
+.col-precio { text-align: right; font-weight: 600; color: #a0ffc0; }
+
+.stock-bajo { color: #ffc000; }
+.sin-stock-txt { color: #ff4444; font-weight: 700; font-size: 0.72rem; }
+.catalogo-tag {
+  background: #0066cc;
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.68rem;
+}
+
+.btn-add {
+  background: #cc0000;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.btn-add:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Columna Factura ─────────────────────────────────── */
+.col-factura {
+  width: 380px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+  overflow: hidden;
+}
+
+.factura-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #2d2d2d;
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+}
+.factura-numero { font-family: monospace; font-size: 1rem; font-weight: 700; color: #ffc000; }
+.factura-fecha { font-size: 0.75rem; color: #888; }
+
+.cliente-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+}
+.inp-cliente {
+  padding: 0.35rem 0.6rem;
+  background: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 5px;
+  color: #ddd;
+  font-size: 0.8rem;
+}
+.inp-cliente:focus { outline: none; border-color: #cc0000; }
+
+.items-section {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+.items-empty {
+  text-align: center;
+  color: #555;
+  padding: 1.5rem 1rem;
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+.tabla-items {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.tabla-items th {
+  background: #2d2d2d;
+  padding: 0.35rem 0.5rem;
+  color: #aaa;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+}
+.tabla-items td { padding: 0.38rem 0.5rem; border-bottom: 1px solid #2a2a2a; vertical-align: middle; }
+.item-desc { max-width: 140px; font-size: 0.78rem; line-height: 1.3; }
+
+.cant-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cant-ctrl button {
+  width: 20px; height: 20px;
+  background: #444;
+  border: none;
+  border-radius: 3px;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.cant-ctrl button:hover { background: #cc0000; }
+.cant-ctrl span { min-width: 20px; text-align: center; font-weight: 700; }
+
+.btn-del {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  padding: 2px;
+}
+.btn-del:hover { opacity: 1; }
+
+/* ── Totales ─────────────────────────────────────────── */
+.totales-section {
+  border-top: 1px solid #333;
+  padding: 0.5rem 0.8rem;
+  flex-shrink: 0;
+}
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.2rem 0;
+  font-size: 0.85rem;
+  color: #ccc;
+}
+.total-final {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  border-top: 1px solid #444;
+  padding-top: 0.4rem;
+  margin-top: 0.2rem;
+}
+.total-valor { font-size: 1.3rem; color: #a0ffc0; }
+
+.descuento-row { color: #ffc000; }
+.inp-descuento {
+  width: 90px;
+  padding: 0.2rem 0.4rem;
+  background: #2d2d2d;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #ffc000;
+  font-size: 0.85rem;
+  text-align: right;
+}
+.inp-descuento:focus { outline: none; border-color: #cc0000; }
+
+/* ── Métodos de pago ─────────────────────────────────── */
+.metodos-pago {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  padding: 0.5rem 0.8rem;
+  flex-shrink: 0;
+}
+.btn-metodo {
+  padding: 0.45rem;
+  border: 1.5px solid #444;
+  border-radius: 6px;
+  background: #2d2d2d;
+  color: #ccc;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.btn-metodo:hover { border-color: #cc0000; color: #fff; }
+.btn-metodo.selected {
+  background: #cc0000;
+  border-color: #cc0000;
+  color: #fff;
+  font-weight: 700;
+}
+
+.inp-notas {
+  width: calc(100% - 1.6rem);
+  margin: 0 0.8rem 0.4rem;
+  padding: 0.35rem 0.6rem;
+  background: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 5px;
+  color: #aaa;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.inp-notas:focus { outline: none; border-color: #cc0000; }
+
+/* ── Botones de acción ───────────────────────────────── */
+.acciones {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem 0.8rem;
+  flex-shrink: 0;
+}
+.btn-limpiar {
+  padding: 0.6rem 0.9rem;
+  background: #333;
+  color: #aaa;
+  border: 1px solid #444;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-limpiar:hover { background: #444; color: #fff; }
+
+.btn-cobrar {
+  flex: 1;
+  padding: 0.75rem;
+  background: #00662e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-cobrar:hover:not(:disabled) { background: #009940; }
+.btn-cobrar:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Historial ───────────────────────────────────────── */
+.historial-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0.8rem;
+  gap: 0.7rem;
+}
+.historial-filtros { display: flex; gap: 0.6rem; align-items: center; flex-shrink: 0; }
+.inp-filtro {
+  padding: 0.4rem 0.7rem;
+  background: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #f0f0f0;
+  font-size: 0.85rem;
+}
+.inp-filtro:focus { outline: none; border-color: #cc0000; }
+.btn-buscar-hist {
+  padding: 0.4rem 1rem;
+  background: #cc0000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabla-historial {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+  overflow-y: auto;
+}
+.tabla-historial th {
+  background: #2d2d2d;
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+  color: #ffc000;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+}
+.tabla-historial td { padding: 0.45rem 0.7rem; border-bottom: 1px solid #2a2a2a; }
+.tabla-historial tr:hover td { background: #252525; }
+.num-factura { font-family: monospace; color: #ffc000; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.badge-verde  { background: #00662e; color: #a0ffc0; }
+.badge-rojo   { background: #7a1010; color: #ffc0c0; }
+.badge-azul   { background: #004488; color: #a0d0ff; }
+.badge-gris   { background: #333;    color: #aaa; }
+
+/* ── Scanner Modal ───────────────────────────────────── */
+.scanner-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.scanner-modal {
+  background: #1e1e1e;
+  border-radius: 12px;
+  padding: 1.2rem;
+  width: 90vw;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  border: 1.5px solid #cc0000;
+}
+.scanner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.scanner-header h3 { margin: 0; font-size: 1rem; }
+.btn-cerrar-scanner {
+  background: #333;
+  border: none;
+  color: #fff;
+  font-size: 1rem;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scanner-video-wrapper {
+  position: relative;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 4/3;
+}
+.scanner-video { width: 100%; height: 100%; object-fit: cover; }
+.scanner-crosshair {
+  position: absolute;
+  inset: 20%;
+  border: 2px solid #cc0000;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.scanner-hint { text-align: center; font-size: 0.82rem; color: #888; margin: 0; }
+.btn-cerrar-scanner-txt {
+  padding: 0.5rem;
+  background: #333;
+  color: #aaa;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+/* ── Scrollbar oscuro ────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #1a1a1a; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }

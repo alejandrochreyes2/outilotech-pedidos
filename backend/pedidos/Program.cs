@@ -2834,5 +2834,303 @@ async Task EnviarEmail(Pedido pedido, string tipoEvento)
     }
 }
 
+// ============================================================
+// POS — BÚSQUEDA DE PRODUCTOS
+// GET /pos/buscar?q=texto — busca en inventario_stock e inventario_productos
+// ============================================================
+app.MapGet("/pos/buscar", async (string? q) =>
+{
+    var query = (q ?? "").Trim().ToLower();
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    var resultados = new List<object>();
+
+    var cmdStock = new NpgsqlCommand(@"
+        SELECT codigo_producto, descripcion, stock_actual, precio_venta, costo_unitario
+        FROM inventario_stock
+        WHERE LOWER(descripcion) LIKE @q OR LOWER(codigo_producto) LIKE @q
+        ORDER BY descripcion LIMIT 60", conn);
+    cmdStock.Parameters.AddWithValue("q", $"%{query}%");
+    await using var rStock = await cmdStock.ExecuteReaderAsync();
+    while (await rStock.ReadAsync())
+        resultados.Add(new {
+            codigo = rStock.GetString(0), descripcion = rStock.GetString(1),
+            stock = rStock.GetInt32(2), precio = rStock.GetDecimal(3),
+            costo = rStock.GetDecimal(4), fuente = "stock"
+        });
+    await rStock.CloseAsync();
+
+    var cmdProd = new NpgsqlCommand(@"
+        SELECT producto_id, nombre, unidades, precio
+        FROM inventario_productos
+        WHERE disponibilidad = 'Si'
+          AND (LOWER(nombre) LIKE @q OR LOWER(producto_id) LIKE @q)
+        ORDER BY nombre LIMIT 40", conn);
+    cmdProd.Parameters.AddWithValue("q", $"%{query}%");
+    await using var rProd = await cmdProd.ExecuteReaderAsync();
+    while (await rProd.ReadAsync())
+        resultados.Add(new {
+            codigo = rProd.GetString(0), descripcion = rProd.GetString(1),
+            stock = rProd.GetInt32(2), precio = rProd.GetDecimal(3),
+            costo = (decimal)0, fuente = "catalogo"
+        });
+
+    return Results.Ok(resultados);
+}).RequireAuthorization();
+
+// ============================================================
+// FACTURACIÓN — SIGUIENTE NÚMERO
+// GET /facturacion/siguiente-numero
+// ============================================================
+app.MapGet("/facturacion/siguiente-numero", async () =>
+{
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    var cmd = new NpgsqlCommand("SELECT fn_generar_numero_factura()", conn);
+    var numero = (string)(await cmd.ExecuteScalarAsync())!;
+    return Results.Ok(new { numero });
+}).RequireAuthorization();
+
+// ============================================================
+// FACTURACIÓN — CREAR FACTURA
+// POST /facturacion
+// ============================================================
+app.MapPost("/facturacion", async (HttpContext ctx) =>
+{
+    JsonElement body;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); }
+    catch { return Results.BadRequest(new { error = "JSON inválido" }); }
+
+    var cajera        = body.TryGetProperty("cajera",          out var c)  ? c.GetString()  ?? "Cajera" : "Cajera";
+    var clienteNombre = body.TryGetProperty("clienteNombre",   out var cn) ? cn.GetString() : null;
+    var clienteId     = body.TryGetProperty("clienteId",       out var ci) ? ci.GetString() : null;
+    var clienteEmail  = body.TryGetProperty("clienteEmail",    out var ce) ? ce.GetString() : null;
+    var clienteTel    = body.TryGetProperty("clienteTelefono", out var ct) ? ct.GetString() : null;
+    var descuento     = body.TryGetProperty("descuento",       out var d)  ? d.GetDecimal() : 0m;
+    var notas         = body.TryGetProperty("notas",           out var n)  ? n.GetString()  : null;
+
+    if (!body.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array || items.GetArrayLength() == 0)
+        return Results.BadRequest(new { error = "La factura debe tener al menos un ítem" });
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    await using var tx = await conn.BeginTransactionAsync();
+    try
+    {
+        var cmdNum = new NpgsqlCommand("SELECT fn_generar_numero_factura()", conn, tx);
+        var numeroFactura = (string)(await cmdNum.ExecuteScalarAsync())!;
+
+        decimal subtotal = 0m;
+        var itemsList = new List<(string cod, string desc, int cant, decimal precio, string fuente)>();
+        foreach (var item in items.EnumerateArray())
+        {
+            var cod    = item.GetProperty("codigo").GetString()!;
+            var desc   = item.GetProperty("descripcion").GetString()!;
+            var cant   = item.GetProperty("cantidad").GetInt32();
+            var precio = item.GetProperty("precio").GetDecimal();
+            var fuente = item.TryGetProperty("fuente", out var f) ? f.GetString() ?? "stock" : "stock";
+            subtotal += precio * cant;
+            itemsList.Add((cod, desc, cant, precio, fuente));
+        }
+        decimal total = subtotal - descuento;
+
+        var cmdF = new NpgsqlCommand(@"
+            INSERT INTO facturas
+              (numero_factura, cajera, cliente_nombre, cliente_id, cliente_email, cliente_telefono,
+               subtotal, descuento, total, notas, estado)
+            VALUES (@num,@cajera,@cn,@ci,@ce,@ct,@sub,@desc,@total,@notas,'emitida')
+            RETURNING id", conn, tx);
+        cmdF.Parameters.AddWithValue("num",   numeroFactura);
+        cmdF.Parameters.AddWithValue("cajera",cajera);
+        cmdF.Parameters.AddWithValue("cn",    (object?)clienteNombre ?? DBNull.Value);
+        cmdF.Parameters.AddWithValue("ci",    (object?)clienteId     ?? DBNull.Value);
+        cmdF.Parameters.AddWithValue("ce",    (object?)clienteEmail  ?? DBNull.Value);
+        cmdF.Parameters.AddWithValue("ct",    (object?)clienteTel    ?? DBNull.Value);
+        cmdF.Parameters.AddWithValue("sub",   subtotal);
+        cmdF.Parameters.AddWithValue("desc",  descuento);
+        cmdF.Parameters.AddWithValue("total", total);
+        cmdF.Parameters.AddWithValue("notas", (object?)notas ?? DBNull.Value);
+        var facturaId = (int)(await cmdF.ExecuteScalarAsync())!;
+
+        foreach (var (cod, desc, cant, precio, fuente) in itemsList)
+        {
+            var cmdI = new NpgsqlCommand(@"
+                INSERT INTO factura_items (factura_id, codigo_producto, descripcion, cantidad, precio_unitario, subtotal, fuente)
+                VALUES (@fid,@cod,@desc,@cant,@precio,@sub,@fuente)", conn, tx);
+            cmdI.Parameters.AddWithValue("fid",    facturaId);
+            cmdI.Parameters.AddWithValue("cod",    cod);
+            cmdI.Parameters.AddWithValue("desc",   desc);
+            cmdI.Parameters.AddWithValue("cant",   cant);
+            cmdI.Parameters.AddWithValue("precio", precio);
+            cmdI.Parameters.AddWithValue("sub",    precio * cant);
+            cmdI.Parameters.AddWithValue("fuente", fuente);
+            await cmdI.ExecuteNonQueryAsync();
+        }
+        await tx.CommitAsync();
+        return Results.Ok(new { id = facturaId, numeroFactura, subtotal, descuento, total, estado = "emitida" });
+    }
+    catch (Exception ex)
+    {
+        await tx.RollbackAsync();
+        Console.WriteLine($"[FACTURACION] Error crear: {ex.Message}");
+        return Results.Problem(ex.Message);
+    }
+}).RequireAuthorization();
+
+// ============================================================
+// FACTURACIÓN — LISTAR
+// GET /facturacion?estado=pagada&fecha=2026-05-13&page=1
+// ============================================================
+app.MapGet("/facturacion", async (string? estado, string? fecha, int page = 1) =>
+{
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    var whereParts = new List<string>();
+    var cmd = new NpgsqlCommand(); cmd.Connection = conn;
+    if (!string.IsNullOrEmpty(estado)) { whereParts.Add("f.estado = @estado"); cmd.Parameters.AddWithValue("estado", estado); }
+    if (!string.IsNullOrEmpty(fecha))  { whereParts.Add("DATE(f.fecha) = @fecha"); cmd.Parameters.AddWithValue("fecha", DateOnly.Parse(fecha)); }
+    var where = whereParts.Count > 0 ? "WHERE " + string.Join(" AND ", whereParts) : "";
+    int limit = 25, offset = (page - 1) * limit;
+    cmd.CommandText = $@"
+        SELECT f.id, f.numero_factura, f.fecha, f.cajera, f.cliente_nombre,
+               f.total, f.metodo_pago, f.estado, COUNT(fi.id) AS items
+        FROM facturas f LEFT JOIN factura_items fi ON fi.factura_id = f.id
+        {where}
+        GROUP BY f.id ORDER BY f.fecha DESC LIMIT {limit} OFFSET {offset}";
+    await using var r = await cmd.ExecuteReaderAsync();
+    var list = new List<object>();
+    while (await r.ReadAsync())
+        list.Add(new {
+            id = r.GetInt32(0), numeroFactura = r.GetString(1), fecha = r.GetDateTime(2),
+            cajera = r.GetString(3), clienteNombre = r.IsDBNull(4) ? null : r.GetString(4),
+            total = r.GetDecimal(5), metodoPago = r.IsDBNull(6) ? null : r.GetString(6),
+            estado = r.GetString(7), totalItems = r.GetInt64(8)
+        });
+    return Results.Ok(list);
+}).RequireAuthorization();
+
+// ============================================================
+// FACTURACIÓN — DETALLE
+// GET /facturacion/{id}
+// ============================================================
+app.MapGet("/facturacion/{id:int}", async (int id) =>
+{
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    var cmdF = new NpgsqlCommand(@"
+        SELECT id, numero_factura, fecha, cajera, cliente_nombre, cliente_id,
+               cliente_email, cliente_telefono, subtotal, descuento, total,
+               metodo_pago, estado, notas, wompi_referencia, created_at
+        FROM facturas WHERE id = @id", conn);
+    cmdF.Parameters.AddWithValue("id", id);
+    await using var rF = await cmdF.ExecuteReaderAsync();
+    if (!await rF.ReadAsync()) return Results.NotFound(new { error = "Factura no encontrada" });
+    var factura = new {
+        id = rF.GetInt32(0), numeroFactura = rF.GetString(1), fecha = rF.GetDateTime(2),
+        cajera = rF.GetString(3), clienteNombre = rF.IsDBNull(4) ? null : rF.GetString(4),
+        clienteId = rF.IsDBNull(5) ? null : rF.GetString(5),
+        clienteEmail = rF.IsDBNull(6) ? null : rF.GetString(6),
+        clienteTelefono = rF.IsDBNull(7) ? null : rF.GetString(7),
+        subtotal = rF.GetDecimal(8), descuento = rF.GetDecimal(9), total = rF.GetDecimal(10),
+        metodoPago = rF.IsDBNull(11) ? null : rF.GetString(11),
+        estado = rF.GetString(12), notas = rF.IsDBNull(13) ? null : rF.GetString(13),
+        wompiReferencia = rF.IsDBNull(14) ? null : rF.GetString(14), creadoEn = rF.GetDateTime(15)
+    };
+    await rF.CloseAsync();
+    var cmdI = new NpgsqlCommand(@"
+        SELECT id, codigo_producto, descripcion, cantidad, precio_unitario, subtotal, fuente
+        FROM factura_items WHERE factura_id = @fid ORDER BY id", conn);
+    cmdI.Parameters.AddWithValue("fid", id);
+    await using var rI = await cmdI.ExecuteReaderAsync();
+    var items = new List<object>();
+    while (await rI.ReadAsync())
+        items.Add(new {
+            id = rI.GetInt32(0), codigo = rI.GetString(1), descripcion = rI.GetString(2),
+            cantidad = rI.GetInt32(3), precioUnitario = rI.GetDecimal(4),
+            subtotal = rI.GetDecimal(5), fuente = rI.GetString(6)
+        });
+    return Results.Ok(new { factura, items });
+}).RequireAuthorization();
+
+// ============================================================
+// FACTURACIÓN — PAGAR
+// PATCH /facturacion/{id}/pagar
+// ============================================================
+app.MapMethods("/facturacion/{id:int}/pagar", new[] { "PATCH" }, async (int id, HttpContext ctx) =>
+{
+    JsonElement body;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); }
+    catch { body = default; }
+    var metodoPago = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("metodoPago", out var mp)
+        ? mp.GetString() ?? "efectivo" : "efectivo";
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    await using var tx = await conn.BeginTransactionAsync();
+    try
+    {
+        var cmdChk = new NpgsqlCommand("SELECT estado FROM facturas WHERE id = @id", conn, tx);
+        cmdChk.Parameters.AddWithValue("id", id);
+        var estadoActual = (string?)await cmdChk.ExecuteScalarAsync();
+        if (estadoActual == null)   return Results.NotFound(new { error = "Factura no encontrada" });
+        if (estadoActual == "pagada")  return Results.BadRequest(new { error = "La factura ya fue pagada" });
+        if (estadoActual == "anulada") return Results.BadRequest(new { error = "La factura está anulada" });
+
+        // Validar stock disponible antes de ejecutar
+        var cmdVal = new NpgsqlCommand(@"
+            SELECT fi.descripcion, fi.cantidad, s.stock_actual
+            FROM factura_items fi
+            JOIN inventario_stock s ON s.codigo_producto = fi.codigo_producto
+            WHERE fi.factura_id = @fid AND s.stock_actual < fi.cantidad", conn, tx);
+        cmdVal.Parameters.AddWithValue("fid", id);
+        await using var rVal = await cmdVal.ExecuteReaderAsync();
+        var sinStock = new List<string>();
+        while (await rVal.ReadAsync())
+            sinStock.Add($"{rVal.GetString(0)}: disponible={rVal.GetInt32(2)}, solicitado={rVal.GetInt32(1)}");
+        await rVal.CloseAsync();
+        if (sinStock.Count > 0) return Results.BadRequest(new { error = "Stock insuficiente", detalle = sinStock });
+
+        // Marcar como pagada — el trigger fn_factura_pagar_descuenta_stock inserta en inventario_salidas
+        var cmdPag = new NpgsqlCommand(@"
+            UPDATE facturas SET estado='pagada', metodo_pago=@mp, updated_at=NOW() WHERE id=@id", conn, tx);
+        cmdPag.Parameters.AddWithValue("mp", metodoPago);
+        cmdPag.Parameters.AddWithValue("id", id);
+        await cmdPag.ExecuteNonQueryAsync();
+        await tx.CommitAsync();
+        return Results.Ok(new { mensaje = "Factura pagada. Stock descontado.", id, metodoPago });
+    }
+    catch (PostgresException pgEx)
+    {
+        await tx.RollbackAsync();
+        return Results.BadRequest(new { error = pgEx.MessageText });
+    }
+    catch (Exception ex)
+    {
+        await tx.RollbackAsync();
+        Console.WriteLine($"[FACTURACION] Error pagar: {ex.Message}");
+        return Results.Problem(ex.Message);
+    }
+}).RequireAuthorization();
+
+// ============================================================
+// FACTURACIÓN — ANULAR
+// PATCH /facturacion/{id}/anular
+// ============================================================
+app.MapMethods("/facturacion/{id:int}/anular", new[] { "PATCH" }, async (int id) =>
+{
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    var cmdChk = new NpgsqlCommand("SELECT estado FROM facturas WHERE id = @id", conn);
+    cmdChk.Parameters.AddWithValue("id", id);
+    var estadoActual = (string?)await cmdChk.ExecuteScalarAsync();
+    if (estadoActual == null)   return Results.NotFound(new { error = "Factura no encontrada" });
+    if (estadoActual == "pagada")  return Results.BadRequest(new { error = "No se puede anular una factura ya pagada" });
+    if (estadoActual == "anulada") return Results.BadRequest(new { error = "La factura ya está anulada" });
+    var cmdAnu = new NpgsqlCommand("UPDATE facturas SET estado='anulada', updated_at=NOW() WHERE id=@id", conn);
+    cmdAnu.Parameters.AddWithValue("id", id);
+    await cmdAnu.ExecuteNonQueryAsync();
+    return Results.Ok(new { mensaje = "Factura anulada", id });
+}).RequireAuthorization();
+
 // ── DTOs Wompi ──
 record WompiTransactionRequestDto(string Reference, decimal AmountCop, string RedirectUrl, string Email, string FullName, string Phone);

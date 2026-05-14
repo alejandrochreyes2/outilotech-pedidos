@@ -25,7 +25,8 @@ export class SidebarComponent implements OnInit {
       { label: 'Pedidos',     link: '/pedidos',   icon: '📦' },
       { label: 'Pagos',       link: '/pagos',     icon: '💳' },
       { label: 'API Pública', link: '/api-data',  icon: '🌐' },
-      { label: 'Usuarios',    link: '/usuarios',  icon: '👥' }
+      { label: 'Usuarios',    link: '/usuarios',  icon: '👥' },
+      { label: 'Facturación', link: '/facturacion', icon: '🧾' }
     ];
     this.menuItems = this.auth.isAdmin() ? allItems : allItems.slice(0, 3);
   }

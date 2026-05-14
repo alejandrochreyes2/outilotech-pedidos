@@ -1,0 +1,299 @@
+<div class="pos-wrapper">
+
+  <!-- ── HEADER ──────────────────────────────────────────── -->
+  <div class="pos-header">
+    <div class="pos-header-left">
+      <span class="pos-icon">🧾</span>
+      <div>
+        <h1>Facturación Electrónica</h1>
+        <span class="pos-subtitle">POS OutilTech — {{ auth.currentUser()?.name }}</span>
+      </div>
+    </div>
+    <div class="pos-tabs">
+      <button class="tab-btn" [class.active]="pestana() === 'pos'" (click)="verPestana('pos')">
+        🛒 Punto de Venta
+      </button>
+      <button class="tab-btn" [class.active]="pestana() === 'historial'" (click)="verPestana('historial')">
+        📋 Historial
+      </button>
+    </div>
+  </div>
+
+  <!-- ── ALERTAS ─────────────────────────────────────────── -->
+  @if (mensajeExito()) {
+    <div class="alert alert-success">{{ mensajeExito() }}</div>
+  }
+  @if (mensajeError()) {
+    <div class="alert alert-error">⚠️ {{ mensajeError() }}</div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════
+       PESTAÑA POS
+  ══════════════════════════════════════════════════════════ -->
+  @if (pestana() === 'pos') {
+    <div class="pos-body">
+
+      <!-- ── COLUMNA IZQUIERDA: Catálogo ───────────────── -->
+      <div class="col-catalogo">
+        <!-- Barra de búsqueda -->
+        <div class="search-bar">
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="🔍  Buscar producto por nombre o código..."
+            [value]="searchQuery()"
+            (input)="onSearch($event)"
+            autocomplete="off"
+            class="search-input"
+          />
+          <button class="btn-scanner" (click)="abrirScanner()" title="Escanear código de barras">
+            📷 Escanear
+          </button>
+        </div>
+
+        <!-- Tabs stock / catálogo -->
+        <div class="cat-tabs">
+          <button class="cat-tab" [class.active]="tabCatalogo() === 'stock'" (click)="cambiarTab('stock')">
+            📦 Inventario Stock (403)
+          </button>
+          <button class="cat-tab" [class.active]="tabCatalogo() === 'catalogo'" (click)="cambiarTab('catalogo')">
+            🛍️ Catálogo Web (114)
+          </button>
+        </div>
+
+        <!-- Grid de productos -->
+        <div class="productos-grid">
+          @if (buscando()) {
+            <div class="empty-state">Buscando...</div>
+          } @else if (searchQuery().length < 2) {
+            <div class="empty-state">
+              Escriba 2 o más letras para buscar productos.<br>
+              <small>Ej: "iph", "cable", "A001", "samsung"</small>
+            </div>
+          } @else if (productosBusqueda().length === 0) {
+            <div class="empty-state">Sin resultados para "{{ searchQuery() }}"</div>
+          } @else {
+            <table class="tabla-productos">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Descripción</th>
+                  <th>Stock</th>
+                  <th>Precio</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of productosBusqueda(); track p.codigo) {
+                  <tr [class.sin-stock]="p.stock === 0 && p.fuente === 'stock'"
+                      (click)="agregarProducto(p)">
+                    <td class="col-codigo">{{ p.codigo }}</td>
+                    <td class="col-desc">{{ p.descripcion }}</td>
+                    <td class="col-stock">
+                      @if (p.fuente === 'stock') {
+                        <span [class.stock-bajo]="p.stock < 3" [class.sin-stock-txt]="p.stock === 0">
+                          {{ p.stock === 0 ? 'AGOTADO' : p.stock }}
+                        </span>
+                      } @else {
+                        <span class="catalogo-tag">Web</span>
+                      }
+                    </td>
+                    <td class="col-precio">${{ formatPeso(p.precio) }}</td>
+                    <td>
+                      <button class="btn-add" [disabled]="p.stock === 0 && p.fuente === 'stock'"
+                              (click)="agregarProducto(p); $event.stopPropagation()">
+                        +
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      </div>
+
+      <!-- ── COLUMNA DERECHA: Factura ──────────────────── -->
+      <div class="col-factura">
+        <!-- Header factura -->
+        <div class="factura-header">
+          <div class="factura-numero">{{ numeroFactura() }}</div>
+          <div class="factura-fecha">{{ today | date:'dd/MM/yyyy HH:mm' }}</div>
+        </div>
+
+        <!-- Datos cliente (opcionales) -->
+        <div class="cliente-section">
+          <input type="text" placeholder="Cliente (opcional)" [value]="clienteNombre()"
+                 (input)="clienteNombre.set($any($event.target).value)" class="inp-cliente" />
+          <input type="text" placeholder="Cédula / ID" [value]="clienteId()"
+                 (input)="clienteId.set($any($event.target).value)" class="inp-cliente" />
+          <input type="text" placeholder="Teléfono" [value]="clienteTelefono()"
+                 (input)="clienteTelefono.set($any($event.target).value)" class="inp-cliente" />
+        </div>
+
+        <!-- Items de la factura -->
+        <div class="items-section">
+          @if (items().length === 0) {
+            <div class="items-empty">
+              Agregue productos desde el catálogo<br>o escanee el código de barras
+            </div>
+          } @else {
+            <table class="tabla-items">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Cant</th>
+                  <th>Precio</th>
+                  <th>Sub</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of items(); track $index; let i = $index) {
+                  <tr>
+                    <td class="item-desc">{{ item.descripcion }}</td>
+                    <td class="item-cant">
+                      <div class="cant-ctrl">
+                        <button (click)="cambiarCantidad(i, -1)">−</button>
+                        <span>{{ item.cantidad }}</span>
+                        <button (click)="cambiarCantidad(i, 1)">+</button>
+                      </div>
+                    </td>
+                    <td>${{ formatPeso(item.precio) }}</td>
+                    <td>${{ formatPeso(item.subtotal) }}</td>
+                    <td>
+                      <button class="btn-del" (click)="quitarItem(i)">🗑</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+
+        <!-- Totales -->
+        <div class="totales-section">
+          <div class="total-row">
+            <span>Subtotal</span>
+            <span>${{ formatPeso(subtotal()) }}</span>
+          </div>
+          <div class="total-row descuento-row">
+            <span>Descuento ($)</span>
+            <input type="number" min="0" [value]="descuento()"
+                   (input)="descuento.set(+$any($event.target).value)"
+                   class="inp-descuento" />
+          </div>
+          <div class="total-row total-final">
+            <span>TOTAL</span>
+            <span class="total-valor">${{ formatPeso(total()) }}</span>
+          </div>
+        </div>
+
+        <!-- Métodos de pago -->
+        <div class="metodos-pago">
+          @for (mp of metodosPago; track mp.key) {
+            <button class="btn-metodo"
+                    [class.selected]="metodoPagoSeleccionado() === mp.key"
+                    (click)="seleccionarMetodoPago(mp.key)">
+              {{ mp.icon }} {{ mp.label }}
+            </button>
+          }
+        </div>
+
+        <!-- Notas -->
+        <input type="text" placeholder="Notas (opcional)" [value]="notas()"
+               (input)="notas.set($any($event.target).value)" class="inp-notas" />
+
+        <!-- Botones de acción -->
+        <div class="acciones">
+          <button class="btn-limpiar" (click)="limpiarFactura()">🗑 Limpiar</button>
+          <button class="btn-cobrar"
+                  [disabled]="items().length === 0 || cobrando() || !metodoPagoSeleccionado()"
+                  (click)="cobrar()">
+            @if (cobrando()) { ⏳ Procesando... } @else { 💰 COBRAR ${{ formatPeso(total()) }} }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════
+       PESTAÑA HISTORIAL
+  ══════════════════════════════════════════════════════════ -->
+  @if (pestana() === 'historial') {
+    <div class="historial-wrapper">
+      <!-- Filtros -->
+      <div class="historial-filtros">
+        <select [value]="filtroEstado()" (change)="filtroEstado.set($any($event.target).value)" class="inp-filtro">
+          <option value="">Todos los estados</option>
+          <option value="emitida">Emitida</option>
+          <option value="pagada">Pagada</option>
+          <option value="anulada">Anulada</option>
+        </select>
+        <input type="date" [value]="filtroFecha()"
+               (change)="filtroFecha.set($any($event.target).value)" class="inp-filtro" />
+        <button class="btn-buscar-hist" (click)="cargarHistorial()">🔍 Buscar</button>
+      </div>
+
+      <!-- Tabla historial -->
+      @if (cargandoHistorial()) {
+        <div class="empty-state">Cargando historial...</div>
+      } @else if (historial().length === 0) {
+        <div class="empty-state">No hay facturas con esos filtros.</div>
+      } @else {
+        <table class="tabla-historial">
+          <thead>
+            <tr>
+              <th>Número</th>
+              <th>Fecha</th>
+              <th>Cajera</th>
+              <th>Cliente</th>
+              <th>Items</th>
+              <th>Total</th>
+              <th>Pago</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of historial(); track f.id) {
+              <tr>
+                <td class="num-factura">{{ f.numeroFactura }}</td>
+                <td>{{ f.fecha | date:'dd/MM/yy HH:mm' }}</td>
+                <td>{{ f.cajera }}</td>
+                <td>{{ f.clienteNombre ?? '—' }}</td>
+                <td class="text-center">{{ f.totalItems }}</td>
+                <td class="text-right">${{ formatPeso(f.total) }}</td>
+                <td>{{ f.metodoPago ?? '—' }}</td>
+                <td><span class="badge {{ estadoClass(f.estado) }}">{{ f.estado }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL SCANNER
+  ══════════════════════════════════════════════════════════ -->
+  @if (mostrarScanner()) {
+    <div class="scanner-overlay" (click)="cerrarScanner()">
+      <div class="scanner-modal" (click)="$event.stopPropagation()">
+        <div class="scanner-header">
+          <h3>📷 Escanear Código de Barras</h3>
+          <button class="btn-cerrar-scanner" (click)="cerrarScanner()">✕</button>
+        </div>
+        <div class="scanner-video-wrapper">
+          <video #videoEl autoplay playsinline muted class="scanner-video"></video>
+          <div class="scanner-crosshair"></div>
+        </div>
+        <p class="scanner-hint">Apunte la cámara al código de barras del producto</p>
+        @if (!scannerActivo()) {
+          <p class="scanner-hint">Iniciando cámara...</p>
+        }
+        <button class="btn-cerrar-scanner-txt" (click)="cerrarScanner()">Cancelar</button>
+      </div>
+    </div>
+  }
+
+</div>
