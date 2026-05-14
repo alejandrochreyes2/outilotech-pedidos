@@ -2868,14 +2868,15 @@ app.MapPost("/inventario/nuevo-producto", async (HttpContext ctx) => {
     try {
         await using var cmd = new NpgsqlCommand(@"
             INSERT INTO inventario_stock
-              (codigo_producto, descripcion, stock_actual, stock_minimo, precio_venta, costo_unitario, categoria)
-            VALUES (@cod, @desc, 1, 1, @precio, @costo, @cat)
+              (codigo_producto, descripcion, stock_actual, precio_venta, costo_unitario, entradas)
+            VALUES (@cod, @desc, 1, @precio, @costo, 1)
             ON CONFLICT (codigo_producto) DO UPDATE
-              SET descripcion  = EXCLUDED.descripcion,
-                  precio_venta = EXCLUDED.precio_venta,
+              SET descripcion    = EXCLUDED.descripcion,
+                  precio_venta   = EXCLUDED.precio_venta,
                   costo_unitario = EXCLUDED.costo_unitario,
-                  categoria    = EXCLUDED.categoria,
-                  stock_actual = inventario_stock.stock_actual + 1
+                  stock_actual   = inventario_stock.stock_actual + 1,
+                  entradas       = inventario_stock.entradas + 1,
+                  updated_at     = NOW()
             RETURNING codigo_producto, stock_actual", conn);
 
         var codigo = string.IsNullOrEmpty(codigoBarras) ? $"MAN-{Guid.NewGuid().ToString("N")[..8].ToUpper()}" : codigoBarras;
@@ -2883,7 +2884,6 @@ app.MapPost("/inventario/nuevo-producto", async (HttpContext ctx) => {
         cmd.Parameters.AddWithValue("@desc",   descripcion);
         cmd.Parameters.AddWithValue("@precio", precio);
         cmd.Parameters.AddWithValue("@costo",  costo);
-        cmd.Parameters.AddWithValue("@cat",    categoria);
         await using var r = await cmd.ExecuteReaderAsync();
         await r.ReadAsync();
         var codGuardado = r.GetString(0);

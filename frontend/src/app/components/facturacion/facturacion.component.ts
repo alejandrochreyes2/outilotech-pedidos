@@ -138,6 +138,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   npCosto       = signal(0);
   npCategoria   = signal('Accesorio');
   npGuardando   = signal(false);
+  npFotoId      = signal<number | null>(null); // ID de la foto que originó este modal
 
   ngOnInit() {
     this.cargarSiguienteNumero();
@@ -376,6 +377,14 @@ export class FacturacionComponent implements OnInit, OnDestroy {
       next: r => {
         this.npGuardando.set(false);
         this.mostrarNuevoProducto.set(false);
+        // Si vino de una foto pendiente, marcarla como revisada
+        const fotoId = this.npFotoId();
+        if (fotoId) {
+          this.svc.marcarImagenRevisada(fotoId).subscribe({ error: () => {} });
+          this.npFotoId.set(null);
+        }
+        // Recargar contador de fotos
+        this.cargarFotosPendientes();
         const producto: ProductoPOS = {
           codigo: r.codigo, descripcion: r.descripcion,
           stock: r.stock, precio: r.precio, costo: this.npCosto(), fuente: 'stock'
@@ -388,7 +397,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     });
   }
 
-  cerrarNuevoProducto() { this.mostrarNuevoProducto.set(false); }
+  cerrarNuevoProducto() { this.mostrarNuevoProducto.set(false); this.npFotoId.set(null); }
 
   // ── Inventario por imagen ─────────────────────────────
   cargarFotosPendientes() {
@@ -426,6 +435,8 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     this.npPrecio.set(0);
     this.npCosto.set(0);
     this.npCategoria.set('Accesorio');
+    // Guardar el ID de la foto para marcarla revisada al guardar
+    this.npFotoId.set(item.id ?? null);
     this.mostrarFotos.set(false);
     this.imagenSeleccionada.set(null);
     this.mostrarNuevoProducto.set(true);
