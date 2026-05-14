@@ -69,7 +69,7 @@
           <input
             id="searchInput"
             type="text"
-            placeholder="🔍  Buscar producto por nombre o código..."
+            placeholder="🔍  Buscar producto por nombre, código o imagen..."
             [value]="searchQuery()"
             (input)="onSearch($event)"
             autocomplete="off"
@@ -77,6 +77,12 @@
           />
           <button class="btn-scanner" (click)="abrirScanner()" title="Escanear código de barras">
             📷 Escanear
+          </button>
+          <button class="btn-fotos" (click)="mostrarFotos.set(true)" title="Ver fotos de productos pendientes">
+            📸 Fotos
+            @if (fotosPendientesCnt() > 0) {
+              <span class="badge-fotos">{{ fotosPendientesCnt() }}</span>
+            }
           </button>
         </div>
 
@@ -115,24 +121,42 @@
               <tbody>
                 @for (p of productosBusqueda(); track p.codigo) {
                   <tr [class.sin-stock]="p.stock === 0 && p.fuente === 'stock'"
-                      (click)="agregarProducto(p)">
+                      [class.fila-imagen]="p.fuente === 'imagen'"
+                      (click)="p.fuente !== 'imagen' ? agregarProducto(p) : null">
                     <td class="col-codigo">{{ p.codigo }}</td>
-                    <td class="col-desc">{{ p.descripcion }}</td>
+                    <td class="col-desc">
+                      {{ p.descripcion }}
+                      @if (p.fuente === 'imagen') {
+                        <span class="imagen-tag">📸 Foto pendiente</span>
+                      }
+                    </td>
                     <td class="col-stock">
                       @if (p.fuente === 'stock') {
                         <span [class.stock-bajo]="p.stock < 3" [class.sin-stock-txt]="p.stock === 0">
                           {{ p.stock === 0 ? 'AGOTADO' : p.stock }}
                         </span>
+                      } @else if (p.fuente === 'imagen') {
+                        <span class="imagen-tag">Sin precio</span>
                       } @else {
                         <span class="catalogo-tag">Web</span>
                       }
                     </td>
-                    <td class="col-precio">${{ formatPeso(p.precio) }}</td>
+                    <td class="col-precio">
+                      @if (p.fuente === 'imagen') { — }
+                      @else { ${{ formatPeso(p.precio) }} }
+                    </td>
                     <td>
-                      <button class="btn-add" [disabled]="p.stock === 0 && p.fuente === 'stock'"
-                              (click)="agregarProducto(p); $event.stopPropagation()">
-                        +
-                      </button>
+                      @if (p.fuente === 'imagen') {
+                        <button class="btn-add btn-add-foto" title="Agregar al inventario"
+                                (click)="agregarDesdeFoto(p); $event.stopPropagation()">
+                          📋
+                        </button>
+                      } @else {
+                        <button class="btn-add" [disabled]="p.stock === 0 && p.fuente === 'stock'"
+                                (click)="agregarProducto(p); $event.stopPropagation()">
+                          +
+                        </button>
+                      }
                     </td>
                   </tr>
                 }
@@ -299,6 +323,144 @@
           </tbody>
         </table>
       }
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL FOTOS PENDIENTES
+  ══════════════════════════════════════════════════════════ -->
+  @if (mostrarFotos()) {
+    <div class="scanner-overlay" (click)="mostrarFotos.set(false); imagenSeleccionada.set(null)">
+      <div class="scanner-modal fotos-modal" (click)="$event.stopPropagation()">
+
+        <div class="scanner-header">
+          <h3>📸 Fotos pendientes de revisión ({{ fotosPendientesCnt() }})</h3>
+          <button class="btn-cerrar-scanner" (click)="mostrarFotos.set(false); imagenSeleccionada.set(null)">✕</button>
+        </div>
+
+        @if (imagenSeleccionada(); as img) {
+          <!-- Detalle de imagen seleccionada -->
+          <div class="foto-detalle">
+            <img [src]="'data:' + img.mimeType + ';base64,' + img.imagen" alt="Foto producto"
+                 class="foto-preview-grande" />
+            <div class="foto-info">
+              <p class="foto-ref"><strong>Referencia:</strong> {{ img.referencia || '(sin referencia)' }}</p>
+              <p class="foto-notas"><strong>Notas:</strong> {{ img.notas || '—' }}</p>
+              <div class="foto-acciones">
+                <button class="btn-foto-agregar" (click)="agregarDesdeFoto(img)">
+                  📦 Agregar al inventario
+                </button>
+                <button class="btn-foto-revisar" (click)="marcarFotoRevisada(img.id)">
+                  ✅ Marcar como revisada
+                </button>
+                <button class="btn-volver" (click)="imagenSeleccionada.set(null)">
+                  ← Volver a la lista
+                </button>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <!-- Lista de fotos -->
+          @if (fotosPendientes().length === 0) {
+            <div class="empty-state" style="padding:32px">No hay fotos pendientes de revisión.</div>
+          } @else {
+            <div class="fotos-lista">
+              @for (foto of fotosPendientes(); track foto.id) {
+                <div class="foto-item" (click)="verFoto(foto)">
+                  <div class="foto-thumb-placeholder">📷</div>
+                  <div class="foto-item-info">
+                    <span class="foto-item-ref">{{ foto.referencia || '(sin referencia)' }}</span>
+                    <span class="foto-item-fecha">{{ foto.fecha | date:'dd/MM/yy HH:mm' }}</span>
+                    <span class="foto-item-cajera">{{ foto.cajera }}</span>
+                  </div>
+                  <span class="foto-item-ver">Ver →</span>
+                </div>
+              }
+            </div>
+          }
+          <div style="padding:12px 0 0">
+            <button class="btn-limpiar" (click)="cargarFotosPendientes()">🔄 Recargar</button>
+          </div>
+        }
+
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL NUEVO PRODUCTO
+  ══════════════════════════════════════════════════════════ -->
+  @if (mostrarNuevoProducto()) {
+    <div class="scanner-overlay" (click)="cerrarNuevoProducto()">
+      <div class="scanner-modal nuevo-producto-modal" (click)="$event.stopPropagation()">
+
+        <div class="scanner-header">
+          <h3>📦 Agregar nuevo producto al inventario</h3>
+          <button class="btn-cerrar-scanner" (click)="cerrarNuevoProducto()">✕</button>
+        </div>
+
+        <div class="np-body">
+          @if (npCodigo()) {
+            <div class="np-field">
+              <label>Código de barras detectado</label>
+              <input type="text" [value]="npCodigo()" readonly class="np-input np-readonly" />
+            </div>
+          }
+
+          <div class="np-field">
+            <label>Descripción / Referencia <span class="np-req">*</span></label>
+            <input type="text"
+                   placeholder="Ej: Cable USB-C JUQU JQ-22, Cargador Samsung 25W..."
+                   [value]="npDescripcion()"
+                   (input)="npDescripcion.set($any($event.target).value)"
+                   class="np-input" />
+          </div>
+
+          <div class="np-row">
+            <div class="np-field">
+              <label>Precio de venta ($)</label>
+              <input type="number" min="0" [value]="npPrecio()"
+                     (input)="npPrecio.set(+$any($event.target).value)"
+                     class="np-input" />
+            </div>
+            <div class="np-field">
+              <label>Costo unitario ($)</label>
+              <input type="number" min="0" [value]="npCosto()"
+                     (input)="npCosto.set(+$any($event.target).value)"
+                     class="np-input" />
+            </div>
+          </div>
+
+          <div class="np-field">
+            <label>Categoría</label>
+            <select [value]="npCategoria()"
+                    (change)="npCategoria.set($any($event.target).value)"
+                    class="np-input">
+              <option>Accesorio</option>
+              <option>Cable</option>
+              <option>Cargador</option>
+              <option>Auricular</option>
+              <option>Power Bank</option>
+              <option>Holder / Soporte</option>
+              <option>Protector</option>
+              <option>Otro</option>
+            </select>
+          </div>
+
+          <p class="np-hint">
+            💡 El producto se guardará en el inventario con stock 1 y podrá actualizarlo después.
+          </p>
+
+          <div class="np-acciones">
+            <button class="btn-limpiar" (click)="cerrarNuevoProducto()">Cancelar</button>
+            <button class="btn-cobrar" [disabled]="npGuardando() || !npDescripcion().trim()"
+                    (click)="guardarProductoNuevo()">
+              @if (npGuardando()) { ⏳ Guardando... } @else { 💾 Guardar y agregar a factura }
+            </button>
+          </div>
+        </div>
+
+      </div>
     </div>
   }
 

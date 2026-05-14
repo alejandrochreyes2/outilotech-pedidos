@@ -135,4 +135,39 @@ export class FacturacionService {
   enviarResultadoScanner(token: string, codigo: string) {
     return this.http.post(`${this.api}/api/scan/session/${token}/resultado`, { codigo });
   }
+
+  // ── Inventario por imagen ──────────────────────────────────
+  listarInventarioPorImagen(soloSinRevisar = true) {
+    const params = soloSinRevisar ? '?revisado=false' : '';
+    return this.http.get<any[]>(
+      `${this.api}/api/scan/inventario-por-imagen${params}`,
+      this.headers
+    );
+  }
+
+  obtenerImagenInventario(id: number) {
+    return this.http.get<{ imagen: string; mimeType: string }>(
+      `${this.api}/api/scan/inventario-por-imagen/${id}/imagen`,
+      this.headers
+    );
+  }
+
+  marcarImagenRevisada(id: number) {
+    return this.http.patch(`${this.api}/api/scan/inventario-por-imagen/${id}/revisar`, {}, this.headers);
+  }
+
+  // ── Agregar producto nuevo desde escáner ──────────────────
+  agregarProductoNuevo(dto: {
+    codigoBarras: string;
+    descripcion: string;
+    precio: number;
+    costo: number;
+    categoria: string;
+    cajera: string;
+  }) {
+    return this.http.post<{
+      ok: boolean; codigo: string; descripcion: string;
+      precio: number; stock: number; mensaje: string;
+    }>(`${this.api}/api/inventario/nuevo-producto`, dto, this.headers);
+  }
 }

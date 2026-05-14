@@ -843,3 +843,169 @@
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: #1a1a1a; }
 ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+/* ── Botón Fotos + badge ─────────────────────────────── */
+.btn-fotos {
+  position: relative;
+  padding: 0.5rem 0.9rem;
+  background: #2a2a2a;
+  color: #ffc000;
+  border: 1.5px solid #664400;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.btn-fotos:hover { background: #3a2a00; }
+.badge-fotos {
+  position: absolute;
+  top: -7px; right: -7px;
+  background: #cc0000;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 1px 5px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── Fila tipo imagen en tabla búsqueda ──────────────── */
+.fila-imagen { background: rgba(255, 192, 0, 0.05); cursor: default; }
+.fila-imagen:hover { background: rgba(255, 192, 0, 0.1) !important; }
+.imagen-tag {
+  display: inline-block;
+  background: #664400;
+  color: #ffc000;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.67rem;
+  margin-left: 4px;
+}
+.btn-add-foto {
+  background: #664400;
+  border-radius: 5px;
+  width: auto;
+  height: auto;
+  padding: 2px 5px;
+  font-size: 0.8rem;
+}
+
+/* ── Modal Fotos pendientes ──────────────────────────── */
+.fotos-modal { max-width: 520px; max-height: 80vh; overflow-y: auto; }
+
+.fotos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.foto-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.foto-item:hover { border-color: #ffc000; background: #2f2a1a; }
+.foto-thumb-placeholder {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  width: 40px;
+  text-align: center;
+}
+.foto-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.foto-item-ref { font-size: 0.88rem; font-weight: 600; color: #ffc000; }
+.foto-item-fecha { font-size: 0.72rem; color: #888; }
+.foto-item-cajera { font-size: 0.72rem; color: #aaa; }
+.foto-item-ver { font-size: 0.78rem; color: #888; flex-shrink: 0; }
+
+.foto-detalle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.foto-preview-grande {
+  width: 100%;
+  border-radius: 8px;
+  border: 2px solid #cc0000;
+  max-height: 260px;
+  object-fit: contain;
+  background: #000;
+}
+.foto-info { display: flex; flex-direction: column; gap: 0.35rem; }
+.foto-ref { margin: 0; font-size: 0.88rem; color: #f0f0f0; }
+.foto-notas { margin: 0; font-size: 0.82rem; color: #aaa; }
+.foto-acciones { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.3rem; }
+.btn-foto-agregar {
+  padding: 0.55rem 1rem;
+  background: #00662e;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-foto-agregar:hover { background: #009940; }
+.btn-foto-revisar {
+  padding: 0.45rem 1rem;
+  background: #2a2a2a;
+  color: #4ade80;
+  border: 1px solid #4ade80;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-foto-revisar:hover { background: #002a15; }
+
+/* ── Modal Nuevo Producto ────────────────────────────── */
+.nuevo-producto-modal { max-width: 460px; }
+.np-body { display: flex; flex-direction: column; gap: 0.8rem; padding: 0.2rem 0; }
+.np-field { display: flex; flex-direction: column; gap: 0.3rem; }
+.np-field label { font-size: 0.8rem; color: #aaa; }
+.np-req { color: #cc0000; }
+.np-input {
+  padding: 0.5rem 0.7rem;
+  background: #2d2d2d;
+  border: 1px solid #555;
+  border-radius: 6px;
+  color: #f0f0f0;
+  font-size: 0.88rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+.np-input:focus { outline: none; border-color: #cc0000; }
+.np-readonly { opacity: 0.6; cursor: default; font-family: monospace; color: #ffc000; }
+.np-row { display: flex; gap: 0.7rem; }
+.np-row .np-field { flex: 1; }
+.np-hint {
+  font-size: 0.77rem;
+  color: #888;
+  background: #222;
+  border-left: 3px solid #ffc000;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0 6px 6px 0;
+  margin: 0;
+  line-height: 1.5;
+}
+.np-acciones {
+  display: flex;
+  gap: 0.6rem;
+  padding-top: 0.2rem;
+}

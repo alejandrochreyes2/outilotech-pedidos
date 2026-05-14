@@ -2769,6 +2769,7 @@ app.MapGet("/pos/buscar", async (string? q) =>
     await conn.OpenAsync();
     var resultados = new List<object>();
 
+    // 1. Inventario físico (stock)
     var cmdStock = new NpgsqlCommand(@"
         SELECT codigo_producto, descripcion, stock_actual, precio_venta, costo_unitario
         FROM inventario_stock
@@ -2784,11 +2785,13 @@ app.MapGet("/pos/buscar", async (string? q) =>
         });
     await rStock.CloseAsync();
 
+    // 2. Catálogo web
     var cmdProd = new NpgsqlCommand(@"
         SELECT producto_id, nombre, unidades, precio
         FROM inventario_productos
         WHERE disponibilidad = 'Si'
-          AND (LOWER(nombre) LIKE @q OR LOWER(producto_id) LIKE @q)
+          AND (LOWER(nombre) LIKE @q OR LOWER(producto_id) LIKE @q
+               OR LOWER(modelo) LIKE @q OR LOWER(categoria) LIKE @q)
         ORDER BY nombre LIMIT 40", conn);
     cmdProd.Parameters.AddWithValue("q", $"%{query}%");
     await using var rProd = await cmdProd.ExecuteReaderAsync();
@@ -2798,8 +2801,109 @@ app.MapGet("/pos/buscar", async (string? q) =>
             stock = rProd.GetInt32(2), precio = rProd.GetDecimal(3),
             costo = (decimal)0, fuente = "catalogo"
         });
+    await rProd.CloseAsync();
+
+    // 3. Inventario por imagen (fotos tomadas con celular, no encontradas por código)
+    var cmdImg = new NpgsqlCommand(@"
+        SELECT id::text, COALESCE(referencia,'Sin referencia'), 0, 0, 0
+        FROM inventario_por_imagen
+        WHERE revisado = FALSE
+          AND (LOWER(COALESCE(referencia,'')) LIKE @q OR LOWER(COALESCE(notas,'')) LIKE @q)
+        ORDER BY fecha DESC LIMIT 10", conn);
+    cmdImg.Parameters.AddWithValue("q", $"%{query}%");
+    await using var rImg = await cmdImg.ExecuteReaderAsync();
+    while (await rImg.ReadAsync())
+        resultados.Add(new {
+            codigo = "IMG-" + rImg.GetString(0),
+            descripcion = "📸 " + rImg.GetString(1) + " (foto pendiente)",
+            stock = 0, precio = (decimal)0, costo = (decimal)0, fuente = "imagen"
+        });
 
     return Results.Ok(resultados);
+}).RequireAuthorization();
+
+// ============================================================
+// INVENTARIO — AGREGAR PRODUCTO NUEVO (desde código de barras desconocido)
+// POST /inventario/nuevo-producto
+// ============================================================
+app.MapPost("/inventario/nuevo-producto", async (HttpContext ctx) => {
+    JsonElement body;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); }
+    catch { return Results.BadRequest(new { error = "JSON inválido" }); }
+
+    var codigoBarras = body.TryGetProperty("codigoBarras", out var cb) ? cb.GetString() ?? "" : "";
+    var descripcion  = body.TryGetProperty("descripcion",  out var d)  ? d.GetString()  ?? "" : "";
+    var precio       = body.TryGetProperty("precio",       out var p)  ? p.GetDecimal() : 0m;
+    var costo        = body.TryGetProperty("costo",        out var co) ? co.GetDecimal() : 0m;
+    var categoria    = body.TryGetProperty("categoria",    out var ca) ? ca.GetString()  ?? "Accesorio" : "Accesorio";
+    var cajera       = body.TryGetProperty("cajera",       out var cj) ? cj.GetString()  ?? "" : "";
+
+    if (string.IsNullOrEmpty(descripcion))
+        return Results.BadRequest(new { error = "La descripción es obligatoria" });
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+
+    // Verificar si ya existe en alguna tabla
+    string? tablaExistente = null;
+    if (!string.IsNullOrEmpty(codigoBarras)) {
+        var chkStock = new NpgsqlCommand(
+            "SELECT codigo_producto FROM inventario_stock WHERE codigo_producto = @c OR LOWER(descripcion) LIKE @q LIMIT 1", conn);
+        chkStock.Parameters.AddWithValue("@c", codigoBarras);
+        chkStock.Parameters.AddWithValue("@q", $"%{codigoBarras.ToLower()}%");
+        var existeStock = await chkStock.ExecuteScalarAsync();
+        if (existeStock != null) tablaExistente = "stock";
+
+        if (tablaExistente == null) {
+            var chkProd = new NpgsqlCommand(
+                "SELECT producto_id FROM inventario_productos WHERE producto_id = @c OR LOWER(nombre) LIKE @q LIMIT 1", conn);
+            chkProd.Parameters.AddWithValue("@c", codigoBarras);
+            chkProd.Parameters.AddWithValue("@q", $"%{descripcion.ToLower()}%");
+            var existeProd = await chkProd.ExecuteScalarAsync();
+            if (existeProd != null) tablaExistente = "catalogo";
+        }
+    }
+
+    // Guardar en inventario_stock (con stock=1 para poder facturar de inmediato)
+    try {
+        await using var cmd = new NpgsqlCommand(@"
+            INSERT INTO inventario_stock
+              (codigo_producto, descripcion, stock_actual, stock_minimo, precio_venta, costo_unitario, categoria)
+            VALUES (@cod, @desc, 1, 1, @precio, @costo, @cat)
+            ON CONFLICT (codigo_producto) DO UPDATE
+              SET descripcion  = EXCLUDED.descripcion,
+                  precio_venta = EXCLUDED.precio_venta,
+                  costo_unitario = EXCLUDED.costo_unitario,
+                  categoria    = EXCLUDED.categoria,
+                  stock_actual = inventario_stock.stock_actual + 1
+            RETURNING codigo_producto, stock_actual", conn);
+
+        var codigo = string.IsNullOrEmpty(codigoBarras) ? $"MAN-{Guid.NewGuid().ToString("N")[..8].ToUpper()}" : codigoBarras;
+        cmd.Parameters.AddWithValue("@cod",    codigo);
+        cmd.Parameters.AddWithValue("@desc",   descripcion);
+        cmd.Parameters.AddWithValue("@precio", precio);
+        cmd.Parameters.AddWithValue("@costo",  costo);
+        cmd.Parameters.AddWithValue("@cat",    categoria);
+        await using var r = await cmd.ExecuteReaderAsync();
+        await r.ReadAsync();
+        var codGuardado = r.GetString(0);
+        var stockFinal  = r.GetInt32(1);
+
+        return Results.Ok(new {
+            ok = true,
+            codigo = codGuardado,
+            descripcion,
+            precio,
+            stock = stockFinal,
+            tablaExistente,
+            mensaje = tablaExistente != null
+                ? $"Producto vinculado al existente en {tablaExistente}. Stock actualizado."
+                : "Producto creado exitosamente en inventario."
+        });
+    } catch (Exception ex) {
+        Console.WriteLine($"[NUEVO PRODUCTO] {ex.Message}");
+        return Results.StatusCode(500);
+    }
 }).RequireAuthorization();
 
 // ============================================================

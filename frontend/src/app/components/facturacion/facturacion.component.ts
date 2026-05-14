@@ -124,7 +124,25 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   ocrTextoExtraido = signal('');
   ocrResultados   = signal<ProductoPOS[]>([]);
 
-  ngOnInit() { this.cargarSiguienteNumero(); }
+  // ── Inventario por imagen ──────────────────────────────
+  fotosPendientes  = signal<any[]>([]);
+  fotosPendientesCnt = signal(0);
+  mostrarFotos     = signal(false);
+  imagenSeleccionada = signal<{id:number; imagen:string; mimeType:string; referencia:string; notas:string} | null>(null);
+
+  // ── Nuevo producto desde barcode desconocido ──────────
+  mostrarNuevoProducto = signal(false);
+  npCodigo      = signal('');
+  npDescripcion = signal('');
+  npPrecio      = signal(0);
+  npCosto       = signal(0);
+  npCategoria   = signal('Accesorio');
+  npGuardando   = signal(false);
+
+  ngOnInit() {
+    this.cargarSiguienteNumero();
+    this.cargarFotosPendientes();
+  }
 
   ngOnDestroy() {
     this.detenerScanner();
@@ -146,9 +164,12 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     this.searchTimer = setTimeout(() => {
       this.svc.buscarProductos(q).subscribe({
         next: r => {
-          const filtrado = this.tabCatalogo() === 'stock'
-            ? r.filter(p => p.fuente === 'stock')
-            : r.filter(p => p.fuente === 'catalogo');
+          let filtrado: ProductoPOS[];
+          if (this.tabCatalogo() === 'stock') {
+            filtrado = r.filter(p => p.fuente === 'stock' || p.fuente === 'imagen');
+          } else {
+            filtrado = r.filter(p => p.fuente === 'catalogo' || p.fuente === 'imagen');
+          }
           this.productosBusqueda.set(filtrado);
           this.buscando.set(false);
         },
@@ -317,21 +338,97 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     this.detenerScanner();
     const q = codigo.trim();
     this.cerrarScanner();
-    // Poner el código en el buscador y buscar
     this.searchQuery.set(q);
     const input = document.getElementById('searchInput') as HTMLInputElement;
     if (input) { input.value = q; input.dispatchEvent(new Event('input')); }
     this.svc.buscarProductos(q).subscribe({
       next: r => {
-        if (r.length > 0) {
-          this.agregarProducto(r[0]);
-          this.mensajeExito.set(`📷 Escaneado: ${r[0].descripcion}`);
+        const encontrados = r.filter(p => p.fuente !== 'imagen');
+        if (encontrados.length > 0) {
+          this.agregarProducto(encontrados[0]);
+          this.mensajeExito.set(`📷 Escaneado: ${encontrados[0].descripcion}`);
           setTimeout(() => this.mensajeExito.set(''), 3000);
         } else {
-          this.mostrarError(`Código "${q}" no encontrado. Verifique el inventario.`);
+          // Código no encontrado → abrir modal para agregar producto nuevo
+          this.npCodigo.set(q);
+          this.npDescripcion.set('');
+          this.npPrecio.set(0);
+          this.npCosto.set(0);
+          this.npCategoria.set('Accesorio');
+          this.mostrarNuevoProducto.set(true);
         }
       }
     });
+  }
+
+  // ── Agregar producto nuevo desde barcode desconocido ──
+  guardarProductoNuevo() {
+    if (!this.npDescripcion().trim()) { this.mostrarError('La descripción es obligatoria'); return; }
+    this.npGuardando.set(true);
+    this.svc.agregarProductoNuevo({
+      codigoBarras: this.npCodigo(),
+      descripcion:  this.npDescripcion().trim(),
+      precio:       this.npPrecio(),
+      costo:        this.npCosto(),
+      categoria:    this.npCategoria(),
+      cajera:       this.auth.currentUser()?.name ?? ''
+    }).subscribe({
+      next: r => {
+        this.npGuardando.set(false);
+        this.mostrarNuevoProducto.set(false);
+        const producto: ProductoPOS = {
+          codigo: r.codigo, descripcion: r.descripcion,
+          stock: r.stock, precio: r.precio, costo: this.npCosto(), fuente: 'stock'
+        };
+        this.agregarProducto(producto);
+        this.mensajeExito.set(`✅ ${r.mensaje} Producto agregado a la factura.`);
+        setTimeout(() => this.mensajeExito.set(''), 4000);
+      },
+      error: () => { this.npGuardando.set(false); this.mostrarError('Error al guardar el producto'); }
+    });
+  }
+
+  cerrarNuevoProducto() { this.mostrarNuevoProducto.set(false); }
+
+  // ── Inventario por imagen ─────────────────────────────
+  cargarFotosPendientes() {
+    this.svc.listarInventarioPorImagen(true).subscribe({
+      next: r => { this.fotosPendientes.set(r); this.fotosPendientesCnt.set(r.length); },
+      error: () => {}
+    });
+  }
+
+  verFoto(item: any) {
+    this.svc.obtenerImagenInventario(item.id).subscribe({
+      next: r => this.imagenSeleccionada.set({
+        id: item.id, imagen: r.imagen, mimeType: r.mimeType,
+        referencia: item.referencia, notas: item.notas
+      }),
+      error: () => {}
+    });
+  }
+
+  marcarFotoRevisada(id: number) {
+    this.svc.marcarImagenRevisada(id).subscribe({
+      next: () => {
+        this.imagenSeleccionada.set(null);
+        this.cargarFotosPendientes();
+        this.mensajeExito.set('Foto marcada como revisada');
+        setTimeout(() => this.mensajeExito.set(''), 2000);
+      }
+    });
+  }
+
+  agregarDesdeFoto(item: any) {
+    this.npCodigo.set('');
+    // item puede ser un ProductoPOS (fuente='imagen') o un registro de fotosPendientes
+    this.npDescripcion.set(item.referencia || item.descripcion || '');
+    this.npPrecio.set(0);
+    this.npCosto.set(0);
+    this.npCategoria.set('Accesorio');
+    this.mostrarFotos.set(false);
+    this.imagenSeleccionada.set(null);
+    this.mostrarNuevoProducto.set(true);
   }
 
   detenerScanner() {
