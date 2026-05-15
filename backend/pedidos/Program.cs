@@ -2631,11 +2631,11 @@ app.MapPost("/webhook/whatsapp/twilio", async (HttpRequest request, ILogger<Prog
 // ============================================================
 var scanSessions = new ConcurrentDictionary<string, (string? Codigo, DateTime Creado)>();
 var cleanupTimer = new System.Threading.Timer(_ => {
-    var cutoff = DateTime.UtcNow.AddMinutes(-15);
+    var cutoff = DateTime.UtcNow.AddHours(-8);
     foreach (var k in scanSessions.Keys.ToArray())
         if (scanSessions.TryGetValue(k, out var s) && s.Creado < cutoff)
             scanSessions.TryRemove(k, out var _removed);
-}, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+}, null, TimeSpan.FromMinutes(30), TimeSpan.FromHours(1));
 
 // POST /scan/session — cajera crea sesión (requiere auth)
 app.MapPost("/scan/session", () => {

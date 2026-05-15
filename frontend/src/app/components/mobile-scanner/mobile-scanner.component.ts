@@ -248,13 +248,18 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
   }
 
   reintentar() {
-    this.estado.set('iniciando');
     this.codigoDetectado.set('');
     this.codigoManual.set('');
     this.entradaManual.set(false);
     this.fotoDataUrl.set('');
     this._fotoBase64 = '';
-    setTimeout(() => this.iniciarCamara(), 200);
+    this.mensajeError.set('');
+    // Si tiene JWT activo, volver directo a cámara sin pasar por login
+    if (this.jwtToken) {
+      this.iniciarCamara();
+    } else {
+      this.estado.set('login');
+    }
   }
 
   private detener() {
