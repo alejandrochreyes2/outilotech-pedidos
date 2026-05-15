@@ -2789,9 +2789,10 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IHttpC
     if (imagenes.Count == 0)
         return Results.Ok(new { analizadas = 0, mensaje = "No hay imágenes sin referencia pendientes." });
 
-    var anthropicKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY") ?? "";
-    if (string.IsNullOrEmpty(anthropicKey))
-        return Results.BadRequest(new { error = "ANTHROPIC_API_KEY no configurada en el servidor." });
+    var groqKey = Environment.GetEnvironmentVariable("GROQ_API_KEY")
+               ?? configuration["GROQ_API_KEY"] ?? "";
+    if (string.IsNullOrEmpty(groqKey))
+        return Results.BadRequest(new { error = "GROQ_API_KEY no configurada en el servidor." });
 
     var resultados = new List<object>();
 
@@ -2800,23 +2801,16 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IHttpC
         try
         {
             using var visionClient = factory.CreateClient();
-            visionClient.Timeout = TimeSpan.FromSeconds(30);
-            visionClient.DefaultRequestHeaders.Add("x-api-key", anthropicKey);
-            visionClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+            visionClient.Timeout = TimeSpan.FromSeconds(45);
+            visionClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", groqKey);
 
-            var prompt = @"Eres un asistente de inventario de una tienda de tecnología en Colombia (OutilTech). Analiza esta imagen de un producto y extrae información. Responde ÚNICAMENTE con un objeto JSON con estos campos exactos (sin texto adicional, sin ```):
-{
-  ""referencia"": ""nombre o modelo del producto"",
-  ""tipo"": ""cable|cargador|audifonos|parlante|adaptador|soporte|power_bank|funda|otro"",
-  ""marca"": ""marca si es visible, si no null"",
-  ""precio_estimado_cop"": numero entero en pesos colombianos o null,
-  ""descripcion"": ""descripcion breve del producto con sus caracteristicas principales"",
-  ""confianza"": ""alta|media|baja""
-}";
+            var prompt = @"Eres un asistente de inventario de una tienda de tecnología en Colombia (OutilTech). Analiza esta imagen de un producto y extrae información. Responde ÚNICAMENTE con un objeto JSON (sin texto adicional, sin ```) con estos campos:
+{""referencia"":""nombre o modelo del producto"",""tipo"":""cable|cargador|audifonos|parlante|adaptador|soporte|power_bank|funda|otro"",""marca"":""marca visible o null"",""precio_estimado_cop"":numero_entero_o_null,""descripcion"":""descripcion breve con caracteristicas"",""confianza"":""alta|media|baja""}";
 
             var requestPayload = new System.Text.Json.Nodes.JsonObject
             {
-                ["model"] = "claude-haiku-4-5-20251001",
+                ["model"] = "meta-llama/llama-4-scout-17b-16e-instruct",
                 ["max_tokens"] = 300,
                 ["messages"] = new System.Text.Json.Nodes.JsonArray
                 {
@@ -2827,12 +2821,10 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IHttpC
                         {
                             new System.Text.Json.Nodes.JsonObject
                             {
-                                ["type"] = "image",
-                                ["source"] = new System.Text.Json.Nodes.JsonObject
+                                ["type"] = "image_url",
+                                ["image_url"] = new System.Text.Json.Nodes.JsonObject
                                 {
-                                    ["type"] = "base64",
-                                    ["media_type"] = mimeType,
-                                    ["data"] = base64
+                                    ["url"] = $"data:{mimeType};base64,{base64}"
                                 }
                             },
                             new System.Text.Json.Nodes.JsonObject
@@ -2845,18 +2837,22 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IHttpC
                 }
             };
 
-            var resp = await visionClient.PostAsJsonAsync("https://api.anthropic.com/v1/messages", requestPayload);
+            var resp = await visionClient.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", requestPayload);
             var respText = await resp.Content.ReadAsStringAsync();
-
             if (!resp.IsSuccessStatusCode)
             {
-                logger.LogError("[VISION] Anthropic error id={Id}: {Body}", id, respText);
-                resultados.Add(new { id, ok = false, error = "Error llamando Claude Vision" });
+                logger.LogError("[VISION] Groq error id={Id}: {Body}", id, respText);
+                resultados.Add(new { id, ok = false, error = "Error llamando Groq Vision" });
                 continue;
             }
 
             var respJson = JsonSerializer.Deserialize<JsonElement>(respText);
-            var textContent = respJson.GetProperty("content")[0].GetProperty("text").GetString() ?? "{}";
+            // Groq usa formato OpenAI: choices[0].message.content
+            var textContent = respJson
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString() ?? "{}";
 
             // Limpiar posibles bloques de código
             textContent = textContent.Trim();
