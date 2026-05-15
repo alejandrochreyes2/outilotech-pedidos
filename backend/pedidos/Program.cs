@@ -2810,7 +2810,7 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
 
             var requestPayload = new System.Text.Json.Nodes.JsonObject
             {
-                ["model"] = "llama-3.2-11b-vision-preview",
+                ["model"] = "meta-llama/llama-4-scout-17b-16e-instruct",
                 ["max_tokens"] = 300,
                 ["messages"] = new System.Text.Json.Nodes.JsonArray
                 {
