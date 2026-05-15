@@ -3442,6 +3442,8 @@ app.MapPost("/jhonia/enriquecer-inventario", async (HttpRequest request, IConfig
             // N5 — Si BD no aportó datos nuevos, buscar en web
             if (nuevoPrecio == null && !string.IsNullOrEmpty(groqKey))
             {
+                // Pausa de 7s entre llamadas para respetar TPM de groq/compound-mini (8000 TPM)
+                if (resultados.Count > 0) await Task.Delay(7000);
                 logger.LogInformation("[ENRICH N5] {Cod}: buscando en web '{D}'", codigo, descActual);
                 // Usar descripción como término de búsqueda (código es interno, no sirve para web)
                 var (webDesc, webPrecio, webMarca, webFuente) = await JhonIABuscarEnWeb(
