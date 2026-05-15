@@ -163,6 +163,14 @@ export class FacturacionService {
     return this.http.patch(`${this.api}/api/scan/inventario-por-imagen/${id}/revisar`, {}, this.headers);
   }
 
+  analizarFotosSinReferencia() {
+    return this.http.post<{
+      analizadas: number;
+      mensaje?: string;
+      resultados?: { id: number; ok: boolean; referencia?: string; tipo?: string; marca?: string; precio?: number; descripcion?: string; confianza?: string; error?: string }[];
+    }>(`${this.api}/api/scan/inventario-por-imagen/analizar-sin-referencia`, {}, this.headers);
+  }
+
   // ── Agregar producto nuevo desde escáner ──────────────────
   agregarProductoNuevo(dto: {
     codigoBarras: string;

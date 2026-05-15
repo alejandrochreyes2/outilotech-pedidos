@@ -384,6 +384,40 @@
           <button class="btn-cerrar-scanner" (click)="mostrarFotos.set(false); imagenSeleccionada.set(null)">✕</button>
         </div>
 
+        <!-- Botón analizar con IA -->
+        @if (!imagenSeleccionada()) {
+          <div style="padding: 8px 12px; border-bottom: 1px solid #2a2a2a">
+            <button class="btn-analizar-ia" (click)="analizarFotosSinReferencia()"
+                    [disabled]="analizandoFotos()">
+              @if (analizandoFotos()) {
+                ⏳ Analizando imágenes con IA...
+              } @else {
+                🤖 Analizar fotos sin referencia con IA
+              }
+            </button>
+            @if (mostrarResultadosAnalisis() && resultadosAnalisis().length > 0) {
+              <div class="analisis-resultados">
+                <p class="analisis-titulo">✅ {{ resultadosAnalisis().length }} imagen(es) analizadas — referencias detectadas:</p>
+                @for (r of resultadosAnalisis(); track r.id) {
+                  <div class="analisis-item" [class.analisis-ok]="r.ok" [class.analisis-error]="!r.ok">
+                    @if (r.ok) {
+                      <strong>📦 {{ r.referencia }}</strong>
+                      @if (r.tipo) { <span class="analisis-badge">{{ r.tipo }}</span> }
+                      @if (r.marca) { <span class="analisis-badge">{{ r.marca }}</span> }
+                      @if (r.precio) { <span class="analisis-badge">${{ r.precio | number }}</span> }
+                      <small style="color:#888"> — confianza: {{ r.confianza }}</small>
+                    } @else {
+                      <span style="color:#ff6b6b">⚠️ ID {{ r.id }}: {{ r.error }}</span>
+                    }
+                  </div>
+                }
+                <button class="btn-limpiar" style="margin-top:6px"
+                        (click)="mostrarResultadosAnalisis.set(false)">Cerrar resultados</button>
+              </div>
+            }
+          </div>
+        }
+
         @if (imagenSeleccionada(); as img) {
           <!-- Detalle de imagen seleccionada -->
           <div class="foto-detalle">

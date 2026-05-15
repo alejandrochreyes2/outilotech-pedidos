@@ -2759,6 +2759,156 @@ app.MapPatch("/scan/inventario-por-imagen/{id}/revisar", async (int id) => {
 }).RequireAuthorization();
 
 // ============================================================
+// SCAN — ANALIZAR IMÁGENES SIN REFERENCIA CON CLAUDE VISION
+// POST /scan/inventario-por-imagen/analizar-sin-referencia
+// Lee imágenes cuya referencia está vacía y usa Claude para identificar el producto
+// ============================================================
+app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IHttpClientFactory factory, ILogger<Program> logger) =>
+{
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+
+    // Obtener imágenes sin referencia, no revisadas
+    var selectCmd = new NpgsqlCommand(@"
+        SELECT id, imagen_base64, mime_type, notas
+        FROM inventario_por_imagen
+        WHERE (referencia IS NULL OR TRIM(referencia) = '')
+          AND revisado = FALSE
+          AND imagen_base64 IS NOT NULL
+        ORDER BY fecha ASC LIMIT 5", conn);
+
+    var imagenes = new List<(int id, string base64, string mimeType, string? notas)>();
+    await using (var r = await selectCmd.ExecuteReaderAsync())
+    {
+        while (await r.ReadAsync())
+            imagenes.Add((r.GetInt32(0), r.GetString(1),
+                r.IsDBNull(2) ? "image/jpeg" : r.GetString(2),
+                r.IsDBNull(3) ? null : r.GetString(3)));
+    }
+
+    if (imagenes.Count == 0)
+        return Results.Ok(new { analizadas = 0, mensaje = "No hay imágenes sin referencia pendientes." });
+
+    var anthropicKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY") ?? "";
+    if (string.IsNullOrEmpty(anthropicKey))
+        return Results.BadRequest(new { error = "ANTHROPIC_API_KEY no configurada en el servidor." });
+
+    var resultados = new List<object>();
+
+    foreach (var (id, base64, mimeType, notasExist) in imagenes)
+    {
+        try
+        {
+            using var visionClient = factory.CreateClient();
+            visionClient.Timeout = TimeSpan.FromSeconds(30);
+            visionClient.DefaultRequestHeaders.Add("x-api-key", anthropicKey);
+            visionClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+
+            var prompt = @"Eres un asistente de inventario de una tienda de tecnología en Colombia (OutilTech). Analiza esta imagen de un producto y extrae información. Responde ÚNICAMENTE con un objeto JSON con estos campos exactos (sin texto adicional, sin ```):
+{
+  ""referencia"": ""nombre o modelo del producto"",
+  ""tipo"": ""cable|cargador|audifonos|parlante|adaptador|soporte|power_bank|funda|otro"",
+  ""marca"": ""marca si es visible, si no null"",
+  ""precio_estimado_cop"": numero entero en pesos colombianos o null,
+  ""descripcion"": ""descripcion breve del producto con sus caracteristicas principales"",
+  ""confianza"": ""alta|media|baja""
+}";
+
+            var requestPayload = new System.Text.Json.Nodes.JsonObject
+            {
+                ["model"] = "claude-haiku-4-5-20251001",
+                ["max_tokens"] = 300,
+                ["messages"] = new System.Text.Json.Nodes.JsonArray
+                {
+                    new System.Text.Json.Nodes.JsonObject
+                    {
+                        ["role"] = "user",
+                        ["content"] = new System.Text.Json.Nodes.JsonArray
+                        {
+                            new System.Text.Json.Nodes.JsonObject
+                            {
+                                ["type"] = "image",
+                                ["source"] = new System.Text.Json.Nodes.JsonObject
+                                {
+                                    ["type"] = "base64",
+                                    ["media_type"] = mimeType,
+                                    ["data"] = base64
+                                }
+                            },
+                            new System.Text.Json.Nodes.JsonObject
+                            {
+                                ["type"] = "text",
+                                ["text"] = prompt
+                            }
+                        }
+                    }
+                }
+            };
+
+            var resp = await visionClient.PostAsJsonAsync("https://api.anthropic.com/v1/messages", requestPayload);
+            var respText = await resp.Content.ReadAsStringAsync();
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                logger.LogError("[VISION] Anthropic error id={Id}: {Body}", id, respText);
+                resultados.Add(new { id, ok = false, error = "Error llamando Claude Vision" });
+                continue;
+            }
+
+            var respJson = JsonSerializer.Deserialize<JsonElement>(respText);
+            var textContent = respJson.GetProperty("content")[0].GetProperty("text").GetString() ?? "{}";
+
+            // Limpiar posibles bloques de código
+            textContent = textContent.Trim();
+            if (textContent.StartsWith("```json")) textContent = textContent[7..];
+            if (textContent.StartsWith("```"))     textContent = textContent[3..];
+            if (textContent.EndsWith("```"))       textContent = textContent[..^3];
+            textContent = textContent.Trim();
+
+            var info = JsonSerializer.Deserialize<JsonElement>(textContent);
+
+            var referencia     = info.TryGetProperty("referencia",          out var rv) ? rv.GetString() : null;
+            var tipo           = info.TryGetProperty("tipo",                out var tv) ? tv.GetString() : null;
+            var marca          = info.TryGetProperty("marca",               out var mv) && mv.ValueKind != JsonValueKind.Null ? mv.GetString() : null;
+            var descripcion    = info.TryGetProperty("descripcion",         out var dv) ? dv.GetString() : null;
+            var confianza      = info.TryGetProperty("confianza",           out var cv) ? cv.GetString() : "media";
+            decimal? precio    = null;
+            if (info.TryGetProperty("precio_estimado_cop", out var pv) && pv.ValueKind == JsonValueKind.Number)
+                precio = pv.GetDecimal();
+
+            // Construir notas enriquecidas
+            var partesNotas = new List<string>();
+            if (!string.IsNullOrEmpty(tipo))      partesNotas.Add($"Tipo: {tipo}");
+            if (!string.IsNullOrEmpty(marca))     partesNotas.Add($"Marca: {marca}");
+            if (precio.HasValue)                   partesNotas.Add($"Precio estimado: ${precio:N0}");
+            if (!string.IsNullOrEmpty(descripcion)) partesNotas.Add(descripcion);
+            partesNotas.Add($"[IA: confianza {confianza}]");
+            var notasFinales = string.Join(". ", partesNotas);
+
+            // Actualizar BD
+            var updCmd = new NpgsqlCommand(@"
+                UPDATE inventario_por_imagen
+                SET referencia = @ref, notas = @notas
+                WHERE id = @id", conn);
+            updCmd.Parameters.AddWithValue("ref", (object?)referencia ?? DBNull.Value);
+            updCmd.Parameters.AddWithValue("notas", notasFinales);
+            updCmd.Parameters.AddWithValue("id", id);
+            await updCmd.ExecuteNonQueryAsync();
+
+            logger.LogInformation("[VISION] id={Id} identificado como: {Ref} (confianza: {C})", id, referencia, confianza);
+            resultados.Add(new { id, ok = true, referencia, tipo, marca, precio, descripcion, confianza });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[VISION] Error analizando imagen id={Id}", id);
+            resultados.Add(new { id, ok = false, error = ex.Message });
+        }
+    }
+
+    return Results.Ok(new { analizadas = resultados.Count, resultados });
+}).RequireAuthorization();
+
+// ============================================================
 // POS — BÚSQUEDA DE PRODUCTOS
 // GET /pos/buscar?q=texto — busca en inventario_stock e inventario_productos
 // ============================================================

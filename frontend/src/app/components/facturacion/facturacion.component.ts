@@ -131,6 +131,9 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   fotosPendientesCnt = signal(0);
   mostrarFotos     = signal(false);
   imagenSeleccionada = signal<{id:number; imagen:string; mimeType:string; referencia:string; notas:string} | null>(null);
+  analizandoFotos  = signal(false);
+  resultadosAnalisis = signal<any[]>([]);
+  mostrarResultadosAnalisis = signal(false);
 
   // ── Nuevo producto desde barcode desconocido ──────────
   mostrarNuevoProducto = signal(false);
@@ -413,6 +416,32 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   }
 
   cerrarNuevoProducto() { this.mostrarNuevoProducto.set(false); this.npFotoId.set(null); }
+
+  // ── Analizar fotos sin referencia con Claude Vision ──
+  analizarFotosSinReferencia() {
+    if (this.analizandoFotos()) return;
+    this.analizandoFotos.set(true);
+    this.resultadosAnalisis.set([]);
+    this.mostrarResultadosAnalisis.set(false);
+    this.svc.analizarFotosSinReferencia().subscribe({
+      next: r => {
+        this.analizandoFotos.set(false);
+        if (r.analizadas > 0 && r.resultados) {
+          this.resultadosAnalisis.set(r.resultados);
+          this.mostrarResultadosAnalisis.set(true);
+          this.cargarFotosPendientes();
+        } else {
+          this.mensajeExito.set(r.mensaje ?? 'No hay imágenes sin referencia.');
+          setTimeout(() => this.mensajeExito.set(''), 3000);
+        }
+      },
+      error: () => {
+        this.analizandoFotos.set(false);
+        this.mensajeError.set('Error al analizar imágenes con IA.');
+        setTimeout(() => this.mensajeError.set(''), 3000);
+      }
+    });
+  }
 
   // ── Inventario por imagen ─────────────────────────────
   cargarFotosPendientes() {
