@@ -95,7 +95,7 @@
             🛍️ Catálogo Web (114)
           </button>
           <button class="cat-tab cat-tab-todo" [class.active]="tabCatalogo() === 'todo'" (click)="cambiarTab('todo')">
-            📋 Todo (656)
+            📋 Todo {{ productosTodo().length > 0 ? '(' + productosTodo().length + ')' : '' }}
           </button>
         </div>
 
