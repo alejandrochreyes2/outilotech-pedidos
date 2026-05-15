@@ -2890,13 +2890,31 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
 
             if (posiblesCodigos.Count > 0 || !string.IsNullOrEmpty(descripGroq))
             {
-                // Usar referencia Y descripción de Groq como términos de búsqueda
-                // La descripción es más útil para similarity porque usa palabras comunes
+                // Usar referencia Y descripción de Groq como términos de búsqueda.
+                // Groq describe en español, nuestra BD usa inglés/mixto, por eso la
+                // similarity de trigramas falla entre idiomas. La solución es extraer
+                // las siglas técnicas que son universales (OTG, USB, Type-C, AUX, etc.)
+                // y buscar esos términos cortos que sí aparecen igual en ambos idiomas.
                 string refBusq  = referenciaGroq ?? "";
                 string descBusq = descripGroq ?? "";
-                string terminoLike     = $"%{refBusq.ToLower()}%";
-                string terminoDescLike = $"%{string.Join("%", (descBusq.ToLower().Split(' ')
-                    .Where(w => w.Length > 3).Take(3)))}%";
+                string terminoLike = $"%{refBusq.ToLower()}%";
+
+                // Extraer términos técnicos universales de referencia y descripción
+                var textoCompleto = $"{refBusq} {descBusq} {marcaGroq} {tipoGroq}".ToLower();
+                var terminosTecnicos = System.Text.RegularExpressions.Regex.Matches(
+                    textoCompleto,
+                    @"\b(otg|usb[\-\s]?[a-z0-9]*|type[\-\s]?[a-z]|lightning|hdmi|aux|sdcard|sd|micro|wireless|bluetooth|wifi|3\.5mm|nfc|rf|ir|power bank|powerbank|tws|anc|fm|led|lcd|amoled|4g|5g|hub)\b",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                    .Select(m => m.Value.Trim().ToLower())
+                    .Distinct().Take(4).ToList();
+                // También incluir palabras largas (≥6 chars) del refBusq si no son código puro
+                if (!string.IsNullOrEmpty(refBusq) && refBusq.Length >= 4 && !System.Text.RegularExpressions.Regex.IsMatch(refBusq, @"^[A-Z]{2,}-\d+$"))
+                    terminosTecnicos.Insert(0, refBusq.ToLower());
+
+                // keywords para LIKE — primer término técnico encontrado, o fallback
+                string terminoDescLike = terminosTecnicos.Count > 0
+                    ? $"%{terminosTecnicos[0]}%"
+                    : $"%{descBusq.ToLower().Split(' ').FirstOrDefault(w => w.Length >= 4) ?? ""}%";
 
                 // Buscar en inventario_stock — por referencia Y por descripción Groq
                 var cmdStock = new NpgsqlCommand(@"
