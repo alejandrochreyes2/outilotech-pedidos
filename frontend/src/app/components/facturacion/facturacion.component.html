@@ -84,6 +84,9 @@
               <span class="badge-fotos">{{ fotosPendientesCnt() }}</span>
             }
           </button>
+          <button class="btn-jhonia" (click)="abrirJhonIA()" title="JhonIA — inteligencia interna del proyecto">
+            🧠 JhonIA
+          </button>
         </div>
 
         <!-- Tabs stock / catálogo / todo -->
@@ -694,6 +697,119 @@
           </div>
         }
 
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════
+       JHONIA — PANEL DE INTELIGENCIA INTERNA
+  ══════════════════════════════════════════════════════════ -->
+  @if (mostrarJhonIA()) {
+    <div class="scanner-overlay" (click)="mostrarJhonIA.set(false)">
+      <div class="scanner-modal jhonia-modal" (click)="$event.stopPropagation()">
+
+        <div class="scanner-header">
+          <h3>🧠 JhonIA — Inteligencia Interna del Proyecto</h3>
+          <button class="btn-cerrar" (click)="mostrarJhonIA.set(false)">✕</button>
+        </div>
+
+        <div class="jhonia-body">
+
+          @if (jhonIACargando()) {
+            <p class="jhonia-cargando">⏳ Cargando estado de JhonIA...</p>
+          } @else if (jhonIAEstado()) {
+            <!-- Estado general -->
+            <div class="jhonia-estado">
+              <span class="jhonia-activo">● {{ jhonIAEstado().jhonIA | uppercase }}</span>
+              <span class="jhonia-version">{{ jhonIAEstado().version }}</span>
+            </div>
+
+            <!-- Niveles -->
+            <div class="jhonia-niveles">
+              @for (n of jhonIAEstado().niveles; track n) {
+                <span class="jhonia-nivel">{{ n }}</span>
+              }
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="jhonia-stats-grid">
+              <div class="jhonia-stat">
+                <span class="stat-val">{{ jhonIAEstado().estadisticas.chatbot_sesiones_hoy }}</span>
+                <span class="stat-lbl">Sesiones chatbot hoy</span>
+              </div>
+              <div class="jhonia-stat">
+                <span class="stat-val">{{ jhonIAEstado().estadisticas.groq_calls_ultima_hora }}</span>
+                <span class="stat-lbl">Llamadas Groq / hora</span>
+              </div>
+              <div class="jhonia-stat">
+                <span class="stat-val">{{ jhonIAEstado().estadisticas.fotos_pendientes_analisis }}</span>
+                <span class="stat-lbl">Fotos pendientes</span>
+              </div>
+              <div class="jhonia-stat" [class.stat-alerta]="jhonIAEstado().estadisticas.productos_sin_precio > 0">
+                <span class="stat-val">{{ jhonIAEstado().estadisticas.productos_sin_precio }}</span>
+                <span class="stat-lbl">Productos sin precio</span>
+              </div>
+              <div class="jhonia-stat">
+                <span class="stat-val">{{ jhonIAEstado().estadisticas.fotos_analizadas_ia }}</span>
+                <span class="stat-lbl">Fotos analizadas IA</span>
+              </div>
+              <div class="jhonia-stat" [class.stat-alerta]="jhonIAEstado().estadisticas.gaps_sin_resolver > 0">
+                <span class="stat-val">{{ jhonIAEstado().estadisticas.gaps_sin_resolver }}</span>
+                <span class="stat-lbl">Gaps de conocimiento</span>
+              </div>
+              <div class="jhonia-stat">
+                <span class="stat-val">{{ jhonIAEstado().estadisticas.total_productos_stock }}</span>
+                <span class="stat-lbl">Total productos stock</span>
+              </div>
+              <div class="jhonia-stat">
+                <span class="stat-val">{{ jhonIAEstado().estadisticas.productos_descripcion_incompleta }}</span>
+                <span class="stat-lbl">Sin descripción</span>
+              </div>
+            </div>
+          }
+
+          <!-- Acción: enriquecer inventario -->
+          <div class="jhonia-accion">
+            <p class="jhonia-accion-desc">
+              JhonIA revisa los productos sin precio en <strong>inventario_stock</strong>,
+              primero busca en nuestra BD y luego en internet (N5 groq/compound)
+              para actualizar precios y descripciones automáticamente.
+            </p>
+            <button class="btn-enriquecer" [disabled]="jhonIAEnriqueciendo()"
+                    (click)="enriquecerInventario()">
+              @if (jhonIAEnriqueciendo()) {
+                ⏳ JhonIA buscando en web...
+              } @else {
+                🌐 Enriquecer inventario con internet (5 productos)
+              }
+            </button>
+          </div>
+
+          <!-- Resultados del enriquecimiento -->
+          @if (jhonIAResultados().length > 0) {
+            <div class="jhonia-resultados">
+              <p class="jhonia-res-titulo">Resultados del enriquecimiento:</p>
+              @for (r of jhonIAResultados(); track r.codigo) {
+                <div class="jhonia-res-item" [class.res-ok]="r.ok" [class.res-err]="!r.ok">
+                  @if (r.ok) {
+                    <strong>{{ r.codigo }}</strong>
+                    @if (r.precioNuevo && r.precioNuevo !== r.precioAntes) {
+                      <span class="res-precio-antes">${{ r.precioAntes | number }}</span>
+                      <span class="res-arrow">→</span>
+                      <span class="res-precio-nuevo">${{ r.precioNuevo | number }}</span>
+                    } @else {
+                      <span style="color:#64748b"> sin cambio de precio</span>
+                    }
+                    @if (r.fuente) { <span class="res-fuente">{{ r.fuente }}</span> }
+                  } @else {
+                    <span style="color:#ff6b6b">⚠️ {{ r.codigo }}: {{ r.error }}</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+        </div>
       </div>
     </div>
   }

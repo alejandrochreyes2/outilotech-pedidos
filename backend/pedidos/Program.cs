@@ -1422,6 +1422,147 @@ async Task RegistrarGap(string pregunta)
     catch { }
 }
 
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  JHONIA CORE — Alma compartida del proyecto Outiltech        ║
+// ║  Todas las IAs del sistema (chatbot, visión, inventario)     ║
+// ║  convergen aquí. Cualquier endpoint llama a estas funciones  ║
+// ║  en lugar de duplicar lógica de IA.                         ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ── Llama a cualquier modelo Groq y retorna el content como string ──────────
+async Task<string?> JhonIAGroqChat(
+    string modelo, string prompt, string groqKey,
+    IHttpClientFactory factory, ILogger logger, int maxTokens = 500)
+{
+    try
+    {
+        using var c = factory.CreateClient();
+        c.Timeout = TimeSpan.FromSeconds(30);
+        c.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", groqKey);
+        var payload = new System.Text.Json.Nodes.JsonObject
+        {
+            ["model"]      = modelo,
+            ["max_tokens"] = maxTokens,
+            ["messages"]   = new System.Text.Json.Nodes.JsonArray
+            {
+                new System.Text.Json.Nodes.JsonObject { ["role"] = "user", ["content"] = prompt }
+            }
+        };
+        var resp = await c.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", payload);
+        var txt  = await resp.Content.ReadAsStringAsync();
+        if (!resp.IsSuccessStatusCode) { logger.LogWarning("[JhonIA] Groq {M} error: {B}", modelo, txt[..Math.Min(200,txt.Length)]); return null; }
+        var j = JsonSerializer.Deserialize<JsonElement>(txt);
+        return j.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
+    }
+    catch (Exception ex) { logger.LogWarning("[JhonIA] JhonIAGroqChat exception: {E}", ex.Message); return null; }
+}
+
+// ── NIVEL 5: groq/compound busca en web y extrae datos del producto ──────────
+// groq/compound tiene acceso a internet real, por eso puede buscar precios
+// actualizados en Colombia que no tenemos en nuestra BD.
+async Task<(string? descripcion, decimal? precio, string? marca, string? fuente)>
+JhonIABuscarEnWeb(string referencia, string descripcionGroq, string groqKey, IHttpClientFactory factory, ILogger logger)
+{
+    if (string.IsNullOrEmpty(groqKey)) return (null, null, null, null);
+    var prompt = $@"Busca información actualizada de este producto de tecnología que se vende en Colombia:
+Referencia: {referencia}
+Descripción aproximada: {descripcionGroq}
+
+Necesito datos reales para nuestro inventario. Responde SOLO con JSON sin texto adicional ni ```:
+{{""descripcion_detallada"":""descripción técnica completa del producto"",""precio_cop"":precio_entero_en_pesos_colombianos_o_null,""marca"":""marca_real_o_null"",""encontrado"":true_o_false,""fuente_web"":""tienda o sitio donde encontraste el precio""}}";
+
+    var content = await JhonIAGroqChat("groq/compound", prompt, groqKey, factory, logger, 400);
+    if (content == null) return (null, null, null, null);
+
+    content = content.Trim();
+    if (content.StartsWith("```json")) content = content[7..];
+    if (content.StartsWith("```"))     content = content[3..];
+    if (content.EndsWith("```"))       content = content[..^3];
+    content = content.Trim();
+
+    try
+    {
+        var j = JsonSerializer.Deserialize<JsonElement>(content);
+        var encontrado = j.TryGetProperty("encontrado", out var ef) && ef.GetBoolean();
+        if (!encontrado) return (null, null, null, null);
+        var desc   = j.TryGetProperty("descripcion_detallada", out var dv) ? dv.GetString() : null;
+        var marca  = j.TryGetProperty("marca",                  out var mv) && mv.ValueKind != JsonValueKind.Null ? mv.GetString() : null;
+        var fuente = j.TryGetProperty("fuente_web",             out var fv) ? fv.GetString() : "web";
+        decimal? precio = null;
+        if (j.TryGetProperty("precio_cop", out var pv) && pv.ValueKind == JsonValueKind.Number)
+            precio = pv.GetDecimal();
+        return (desc, precio, marca, fuente);
+    }
+    catch { return (null, null, null, null); }
+}
+
+// ── Busca un producto en la BD (stock + catálogo + fotos previas) ────────────
+// Centraliza la lógica N2 para que tanto el análisis de imágenes como el
+// enriquecimiento de inventario puedan reusar la misma búsqueda sin duplicar SQL.
+async Task<(string? codigo, string? descripcion, decimal? precio, string fuente, string? matchInfo)>
+JhonIABuscarEnBD(NpgsqlConnection conn, string referencia, string descripcionHint, ILogger logger)
+{
+    var refL  = referencia.ToLower().Trim();
+    var descL = descripcionHint.ToLower().Trim();
+    var likeRef  = $"%{refL}%";
+
+    // inventario_stock — código exacto o similarity
+    var cmdS = new NpgsqlCommand(@"
+        SELECT codigo_producto, descripcion, precio_venta,
+               GREATEST(similarity(LOWER(descripcion),@ref), similarity(LOWER(descripcion),@desc)) AS sim
+        FROM inventario_stock
+        WHERE (LOWER(codigo_producto)=@refexact OR LOWER(codigo_producto) LIKE @like
+               OR similarity(LOWER(descripcion),@ref)>0.38 OR similarity(LOWER(descripcion),@desc)>0.38)
+          AND precio_venta > 0
+        ORDER BY sim DESC LIMIT 1", conn);
+    cmdS.Parameters.AddWithValue("refexact", refL);
+    cmdS.Parameters.AddWithValue("ref",      refL);
+    cmdS.Parameters.AddWithValue("desc",     descL);
+    cmdS.Parameters.AddWithValue("like",     likeRef);
+    await using var rS = await cmdS.ExecuteReaderAsync();
+    if (await rS.ReadAsync())
+    {
+        var sim = rS.IsDBNull(3) ? 0f : (float)rS.GetDouble(3);
+        if (sim > 0.38 || rS.GetString(0).Equals(referencia, StringComparison.OrdinalIgnoreCase))
+        {
+            var cod = rS.GetString(0); var desc = rS.GetString(1); var prec = rS.GetDecimal(2);
+            await rS.CloseAsync();
+            logger.LogInformation("[JhonIA BD] stock match: '{C}' sim={S:F2}", cod, sim);
+            return (cod, desc, prec, "bd_stock", $"sim={sim:F2}");
+        }
+    }
+    await rS.CloseAsync();
+
+    // inventario_productos (catálogo JUQU) — mismo criterio
+    var cmdC = new NpgsqlCommand(@"
+        SELECT producto_id::text, nombre, precio,
+               GREATEST(similarity(LOWER(nombre),@ref), similarity(LOWER(nombre),@desc)) AS sim
+        FROM inventario_productos
+        WHERE UPPER(disponibilidad)='SI'
+          AND (LOWER(producto_id::text) LIKE @like OR LOWER(nombre) LIKE @like
+               OR similarity(LOWER(nombre),@ref)>0.38 OR similarity(LOWER(nombre),@desc)>0.38)
+          AND precio > 0
+        ORDER BY sim DESC LIMIT 1", conn);
+    cmdC.Parameters.AddWithValue("ref",  refL);
+    cmdC.Parameters.AddWithValue("desc", descL);
+    cmdC.Parameters.AddWithValue("like", likeRef);
+    await using var rC = await cmdC.ExecuteReaderAsync();
+    if (await rC.ReadAsync())
+    {
+        var sim = rC.IsDBNull(3) ? 0f : (float)rC.GetDouble(3);
+        if (sim > 0.38)
+        {
+            var cod = rC.GetString(0); var desc = rC.GetString(1); var prec = rC.GetDecimal(2);
+            await rC.CloseAsync();
+            logger.LogInformation("[JhonIA BD] catalogo match: '{C}' sim={S:F2}", cod, sim);
+            return (cod, desc, prec, "bd_catalogo", $"sim={sim:F2}");
+        }
+    }
+    await rC.CloseAsync();
+    return (null, null, null, "sin_match", null);
+}
+
 // ============================================================
 // CHATBOT IA — POST /chatbot/mensaje — 4 Niveles (Groq gratis)
 // Nivel 0: clasificación local | Nivel 1: conocimiento_jhon
@@ -3090,6 +3231,30 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
                 }
             }
 
+            // ── NIVEL 5: Si ni BD ni fotos previas encontraron el producto ───
+            // groq/compound tiene búsqueda web real — lo usamos como último recurso
+            // para enriquecer datos que no están en nuestra BD todavía.
+            if (fuente == "ia_groq" && !string.IsNullOrEmpty(groqKey)
+                && (!string.IsNullOrEmpty(referenciaGroq) || !string.IsNullOrEmpty(descripGroq)))
+            {
+                logger.LogInformation("[VISION N5] id={Id} buscando en web: '{Ref}'", id, referenciaGroq);
+                var (webDesc, webPrecio, webMarca, webFuente) = await JhonIABuscarEnWeb(
+                    referenciaGroq ?? "", descripGroq ?? "", groqKey, factory, logger);
+                if (webDesc != null || webPrecio.HasValue)
+                {
+                    if (!string.IsNullOrEmpty(webDesc))  descripcionFinal = webDesc;
+                    if (webPrecio.HasValue)               precioFinal = webPrecio;
+                    if (!string.IsNullOrEmpty(webMarca))  marcaFinal = webMarca;
+                    fuente = "ia_groq+web";
+                    matchOrigen = $"web: {webFuente}";
+                    logger.LogInformation("[VISION N5] id={Id} web encontró precio=${P} fuente='{F}'", id, webPrecio, webFuente);
+                }
+                else
+                {
+                    logger.LogInformation("[VISION N5] id={Id} web no encontró datos adicionales", id);
+                }
+            }
+
             // ── NIVEL 3: Construir notas y guardar en BD ─────────────────────
             var partesNotas = new List<string>();
             if (matchOrigen != null)           partesNotas.Add($"[BD: {matchOrigen}]");
@@ -3130,6 +3295,208 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
     }
 
     return Results.Ok(new { analizadas = resultados.Count, resultados });
+}).RequireAuthorization();
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  JHONIA — ENDPOINTS DE INTELIGENCIA INTERNA DEL PROYECTO     ║
+// ║  No son solo APIs: son el sistema nervioso de Outiltech.     ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ── GET /jhonia/estado — Panel de salud de la IA en el proyecto ─────────────
+app.MapGet("/jhonia/estado", async (IConfiguration configuration) =>
+{
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+
+    var stats = new Dictionary<string, object>();
+
+    // Conversaciones del chatbot hoy
+    var r1 = await new NpgsqlCommand(
+        "SELECT COUNT(DISTINCT session_id) FROM conversaciones WHERE DATE(created_at)=CURRENT_DATE", conn)
+        .ExecuteScalarAsync();
+    stats["chatbot_sesiones_hoy"] = r1 ?? 0;
+
+    // Llamadas a Groq en última hora
+    var r2 = await new NpgsqlCommand(
+        "SELECT COUNT(*) FROM control_api WHERE timestamp_llamada > NOW()-INTERVAL '1 hour'", conn)
+        .ExecuteScalarAsync();
+    stats["groq_calls_ultima_hora"] = r2 ?? 0;
+
+    // Fotos pendientes de análisis
+    var r3 = await new NpgsqlCommand(
+        "SELECT COUNT(*) FROM inventario_por_imagen WHERE (referencia IS NULL OR TRIM(referencia)='') AND revisado=FALSE", conn)
+        .ExecuteScalarAsync();
+    stats["fotos_pendientes_analisis"] = r3 ?? 0;
+
+    // Productos sin precio en inventario_stock
+    var r4 = await new NpgsqlCommand(
+        "SELECT COUNT(*) FROM inventario_stock WHERE precio_venta=0 OR precio_venta IS NULL", conn)
+        .ExecuteScalarAsync();
+    stats["productos_sin_precio"] = r4 ?? 0;
+
+    // Productos sin descripción completa (descripción corta ≤ 5 chars)
+    var r5 = await new NpgsqlCommand(
+        "SELECT COUNT(*) FROM inventario_stock WHERE LENGTH(TRIM(COALESCE(descripcion,''))) <= 5", conn)
+        .ExecuteScalarAsync();
+    stats["productos_descripcion_incompleta"] = r5 ?? 0;
+
+    // Gaps de conocimiento sin resolver
+    var r6 = await new NpgsqlCommand(
+        "SELECT COUNT(*) FROM gaps_conocimiento WHERE resuelta=FALSE", conn)
+        .ExecuteScalarAsync();
+    stats["gaps_sin_resolver"] = r6 ?? 0;
+
+    // Fotos ya analizadas por IA
+    var r7 = await new NpgsqlCommand(
+        "SELECT COUNT(*) FROM inventario_por_imagen WHERE referencia IS NOT NULL AND TRIM(referencia)!=''", conn)
+        .ExecuteScalarAsync();
+    stats["fotos_analizadas_ia"] = r7 ?? 0;
+
+    // Total productos en sistema
+    var r8 = await new NpgsqlCommand(
+        "SELECT COUNT(*) FROM inventario_stock", conn).ExecuteScalarAsync();
+    stats["total_productos_stock"] = r8 ?? 0;
+
+    return Results.Ok(new {
+        jhonIA = "activo",
+        version = "multinivel-v5",
+        niveles = new[] {
+            "N0: clasificación local",
+            "N1: conocimiento entrenado BD",
+            "N2: caché trigram BD",
+            "N3: límite rate Groq",
+            "N4: Groq + Tool Use",
+            "N5: groq/compound búsqueda web"
+        },
+        estadisticas = stats,
+        timestamp = DateTime.UtcNow
+    });
+}).RequireAuthorization();
+
+// ── POST /jhonia/enriquecer-inventario — JhonIA revisa y mejora la BD ────────
+// Toma productos con datos incompletos (precio=0, descripción corta) y los
+// enriquece primero buscando en nuestra propia BD (similarity) y luego en web.
+// Mismo patrón de niveles que el análisis de imágenes.
+app.MapPost("/jhonia/enriquecer-inventario", async (HttpRequest request, IConfiguration configuration, IHttpClientFactory factory, ILogger<Program> logger) =>
+{
+    // Leer parámetros opcionales del body
+    int limite = 5;
+    bool soloSinPrecio = true;
+    try {
+        var body = await request.ReadFromJsonAsync<JsonElement>();
+        if (body.TryGetProperty("limite",      out var lv)) limite       = lv.GetInt32();
+        if (body.TryGetProperty("soloSinPrecio", out var sv)) soloSinPrecio = sv.GetBoolean();
+    } catch { }
+    limite = Math.Clamp(limite, 1, 20);
+
+    var groqKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? configuration["GROQ_API_KEY"] ?? "";
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+
+    // Seleccionar productos con datos incompletos
+    var whereClause = soloSinPrecio
+        ? "WHERE precio_venta = 0 OR precio_venta IS NULL"
+        : "WHERE LENGTH(TRIM(COALESCE(descripcion,''))) <= 5 OR precio_venta = 0";
+
+    var selectSql = $@"
+        SELECT codigo_producto, descripcion, precio_venta, stock_actual
+        FROM inventario_stock
+        {whereClause}
+        ORDER BY stock_actual DESC, codigo_producto
+        LIMIT {limite}";
+
+    var productos = new List<(string codigo, string desc, decimal precio, int stock)>();
+    await using (var rSel = await new NpgsqlCommand(selectSql, conn).ExecuteReaderAsync())
+    {
+        while (await rSel.ReadAsync())
+            productos.Add((rSel.GetString(0),
+                rSel.IsDBNull(1) ? "" : rSel.GetString(1),
+                rSel.IsDBNull(2) ? 0 : rSel.GetDecimal(2),
+                rSel.IsDBNull(3) ? 0 : rSel.GetInt32(3)));
+    }
+
+    if (productos.Count == 0)
+        return Results.Ok(new { procesados = 0, mensaje = "No hay productos con datos incompletos." });
+
+    var resultados = new List<object>();
+
+    foreach (var (codigo, descActual, precioActual, stock) in productos)
+    {
+        var enriquecido = new { codigo, descActual, precioActual, resultado = (object?)null };
+        try
+        {
+            // N2 — Buscar en nuestra propia BD por similarity (el código podría existir
+            // con otro nombre o en otra tabla con datos mejores)
+            var (bdCod, bdDesc, bdPrecio, bdFuente, bdInfo) = await JhonIABuscarEnBD(conn, codigo, descActual, logger);
+
+            string? nuevaDesc  = null;
+            decimal? nuevoPrecio = null;
+            string fuenteActual = "sin_cambio";
+
+            if (bdFuente != "sin_match" && bdPrecio.HasValue && bdPrecio > 0 && bdPrecio != precioActual)
+            {
+                nuevoPrecio = bdPrecio;
+                nuevaDesc   = bdDesc;
+                fuenteActual = bdFuente!;
+                logger.LogInformation("[ENRICH N2] {Cod}: precio BD ${P} ({F})", codigo, bdPrecio, bdFuente);
+            }
+
+            // N5 — Si BD no aportó datos nuevos, buscar en web
+            if (nuevoPrecio == null && !string.IsNullOrEmpty(groqKey))
+            {
+                logger.LogInformation("[ENRICH N5] {Cod}: buscando en web", codigo);
+                var (webDesc, webPrecio, webMarca, webFuente) = await JhonIABuscarEnWeb(
+                    codigo, descActual, groqKey, factory, logger);
+                if (webPrecio.HasValue && webPrecio > 0)
+                {
+                    nuevoPrecio = webPrecio;
+                    if (!string.IsNullOrEmpty(webDesc)) nuevaDesc = webDesc;
+                    fuenteActual = $"web:{webFuente}";
+                    logger.LogInformation("[ENRICH N5] {Cod}: web encontró ${P}", codigo, webPrecio);
+                }
+            }
+
+            // Actualizar BD si hay datos nuevos
+            if (nuevoPrecio.HasValue || !string.IsNullOrEmpty(nuevaDesc))
+            {
+                var setClauses = new List<string>();
+                var updCmd = new NpgsqlCommand("", conn);
+                if (nuevoPrecio.HasValue && nuevoPrecio != precioActual) {
+                    setClauses.Add("precio_venta = @precio");
+                    updCmd.Parameters.AddWithValue("precio", nuevoPrecio.Value);
+                }
+                if (!string.IsNullOrEmpty(nuevaDesc) && nuevaDesc != descActual) {
+                    setClauses.Add("descripcion = @desc");
+                    updCmd.Parameters.AddWithValue("desc", nuevaDesc);
+                }
+                if (setClauses.Count > 0)
+                {
+                    updCmd.CommandText = $"UPDATE inventario_stock SET {string.Join(", ", setClauses)} WHERE codigo_producto=@cod";
+                    updCmd.Parameters.AddWithValue("cod", codigo);
+                    await updCmd.ExecuteNonQueryAsync();
+                    logger.LogInformation("[ENRICH] {Cod}: actualizado en BD (fuente={F})", codigo, fuenteActual);
+                }
+            }
+
+            resultados.Add(new {
+                codigo,
+                ok          = true,
+                precioAntes = precioActual,
+                precioNuevo = nuevoPrecio,
+                descripcion = nuevaDesc ?? descActual,
+                fuente      = fuenteActual,
+                stock
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ENRICH] Error procesando {Cod}", codigo);
+            resultados.Add(new { codigo, ok = false, error = ex.Message });
+        }
+    }
+
+    return Results.Ok(new { procesados = resultados.Count, resultados });
 }).RequireAuthorization();
 
 // ============================================================

@@ -171,6 +171,35 @@ export class FacturacionService {
     }>(`${this.api}/api/scan/inventario-por-imagen/analizar-sin-referencia`, {}, this.headers);
   }
 
+  // ── JhonIA endpoints internos ─────────────────────────────
+  jhonIAEstado() {
+    return this.http.get<{
+      jhonIA: string; version: string; niveles: string[];
+      estadisticas: {
+        chatbot_sesiones_hoy: number;
+        groq_calls_ultima_hora: number;
+        fotos_pendientes_analisis: number;
+        productos_sin_precio: number;
+        productos_descripcion_incompleta: number;
+        gaps_sin_resolver: number;
+        fotos_analizadas_ia: number;
+        total_productos_stock: number;
+      };
+    }>(`${this.api}/api/jhonia/estado`, this.headers);
+  }
+
+  jhonIAEnriquecerInventario(limite = 5, soloSinPrecio = true) {
+    return this.http.post<{
+      procesados: number;
+      mensaje?: string;
+      resultados?: {
+        codigo: string; ok: boolean;
+        precioAntes?: number; precioNuevo?: number;
+        descripcion?: string; fuente?: string; stock?: number; error?: string;
+      }[];
+    }>(`${this.api}/api/jhonia/enriquecer-inventario`, { limite, soloSinPrecio }, this.headers);
+  }
+
   // ── Agregar producto nuevo desde escáner ──────────────────
   agregarProductoNuevo(dto: {
     codigoBarras: string;

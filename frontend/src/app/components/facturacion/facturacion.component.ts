@@ -135,6 +135,13 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   resultadosAnalisis = signal<any[]>([]);
   mostrarResultadosAnalisis = signal(false);
 
+  // ── JhonIA panel interno ────────────────────────────────
+  mostrarJhonIA      = signal(false);
+  jhonIAEstado       = signal<any>(null);
+  jhonIACargando     = signal(false);
+  jhonIAEnriqueciendo = signal(false);
+  jhonIAResultados   = signal<any[]>([]);
+
   // ── Nuevo producto desde barcode desconocido ──────────
   mostrarNuevoProducto = signal(false);
   npCodigo      = signal('');
@@ -636,5 +643,36 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   private mostrarError(msg: string) {
     this.mensajeError.set(msg);
     setTimeout(() => this.mensajeError.set(''), 4000);
+  }
+
+  // ── JhonIA panel ─────────────────────────────────────────
+  abrirJhonIA() {
+    this.mostrarJhonIA.set(true);
+    this.cargarEstadoJhonIA();
+  }
+
+  cargarEstadoJhonIA() {
+    this.jhonIACargando.set(true);
+    this.svc.jhonIAEstado().subscribe({
+      next: r => { this.jhonIAEstado.set(r); this.jhonIACargando.set(false); },
+      error: () => this.jhonIACargando.set(false)
+    });
+  }
+
+  enriquecerInventario() {
+    if (this.jhonIAEnriqueciendo()) return;
+    this.jhonIAEnriqueciendo.set(true);
+    this.jhonIAResultados.set([]);
+    this.svc.jhonIAEnriquecerInventario(5, true).subscribe({
+      next: r => {
+        this.jhonIAEnriqueciendo.set(false);
+        this.jhonIAResultados.set(r.resultados ?? []);
+        this.cargarEstadoJhonIA();
+      },
+      error: () => {
+        this.jhonIAEnriqueciendo.set(false);
+        this.mostrarError('Error al enriquecer inventario con JhonIA.');
+      }
+    });
   }
 }

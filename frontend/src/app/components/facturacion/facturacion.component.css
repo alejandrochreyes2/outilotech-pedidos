@@ -1035,3 +1035,108 @@
   gap: 0.6rem;
   padding-top: 0.2rem;
 }
+
+/* ── Botón JhonIA header ─────────────────────────────── */
+.btn-jhonia {
+  padding: 0.5rem 0.9rem;
+  background: linear-gradient(135deg, #1a0533, #3b0764);
+  color: #d8b4fe;
+  border: 1px solid #7c3aed;
+  border-radius: 6px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.btn-jhonia:hover { background: linear-gradient(135deg, #2d1050, #5b21b6); color: #ede9fe; }
+
+/* ── Modal JhonIA ────────────────────────────────────── */
+.jhonia-modal { max-width: 560px; max-height: 85vh; overflow-y: auto; }
+.jhonia-body { display: flex; flex-direction: column; gap: 1rem; padding: 0.2rem 0; }
+.jhonia-cargando { color: #a78bfa; text-align: center; padding: 1rem; }
+
+.jhonia-estado {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: #0f0f1a;
+  border: 1px solid #3730a3;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+}
+.jhonia-activo { color: #4ade80; font-weight: 700; font-size: 0.88rem; }
+.jhonia-version { color: #7c3aed; font-size: 0.75rem; background: #1e1b4b; padding: 2px 8px; border-radius: 20px; }
+
+.jhonia-niveles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.jhonia-nivel {
+  background: #1e1b4b;
+  color: #a78bfa;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 0.68rem;
+}
+
+.jhonia-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+.jhonia-stat {
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.jhonia-stat.stat-alerta { border-color: #ff4d4d; background: #1a0000; }
+.stat-val { color: #a78bfa; font-size: 1.3rem; font-weight: 700; line-height: 1; }
+.stat-lbl { color: #64748b; font-size: 0.62rem; line-height: 1.2; }
+.stat-alerta .stat-val { color: #ff6b6b; }
+
+.jhonia-accion {
+  background: #0f0f1a;
+  border: 1px solid #3730a3;
+  border-radius: 8px;
+  padding: 0.8rem;
+}
+.jhonia-accion-desc { color: #94a3b8; font-size: 0.78rem; margin: 0 0 0.6rem; line-height: 1.5; }
+.btn-enriquecer {
+  width: 100%;
+  padding: 0.6rem;
+  background: linear-gradient(135deg, #1a0533, #3b0764);
+  color: #d8b4fe;
+  border: 1px solid #7c3aed;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-enriquecer:hover:not(:disabled) { background: linear-gradient(135deg, #2d1050, #5b21b6); }
+.btn-enriquecer:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.jhonia-resultados { display: flex; flex-direction: column; gap: 0.3rem; }
+.jhonia-res-titulo { color: #a78bfa; font-size: 0.75rem; font-weight: 700; margin: 0 0 4px; }
+.jhonia-res-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  flex-wrap: wrap;
+}
+.jhonia-res-item.res-ok { background: #0a1628; border: 1px solid #1d4ed8; color: #93c5fd; }
+.jhonia-res-item.res-err { background: #1a0000; border: 1px solid #7f1d1d; }
+.res-precio-antes { color: #ef4444; text-decoration: line-through; }
+.res-arrow { color: #64748b; }
+.res-precio-nuevo { color: #4ade80; font-weight: 700; }
+.res-fuente { background: #1e1b4b; color: #818cf8; border-radius: 4px; padding: 1px 6px; font-size: 0.68rem; }
