@@ -2763,7 +2763,7 @@ app.MapPatch("/scan/inventario-por-imagen/{id}/revisar", async (int id) => {
 // POST /scan/inventario-por-imagen/analizar-sin-referencia
 // Lee imágenes cuya referencia está vacía y usa Claude para identificar el producto
 // ============================================================
-app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IHttpClientFactory factory, ILogger<Program> logger) =>
+app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfiguration configuration, IHttpClientFactory factory, ILogger<Program> logger) =>
 {
     await using var conn = new NpgsqlConnection(pgConnectionString);
     await conn.OpenAsync();
