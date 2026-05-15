@@ -2789,7 +2789,7 @@ app.MapGet("/pos/buscar", async (string? q) =>
     var cmdProd = new NpgsqlCommand(@"
         SELECT producto_id, nombre, unidades, precio
         FROM inventario_productos
-        WHERE disponibilidad = 'Si'
+        WHERE UPPER(disponibilidad) = 'SI'
           AND (LOWER(nombre) LIKE @q OR LOWER(producto_id) LIKE @q
                OR LOWER(modelo) LIKE @q OR LOWER(categoria) LIKE @q)
         ORDER BY nombre LIMIT 40", conn);
@@ -2850,7 +2850,7 @@ app.MapGet("/pos/todos", async () =>
     var cmdProd = new NpgsqlCommand(@"
         SELECT producto_id, nombre, unidades, precio
         FROM inventario_productos
-        WHERE disponibilidad = 'Si'
+        WHERE UPPER(disponibilidad) = 'SI'
         ORDER BY nombre", conn);
     await using var rProd = await cmdProd.ExecuteReaderAsync();
     while (await rProd.ReadAsync())
