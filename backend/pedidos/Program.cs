@@ -2953,47 +2953,62 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
                 }
                 await rStockSim.CloseAsync();
 
-                // Estrategia B: keyword técnico — solo si A no encontró match
+                // Estrategia B: keywords técnicos con combinación progresiva
+                // Si un término es genérico (>4 matches), combina con el siguiente para afinar
                 if (fuente == "ia_groq" && terminosTecnicos.Count > 0)
                 {
-                    // Contar cuántos productos coinciden con el keyword técnico
-                    var kwPattern = $"%{terminosTecnicos[0]}%";
-                    var cmdCount = new NpgsqlCommand(
-                        "SELECT COUNT(*) FROM inventario_stock WHERE LOWER(descripcion) LIKE @kw", conn);
-                    cmdCount.Parameters.AddWithValue("kw", kwPattern);
-                    var totalKw = (long)(await cmdCount.ExecuteScalarAsync() ?? 0L);
+                    string? kwPatternFinal = null;
+                    long totalKwFinal = 0;
+                    var usedKws = new List<string>();
 
-                    if (totalKw > 0 && totalKw <= 4)
+                    for (int ki = 0; ki < Math.Min(terminosTecnicos.Count, 3); ki++)
                     {
-                        // Keyword específico con pocos matches — recuperar el mejor
-                        var cmdKw = new NpgsqlCommand(@"
+                        usedKws.Add(terminosTecnicos[ki]);
+                        // Combinar todos los terms usados hasta ahora con AND LIKE
+                        var whereKw = string.Join(" AND ", usedKws.Select((k, i) => $"LOWER(descripcion) LIKE @kw{i}"));
+                        var cmdCountKw = new NpgsqlCommand($"SELECT COUNT(*) FROM inventario_stock WHERE {whereKw}", conn);
+                        for (int i = 0; i < usedKws.Count; i++)
+                            cmdCountKw.Parameters.AddWithValue($"kw{i}", $"%{usedKws[i]}%");
+                        var cnt = (long)(await cmdCountKw.ExecuteScalarAsync() ?? 0L);
+
+                        if (cnt == 0) break; // combinación demasiado restrictiva
+                        totalKwFinal = cnt;
+                        kwPatternFinal = whereKw; // guardar la combinación actual
+
+                        if (cnt <= 4) break; // suficientemente específico
+                        // si cnt > 4 y hay más términos, seguir combinando
+                    }
+
+                    if (kwPatternFinal != null && totalKwFinal > 0 && totalKwFinal <= 4)
+                    {
+                        var cmdKw = new NpgsqlCommand($@"
                             SELECT codigo_producto, descripcion, precio_venta, stock_actual,
                                    similarity(LOWER(descripcion), LOWER(@desc)) AS sim
                             FROM inventario_stock
-                            WHERE LOWER(descripcion) LIKE @kw
+                            WHERE {kwPatternFinal}
                             ORDER BY stock_actual DESC, sim DESC LIMIT 1", conn);
                         cmdKw.Parameters.AddWithValue("desc", descBusq);
-                        cmdKw.Parameters.AddWithValue("kw",   kwPattern);
+                        for (int i = 0; i < usedKws.Count; i++)
+                            cmdKw.Parameters.AddWithValue($"kw{i}", $"%{usedKws[i]}%");
 
                         await using var rKw = await cmdKw.ExecuteReaderAsync();
                         if (await rKw.ReadAsync())
                         {
-                            var simKw = rKw.IsDBNull(4) ? 0f : (float)rKw.GetDouble(4);
-                            // Si precio real > 0 lo usamos como dato de precio real
                             var precioKw = rKw.GetDecimal(2);
                             if (precioKw > 0)
                             {
                                 precioFinal = precioKw;
                                 fuente = "ia_groq+bd_stock";
-                                matchOrigen = $"keyword '{terminosTecnicos[0]}' → {totalKw} coincidencia(s) en stock";
-                                logger.LogInformation("[VISION N2-B] id={Id} keyword '{Kw}' ({Total} matches) → precio real ${P}", id, terminosTecnicos[0], totalKw, precioKw);
+                                var kwLabel = string.Join("+", usedKws);
+                                matchOrigen = $"keywords '{kwLabel}' → {totalKwFinal} match(es) en stock";
+                                logger.LogInformation("[VISION N2-B] id={Id} keywords '{Kw}' ({Total}) → precio real ${P}", id, kwLabel, totalKwFinal, precioKw);
                             }
                         }
                         await rKw.CloseAsync();
                     }
-                    else if (totalKw > 4)
+                    else if (kwPatternFinal != null && totalKwFinal > 4)
                     {
-                        logger.LogInformation("[VISION N2-B] id={Id} keyword '{Kw}' demasiado genérico ({Total} matches), omitido", id, terminosTecnicos[0], totalKw);
+                        logger.LogInformation("[VISION N2-B] id={Id} keywords '{Kws}' aún genérico ({Total} matches), saltando BD", id, string.Join("+", usedKws), totalKwFinal);
                     }
                 }
 
