@@ -2966,7 +2966,8 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
                         usedKws.Add(terminosTecnicos[ki]);
                         // Combinar todos los terms usados hasta ahora con AND LIKE
                         var whereKw = string.Join(" AND ", usedKws.Select((k, i) => $"LOWER(descripcion) LIKE @kw{i}"));
-                        var cmdCountKw = new NpgsqlCommand($"SELECT COUNT(*) FROM inventario_stock WHERE {whereKw}", conn);
+                        // Solo productos con precio real (precio > 0): ignora placeholders sin precio
+                        var cmdCountKw = new NpgsqlCommand($"SELECT COUNT(*) FROM inventario_stock WHERE {whereKw} AND precio_venta > 0", conn);
                         for (int i = 0; i < usedKws.Count; i++)
                             cmdCountKw.Parameters.AddWithValue($"kw{i}", $"%{usedKws[i]}%");
                         var cnt = (long)(await cmdCountKw.ExecuteScalarAsync() ?? 0L);
@@ -2985,7 +2986,7 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
                             SELECT codigo_producto, descripcion, precio_venta, stock_actual,
                                    similarity(LOWER(descripcion), LOWER(@desc)) AS sim
                             FROM inventario_stock
-                            WHERE {kwPatternFinal}
+                            WHERE {kwPatternFinal} AND precio_venta > 0
                             ORDER BY stock_actual DESC, sim DESC LIMIT 1", conn);
                         cmdKw.Parameters.AddWithValue("desc", descBusq);
                         for (int i = 0; i < usedKws.Count; i++)
