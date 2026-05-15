@@ -1465,14 +1465,11 @@ async Task<(string? descripcion, decimal? precio, string? marca, string? fuente)
 JhonIABuscarEnWeb(string referencia, string descripcionGroq, string groqKey, IHttpClientFactory factory, ILogger logger)
 {
     if (string.IsNullOrEmpty(groqKey)) return (null, null, null, null);
-    var prompt = $@"Busca información actualizada de este producto de tecnología que se vende en Colombia:
-Referencia: {referencia}
-Descripción aproximada: {descripcionGroq}
+    // Prompt corto para evitar "Request Entity Too Large" en groq/compound
+    var termino = !string.IsNullOrEmpty(referencia) ? referencia : descripcionGroq[..Math.Min(50, descripcionGroq.Length)];
+    var prompt = $"Precio de \"{termino}\" en Colombia 2025 en pesos COP. Solo JSON: {{\"precio_cop\":numero_o_null,\"marca\":\"texto_o_null\",\"descripcion\":\"breve\",\"encontrado\":true}}";
 
-Necesito datos reales para nuestro inventario. Responde SOLO con JSON sin texto adicional ni ```:
-{{""descripcion_detallada"":""descripción técnica completa del producto"",""precio_cop"":precio_entero_en_pesos_colombianos_o_null,""marca"":""marca_real_o_null"",""encontrado"":true_o_false,""fuente_web"":""tienda o sitio donde encontraste el precio""}}";
-
-    var content = await JhonIAGroqChat("groq/compound", prompt, groqKey, factory, logger, 400);
+    var content = await JhonIAGroqChat("groq/compound", prompt, groqKey, factory, logger, 150);
     if (content == null) return (null, null, null, null);
 
     content = content.Trim();
@@ -1484,15 +1481,15 @@ Necesito datos reales para nuestro inventario. Responde SOLO con JSON sin texto 
     try
     {
         var j = JsonSerializer.Deserialize<JsonElement>(content);
-        var encontrado = j.TryGetProperty("encontrado", out var ef) && ef.GetBoolean();
-        if (!encontrado) return (null, null, null, null);
-        var desc   = j.TryGetProperty("descripcion_detallada", out var dv) ? dv.GetString() : null;
-        var marca  = j.TryGetProperty("marca",                  out var mv) && mv.ValueKind != JsonValueKind.Null ? mv.GetString() : null;
-        var fuente = j.TryGetProperty("fuente_web",             out var fv) ? fv.GetString() : "web";
+        // Intentar parsear como JSON; si falla, extraer número del texto libre
+        var encontrado = !j.TryGetProperty("encontrado", out var ef) || ef.ValueKind == JsonValueKind.True;
+        var desc   = j.TryGetProperty("descripcion", out var dv) ? dv.GetString()
+                   : j.TryGetProperty("descripcion_detallada", out var dv2) ? dv2.GetString() : null;
+        var marca  = j.TryGetProperty("marca", out var mv) && mv.ValueKind != JsonValueKind.Null ? mv.GetString() : null;
         decimal? precio = null;
         if (j.TryGetProperty("precio_cop", out var pv) && pv.ValueKind == JsonValueKind.Number)
             precio = pv.GetDecimal();
-        return (desc, precio, marca, fuente);
+        return (desc, precio, marca, "web");
     }
     catch { return (null, null, null, null); }
 }
