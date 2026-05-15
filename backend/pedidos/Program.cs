@@ -2759,26 +2759,31 @@ app.MapPatch("/scan/inventario-por-imagen/{id}/revisar", async (int id) => {
 }).RequireAuthorization();
 
 // ============================================================
-// SCAN — ANALIZAR IMÁGENES SIN REFERENCIA CON CLAUDE VISION
+// SCAN — ANALIZAR IMÁGENES SIN REFERENCIA (JHONIA MULTI-NIVEL)
 // POST /scan/inventario-por-imagen/analizar-sin-referencia
-// Lee imágenes cuya referencia está vacía y usa Claude para identificar el producto
+//
+// NIVEL 0 — Obtener imágenes pendientes de BD
+// NIVEL 1 — Groq Vision identifica referencia/código/marca del producto
+// NIVEL 2 — Buscar en inventario_stock + inventario_productos + fotos ya revisadas
+//            Si match fuerte (similarity > 0.60): usa datos REALES de BD
+//            Si match débil (0.35-0.60): enriquece datos Groq con precio real
+//            Sin match: guarda estimación Groq con fuente='ia_groq'
+// NIVEL 3 — Guardar resultado en inventario_por_imagen con campo fuente
 // ============================================================
 app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfiguration configuration, IHttpClientFactory factory, ILogger<Program> logger) =>
 {
+    // ── NIVEL 0: Leer imágenes pendientes de BD ─────────────────────────
     await using var conn = new NpgsqlConnection(pgConnectionString);
     await conn.OpenAsync();
 
-    // Obtener imágenes sin referencia, no revisadas
-    var selectCmd = new NpgsqlCommand(@"
+    var imagenes = new List<(int id, string base64, string mimeType, string? notas)>();
+    await using (var r = await new NpgsqlCommand(@"
         SELECT id, imagen_base64, mime_type, notas
         FROM inventario_por_imagen
         WHERE (referencia IS NULL OR TRIM(referencia) = '')
           AND revisado = FALSE
           AND imagen_base64 IS NOT NULL
-        ORDER BY fecha ASC LIMIT 5", conn);
-
-    var imagenes = new List<(int id, string base64, string mimeType, string? notas)>();
-    await using (var r = await selectCmd.ExecuteReaderAsync())
+        ORDER BY fecha ASC LIMIT 5", conn).ExecuteReaderAsync())
     {
         while (await r.ReadAsync())
             imagenes.Add((r.GetInt32(0), r.GetString(1),
@@ -2789,8 +2794,7 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
     if (imagenes.Count == 0)
         return Results.Ok(new { analizadas = 0, mensaje = "No hay imágenes sin referencia pendientes." });
 
-    var groqKey = Environment.GetEnvironmentVariable("GROQ_API_KEY")
-               ?? configuration["GROQ_API_KEY"] ?? "";
+    var groqKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? configuration["GROQ_API_KEY"] ?? "";
     if (string.IsNullOrEmpty(groqKey))
         return Results.BadRequest(new { error = "GROQ_API_KEY no configurada en el servidor." });
 
@@ -2800,18 +2804,19 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
     {
         try
         {
+            // ── NIVEL 1: Groq Vision — identificar producto en la imagen ────
             using var visionClient = factory.CreateClient();
             visionClient.Timeout = TimeSpan.FromSeconds(45);
             visionClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", groqKey);
 
-            var prompt = @"Eres un asistente de inventario de una tienda de tecnología en Colombia (OutilTech). Analiza esta imagen de un producto y extrae información. Responde ÚNICAMENTE con un objeto JSON (sin texto adicional, sin ```) con estos campos:
-{""referencia"":""nombre o modelo del producto"",""tipo"":""cable|cargador|audifonos|parlante|adaptador|soporte|power_bank|funda|otro"",""marca"":""marca visible o null"",""precio_estimado_cop"":numero_entero_o_null,""descripcion"":""descripcion breve con caracteristicas"",""confianza"":""alta|media|baja""}";
+            var promptVision = @"Eres un sistema de inventario de OutilTech, tienda de tecnología en Colombia. Analiza esta imagen y extrae información del producto visible. Responde ÚNICAMENTE JSON sin texto adicional ni ```:
+{""referencia"":""codigo o modelo exacto visible (ej: JQ-14, ATUD-05, iPhone 13)"",""posibles_codigos"":[""cod1"",""cod2""],""marca"":""marca visible o null"",""tipo"":""cable|cargador|audifonos|parlante|adaptador|soporte|power_bank|funda|celular|computador|mouse|teclado|otro"",""precio_estimado_cop"":numero_o_null,""descripcion"":""descripcion breve con caracteristicas tecnicas"",""confianza"":""alta|media|baja""}";
 
-            var requestPayload = new System.Text.Json.Nodes.JsonObject
+            var visionPayload = new System.Text.Json.Nodes.JsonObject
             {
                 ["model"] = "meta-llama/llama-4-scout-17b-16e-instruct",
-                ["max_tokens"] = 300,
+                ["max_tokens"] = 400,
                 ["messages"] = new System.Text.Json.Nodes.JsonArray
                 {
                     new System.Text.Json.Nodes.JsonObject
@@ -2822,84 +2827,208 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
                             new System.Text.Json.Nodes.JsonObject
                             {
                                 ["type"] = "image_url",
-                                ["image_url"] = new System.Text.Json.Nodes.JsonObject
-                                {
-                                    ["url"] = $"data:{mimeType};base64,{base64}"
-                                }
+                                ["image_url"] = new System.Text.Json.Nodes.JsonObject { ["url"] = $"data:{mimeType};base64,{base64}" }
                             },
-                            new System.Text.Json.Nodes.JsonObject
-                            {
-                                ["type"] = "text",
-                                ["text"] = prompt
-                            }
+                            new System.Text.Json.Nodes.JsonObject { ["type"] = "text", ["text"] = promptVision }
                         }
                     }
                 }
             };
 
-            var resp = await visionClient.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", requestPayload);
-            var respText = await resp.Content.ReadAsStringAsync();
-            if (!resp.IsSuccessStatusCode)
+            var visionResp = await visionClient.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", visionPayload);
+            var visionText = await visionResp.Content.ReadAsStringAsync();
+
+            if (!visionResp.IsSuccessStatusCode)
             {
-                logger.LogError("[VISION] Groq error id={Id} status={Status}: {Body}", id, (int)resp.StatusCode, respText);
-                // Extraer mensaje legible del error de Groq
-                string errorMsg = "Error Groq Vision";
+                string errMsg = "Error Groq Vision";
                 try {
-                    var errJson = JsonSerializer.Deserialize<JsonElement>(respText);
-                    if (errJson.TryGetProperty("error", out var errObj) && errObj.TryGetProperty("message", out var errMsgProp))
-                        errorMsg = errMsgProp.GetString() ?? errorMsg;
+                    var errJ = JsonSerializer.Deserialize<JsonElement>(visionText);
+                    if (errJ.TryGetProperty("error", out var eo) && eo.TryGetProperty("message", out var em))
+                        errMsg = em.GetString() ?? errMsg;
                 } catch { }
-                resultados.Add(new { id, ok = false, error = errorMsg });
+                logger.LogError("[VISION N1] Groq error id={Id}: {Msg}", id, errMsg);
+                resultados.Add(new { id, ok = false, error = errMsg });
                 continue;
             }
 
-            var respJson = JsonSerializer.Deserialize<JsonElement>(respText);
-            // Groq usa formato OpenAI: choices[0].message.content
-            var textContent = respJson
-                .GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString() ?? "{}";
+            // Parsear respuesta de Groq Vision
+            var visionJson = JsonSerializer.Deserialize<JsonElement>(visionText);
+            var rawContent = visionJson.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "{}";
+            rawContent = rawContent.Trim();
+            if (rawContent.StartsWith("```json")) rawContent = rawContent[7..];
+            if (rawContent.StartsWith("```"))     rawContent = rawContent[3..];
+            if (rawContent.EndsWith("```"))       rawContent = rawContent[..^3];
+            rawContent = rawContent.Trim();
 
-            // Limpiar posibles bloques de código
-            textContent = textContent.Trim();
-            if (textContent.StartsWith("```json")) textContent = textContent[7..];
-            if (textContent.StartsWith("```"))     textContent = textContent[3..];
-            if (textContent.EndsWith("```"))       textContent = textContent[..^3];
-            textContent = textContent.Trim();
+            var info = JsonSerializer.Deserialize<JsonElement>(rawContent);
 
-            var info = JsonSerializer.Deserialize<JsonElement>(textContent);
-
-            var referencia     = info.TryGetProperty("referencia",          out var rv) ? rv.GetString() : null;
-            var tipo           = info.TryGetProperty("tipo",                out var tv) ? tv.GetString() : null;
-            var marca          = info.TryGetProperty("marca",               out var mv) && mv.ValueKind != JsonValueKind.Null ? mv.GetString() : null;
-            var descripcion    = info.TryGetProperty("descripcion",         out var dv) ? dv.GetString() : null;
-            var confianza      = info.TryGetProperty("confianza",           out var cv) ? cv.GetString() : "media";
-            decimal? precio    = null;
+            var referenciaGroq = info.TryGetProperty("referencia",      out var rv) ? rv.GetString()?.Trim() : null;
+            var marcaGroq      = info.TryGetProperty("marca",           out var mv) && mv.ValueKind != JsonValueKind.Null ? mv.GetString() : null;
+            var tipoGroq       = info.TryGetProperty("tipo",            out var tv) ? tv.GetString() : null;
+            var descripGroq    = info.TryGetProperty("descripcion",     out var dv) ? dv.GetString() : null;
+            var confianzaGroq  = info.TryGetProperty("confianza",       out var cv) ? cv.GetString() : "media";
+            decimal? precioGroq = null;
             if (info.TryGetProperty("precio_estimado_cop", out var pv) && pv.ValueKind == JsonValueKind.Number)
-                precio = pv.GetDecimal();
+                precioGroq = pv.GetDecimal();
 
-            // Construir notas enriquecidas
+            // Extraer posibles códigos adicionales que sugirió Groq
+            var posiblesCodigos = new List<string>();
+            if (!string.IsNullOrEmpty(referenciaGroq)) posiblesCodigos.Add(referenciaGroq);
+            if (info.TryGetProperty("posibles_codigos", out var pcArr) && pcArr.ValueKind == JsonValueKind.Array)
+                foreach (var pc in pcArr.EnumerateArray())
+                    if (pc.GetString() is string s && !string.IsNullOrEmpty(s)) posiblesCodigos.Add(s);
+
+            logger.LogInformation("[VISION N1] id={Id} Groq identificó: '{Ref}' ({Conf})", id, referenciaGroq, confianzaGroq);
+
+            // ── NIVEL 2: Buscar en nuestras BDs antes de confiar en Groq ────
+            string? referenciaFinal = referenciaGroq;
+            string? descripcionFinal = descripGroq;
+            decimal? precioFinal = precioGroq;
+            string? marcaFinal = marcaGroq;
+            string fuente = "ia_groq";
+            string? matchOrigen = null;
+
+            if (posiblesCodigos.Count > 0)
+            {
+                // Construir términos de búsqueda (referencia + posibles códigos, únicos)
+                var terminos = posiblesCodigos.Distinct(StringComparer.OrdinalIgnoreCase).Take(4).ToList();
+                string terminoLike = $"%{(referenciaGroq ?? "").ToLower()}%";
+
+                // Buscar en inventario_stock (productos físicos con stock)
+                var cmdStock = new NpgsqlCommand(@"
+                    SELECT codigo_producto, descripcion, precio_venta, stock_actual,
+                           similarity(LOWER(descripcion), LOWER(@ref)) AS sim
+                    FROM inventario_stock
+                    WHERE LOWER(codigo_producto) LIKE @like
+                       OR LOWER(descripcion)     LIKE @like
+                       OR similarity(LOWER(descripcion), LOWER(@ref)) > 0.30
+                    ORDER BY sim DESC, stock_actual DESC
+                    LIMIT 1", conn);
+                cmdStock.Parameters.AddWithValue("ref",  referenciaGroq ?? "");
+                cmdStock.Parameters.AddWithValue("like", terminoLike);
+
+                await using var rStock = await cmdStock.ExecuteReaderAsync();
+                if (await rStock.ReadAsync())
+                {
+                    var simStock = rStock.IsDBNull(4) ? 0f : (float)rStock.GetDouble(4);
+                    if (simStock > 0.60 || (referenciaGroq ?? "").Length > 3 &&
+                        rStock.GetString(0).Contains(referenciaGroq ?? "", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Match fuerte — usar datos reales de BD
+                        referenciaFinal = rStock.GetString(0);
+                        descripcionFinal = rStock.GetString(1);
+                        precioFinal     = rStock.GetDecimal(2);
+                        fuente = "bd_stock";
+                        matchOrigen = $"inventario_stock sim={simStock:F2}";
+                        logger.LogInformation("[VISION N2] id={Id} match en inventario_stock: '{Cod}' sim={Sim:F2}", id, referenciaFinal, simStock);
+                    }
+                    else if (simStock > 0.35)
+                    {
+                        // Match débil — enriquecer precio con dato real
+                        precioFinal = rStock.GetDecimal(2);
+                        fuente = "ia_groq+bd_stock";
+                        matchOrigen = $"inventario_stock parcial sim={simStock:F2}";
+                        logger.LogInformation("[VISION N2] id={Id} match parcial stock sim={Sim:F2}, precio real: {P}", id, simStock, precioFinal);
+                    }
+                }
+                await rStock.CloseAsync();
+
+                // Si aún no hay match fuerte, buscar en inventario_productos (catálogo JUQU)
+                if (fuente == "ia_groq" || fuente.StartsWith("ia_groq+"))
+                {
+                    var cmdCat = new NpgsqlCommand(@"
+                        SELECT producto_id, nombre, precio,
+                               similarity(LOWER(nombre), LOWER(@ref)) AS sim
+                        FROM inventario_productos
+                        WHERE UPPER(disponibilidad) = 'SI'
+                          AND (LOWER(nombre) LIKE @like
+                           OR similarity(LOWER(nombre), LOWER(@ref)) > 0.30)
+                        ORDER BY sim DESC
+                        LIMIT 1", conn);
+                    cmdCat.Parameters.AddWithValue("ref",  referenciaGroq ?? "");
+                    cmdCat.Parameters.AddWithValue("like", terminoLike);
+
+                    await using var rCat = await cmdCat.ExecuteReaderAsync();
+                    if (await rCat.ReadAsync())
+                    {
+                        var simCat = rCat.IsDBNull(3) ? 0f : (float)rCat.GetDouble(3);
+                        if (simCat > 0.60)
+                        {
+                            referenciaFinal = rCat.GetString(0);
+                            descripcionFinal = rCat.GetString(1);
+                            precioFinal     = rCat.GetDecimal(2);
+                            fuente = "bd_catalogo";
+                            matchOrigen = $"inventario_productos sim={simCat:F2}";
+                            logger.LogInformation("[VISION N2] id={Id} match en catálogo: '{Nom}' sim={Sim:F2}", id, referenciaFinal, simCat);
+                        }
+                        else if (simCat > 0.35 && fuente == "ia_groq")
+                        {
+                            precioFinal = rCat.GetDecimal(2);
+                            fuente = "ia_groq+bd_catalogo";
+                            matchOrigen = $"catálogo parcial sim={simCat:F2}";
+                        }
+                    }
+                    await rCat.CloseAsync();
+                }
+
+                // Si sigue sin match, revisar fotos ya analizadas (aprendizaje de análisis previos)
+                if (fuente == "ia_groq" && !string.IsNullOrEmpty(referenciaGroq))
+                {
+                    var cmdFotos = new NpgsqlCommand(@"
+                        SELECT referencia, notas,
+                               similarity(LOWER(referencia), LOWER(@ref)) AS sim
+                        FROM inventario_por_imagen
+                        WHERE referencia IS NOT NULL AND TRIM(referencia) != ''
+                          AND revisado = TRUE
+                          AND similarity(LOWER(referencia), LOWER(@ref)) > 0.55
+                        ORDER BY sim DESC
+                        LIMIT 1", conn);
+                    cmdFotos.Parameters.AddWithValue("ref", referenciaGroq);
+
+                    await using var rFotos = await cmdFotos.ExecuteReaderAsync();
+                    if (await rFotos.ReadAsync())
+                    {
+                        var simFoto = rFotos.IsDBNull(2) ? 0f : (float)rFotos.GetDouble(2);
+                        referenciaFinal = rFotos.GetString(0);
+                        fuente = "bd_fotos_previas";
+                        matchOrigen = $"foto ya revisada sim={simFoto:F2}";
+                        logger.LogInformation("[VISION N2] id={Id} match en fotos previas: '{Ref}' sim={Sim:F2}", id, referenciaFinal, simFoto);
+                    }
+                    await rFotos.CloseAsync();
+                }
+            }
+
+            // ── NIVEL 3: Construir notas y guardar en BD ─────────────────────
             var partesNotas = new List<string>();
-            if (!string.IsNullOrEmpty(tipo))      partesNotas.Add($"Tipo: {tipo}");
-            if (!string.IsNullOrEmpty(marca))     partesNotas.Add($"Marca: {marca}");
-            if (precio.HasValue)                   partesNotas.Add($"Precio estimado: ${precio:N0}");
-            if (!string.IsNullOrEmpty(descripcion)) partesNotas.Add(descripcion);
-            partesNotas.Add($"[IA: confianza {confianza}]");
+            if (matchOrigen != null)           partesNotas.Add($"[BD: {matchOrigen}]");
+            if (!string.IsNullOrEmpty(tipoGroq))  partesNotas.Add($"Tipo: {tipoGroq}");
+            if (!string.IsNullOrEmpty(marcaFinal)) partesNotas.Add($"Marca: {marcaFinal}");
+            if (precioFinal.HasValue)             partesNotas.Add($"Precio: ${precioFinal:N0}");
+            if (!string.IsNullOrEmpty(descripcionFinal)) partesNotas.Add(descripcionFinal);
+            partesNotas.Add($"[IA: confianza {confianzaGroq} | fuente: {fuente}]");
             var notasFinales = string.Join(". ", partesNotas);
 
-            // Actualizar BD
             var updCmd = new NpgsqlCommand(@"
                 UPDATE inventario_por_imagen
                 SET referencia = @ref, notas = @notas
                 WHERE id = @id", conn);
-            updCmd.Parameters.AddWithValue("ref", (object?)referencia ?? DBNull.Value);
+            updCmd.Parameters.AddWithValue("ref",   (object?)referenciaFinal ?? DBNull.Value);
             updCmd.Parameters.AddWithValue("notas", notasFinales);
-            updCmd.Parameters.AddWithValue("id", id);
+            updCmd.Parameters.AddWithValue("id",    id);
             await updCmd.ExecuteNonQueryAsync();
 
-            logger.LogInformation("[VISION] id={Id} identificado como: {Ref} (confianza: {C})", id, referencia, confianza);
-            resultados.Add(new { id, ok = true, referencia, tipo, marca, precio, descripcion, confianza });
+            logger.LogInformation("[VISION N3] id={Id} guardado: '{Ref}' | fuente={Fuente}", id, referenciaFinal, fuente);
+            resultados.Add(new {
+                id, ok = true,
+                referencia  = referenciaFinal,
+                tipo        = tipoGroq,
+                marca       = marcaFinal,
+                precio      = precioFinal,
+                descripcion = descripcionFinal,
+                confianza   = confianzaGroq,
+                fuente,
+                matchOrigen
+            });
         }
         catch (Exception ex)
         {

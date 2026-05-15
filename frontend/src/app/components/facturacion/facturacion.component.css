@@ -136,6 +136,9 @@
 .analisis-item { padding: 4px 0; border-bottom: 1px solid #1e1e3a; font-size: 0.75rem; color: #e2e8f0; }
 .analisis-item:last-child { border-bottom: none; }
 .analisis-badge { background: #1e3a5f; color: #93c5fd; border-radius: 4px; padding: 1px 5px; font-size: 0.7rem; margin-left: 4px; }
+.analisis-badge-bd { background: #14532d; color: #86efac; }
+.analisis-badge-bd-parcial { background: #713f12; color: #fde68a; }
+.analisis-badge-ia { background: #3b0764; color: #d8b4fe; }
 
 .productos-grid {
   flex: 1;

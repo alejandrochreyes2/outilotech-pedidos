@@ -405,7 +405,18 @@
                       @if (r.tipo) { <span class="analisis-badge">{{ r.tipo }}</span> }
                       @if (r.marca) { <span class="analisis-badge">{{ r.marca }}</span> }
                       @if (r.precio) { <span class="analisis-badge">${{ r.precio | number }}</span> }
-                      <small style="color:#888"> — confianza: {{ r.confianza }}</small>
+                      @if (r.fuente === 'bd_stock') {
+                        <span class="analisis-badge analisis-badge-bd" title="Encontrado en inventario físico">✅ BD Stock</span>
+                      } @else if (r.fuente === 'bd_catalogo') {
+                        <span class="analisis-badge analisis-badge-bd" title="Encontrado en catálogo">✅ BD Catálogo</span>
+                      } @else if (r.fuente === 'bd_fotos_previas') {
+                        <span class="analisis-badge analisis-badge-bd" title="Coincide con foto ya analizada">✅ Foto previa</span>
+                      } @else if (r.fuente && r.fuente.includes('bd_')) {
+                        <span class="analisis-badge analisis-badge-bd-parcial" title="{{ r.matchOrigen }}">~ BD parcial</span>
+                      } @else {
+                        <span class="analisis-badge analisis-badge-ia" title="Solo estimación IA">🤖 IA</span>
+                      }
+                      <small style="color:#888"> confianza: {{ r.confianza }}</small>
                     } @else {
                       <span style="color:#ff6b6b">⚠️ ID {{ r.id }}: {{ r.error }}</span>
                     }

@@ -167,7 +167,7 @@ export class FacturacionService {
     return this.http.post<{
       analizadas: number;
       mensaje?: string;
-      resultados?: { id: number; ok: boolean; referencia?: string; tipo?: string; marca?: string; precio?: number; descripcion?: string; confianza?: string; error?: string }[];
+      resultados?: { id: number; ok: boolean; referencia?: string; tipo?: string; marca?: string; precio?: number; descripcion?: string; confianza?: string; fuente?: string; matchOrigen?: string; error?: string }[];
     }>(`${this.api}/api/scan/inventario-por-imagen/analizar-sin-referencia`, {}, this.headers);
   }
 
