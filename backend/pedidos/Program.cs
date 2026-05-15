@@ -3312,7 +3312,7 @@ app.MapGet("/jhonia/estado", async (IConfiguration configuration) =>
 
     // Conversaciones del chatbot hoy
     var r1 = await new NpgsqlCommand(
-        "SELECT COUNT(DISTINCT session_id) FROM conversaciones WHERE DATE(created_at)=CURRENT_DATE", conn)
+        "SELECT COUNT(DISTINCT session_id) FROM conversaciones WHERE DATE(creado_en)=CURRENT_DATE", conn)
         .ExecuteScalarAsync();
     stats["chatbot_sesiones_hoy"] = r1 ?? 0;
 
