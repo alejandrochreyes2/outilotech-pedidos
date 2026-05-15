@@ -2810,7 +2810,7 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
 
             var requestPayload = new System.Text.Json.Nodes.JsonObject
             {
-                ["model"] = "meta-llama/llama-4-scout-17b-16e-instruct",
+                ["model"] = "llama-3.2-11b-vision-preview",
                 ["max_tokens"] = 300,
                 ["messages"] = new System.Text.Json.Nodes.JsonArray
                 {
@@ -2841,8 +2841,15 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
             var respText = await resp.Content.ReadAsStringAsync();
             if (!resp.IsSuccessStatusCode)
             {
-                logger.LogError("[VISION] Groq error id={Id}: {Body}", id, respText);
-                resultados.Add(new { id, ok = false, error = "Error llamando Groq Vision" });
+                logger.LogError("[VISION] Groq error id={Id} status={Status}: {Body}", id, (int)resp.StatusCode, respText);
+                // Extraer mensaje legible del error de Groq
+                string errorMsg = "Error Groq Vision";
+                try {
+                    var errJson = JsonSerializer.Deserialize<JsonElement>(respText);
+                    if (errJson.TryGetProperty("error", out var errObj) && errObj.TryGetProperty("message", out var errMsgProp))
+                        errorMsg = errMsgProp.GetString() ?? errorMsg;
+                } catch { }
+                resultados.Add(new { id, ok = false, error = errorMsg });
                 continue;
             }
 
