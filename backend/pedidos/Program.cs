@@ -2888,31 +2888,42 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
             string fuente = "ia_groq";
             string? matchOrigen = null;
 
-            if (posiblesCodigos.Count > 0)
+            if (posiblesCodigos.Count > 0 || !string.IsNullOrEmpty(descripGroq))
             {
-                // Construir términos de búsqueda (referencia + posibles códigos, únicos)
-                var terminos = posiblesCodigos.Distinct(StringComparer.OrdinalIgnoreCase).Take(4).ToList();
-                string terminoLike = $"%{(referenciaGroq ?? "").ToLower()}%";
+                // Usar referencia Y descripción de Groq como términos de búsqueda
+                // La descripción es más útil para similarity porque usa palabras comunes
+                string refBusq  = referenciaGroq ?? "";
+                string descBusq = descripGroq ?? "";
+                string terminoLike     = $"%{refBusq.ToLower()}%";
+                string terminoDescLike = $"%{string.Join("%", (descBusq.ToLower().Split(' ')
+                    .Where(w => w.Length > 3).Take(3)))}%";
 
-                // Buscar en inventario_stock (productos físicos con stock)
+                // Buscar en inventario_stock — por referencia Y por descripción Groq
                 var cmdStock = new NpgsqlCommand(@"
                     SELECT codigo_producto, descripcion, precio_venta, stock_actual,
-                           similarity(LOWER(descripcion), LOWER(@ref)) AS sim
+                           GREATEST(
+                               similarity(LOWER(descripcion), LOWER(@ref)),
+                               similarity(LOWER(descripcion), LOWER(@desc))
+                           ) AS sim
                     FROM inventario_stock
                     WHERE LOWER(codigo_producto) LIKE @like
                        OR LOWER(descripcion)     LIKE @like
-                       OR similarity(LOWER(descripcion), LOWER(@ref)) > 0.30
+                       OR LOWER(descripcion)     LIKE @desclike
+                       OR similarity(LOWER(descripcion), LOWER(@ref))  > 0.25
+                       OR similarity(LOWER(descripcion), LOWER(@desc)) > 0.25
                     ORDER BY sim DESC, stock_actual DESC
                     LIMIT 1", conn);
-                cmdStock.Parameters.AddWithValue("ref",  referenciaGroq ?? "");
-                cmdStock.Parameters.AddWithValue("like", terminoLike);
+                cmdStock.Parameters.AddWithValue("ref",      refBusq);
+                cmdStock.Parameters.AddWithValue("desc",     descBusq);
+                cmdStock.Parameters.AddWithValue("like",     terminoLike);
+                cmdStock.Parameters.AddWithValue("desclike", terminoDescLike);
 
                 await using var rStock = await cmdStock.ExecuteReaderAsync();
                 if (await rStock.ReadAsync())
                 {
                     var simStock = rStock.IsDBNull(4) ? 0f : (float)rStock.GetDouble(4);
-                    if (simStock > 0.60 || (referenciaGroq ?? "").Length > 3 &&
-                        rStock.GetString(0).Contains(referenciaGroq ?? "", StringComparison.OrdinalIgnoreCase))
+                    if (simStock > 0.45 || (!string.IsNullOrEmpty(refBusq) && refBusq.Length > 3 &&
+                        rStock.GetString(0).Contains(refBusq, StringComparison.OrdinalIgnoreCase)))
                     {
                         // Match fuerte — usar datos reales de BD
                         referenciaFinal = rStock.GetString(0);
@@ -2922,7 +2933,7 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
                         matchOrigen = $"inventario_stock sim={simStock:F2}";
                         logger.LogInformation("[VISION N2] id={Id} match en inventario_stock: '{Cod}' sim={Sim:F2}", id, referenciaFinal, simStock);
                     }
-                    else if (simStock > 0.35)
+                    else if (simStock > 0.25)
                     {
                         // Match débil — enriquecer precio con dato real
                         precioFinal = rStock.GetDecimal(2);
@@ -2938,21 +2949,28 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
                 {
                     var cmdCat = new NpgsqlCommand(@"
                         SELECT producto_id, nombre, precio,
-                               similarity(LOWER(nombre), LOWER(@ref)) AS sim
+                               GREATEST(
+                                   similarity(LOWER(nombre), LOWER(@ref)),
+                                   similarity(LOWER(nombre), LOWER(@desc))
+                               ) AS sim
                         FROM inventario_productos
                         WHERE UPPER(disponibilidad) = 'SI'
                           AND (LOWER(nombre) LIKE @like
-                           OR similarity(LOWER(nombre), LOWER(@ref)) > 0.30)
+                           OR LOWER(nombre)  LIKE @desclike
+                           OR similarity(LOWER(nombre), LOWER(@ref))  > 0.25
+                           OR similarity(LOWER(nombre), LOWER(@desc)) > 0.25)
                         ORDER BY sim DESC
                         LIMIT 1", conn);
-                    cmdCat.Parameters.AddWithValue("ref",  referenciaGroq ?? "");
-                    cmdCat.Parameters.AddWithValue("like", terminoLike);
+                    cmdCat.Parameters.AddWithValue("ref",      refBusq);
+                    cmdCat.Parameters.AddWithValue("desc",     descBusq);
+                    cmdCat.Parameters.AddWithValue("like",     terminoLike);
+                    cmdCat.Parameters.AddWithValue("desclike", terminoDescLike);
 
                     await using var rCat = await cmdCat.ExecuteReaderAsync();
                     if (await rCat.ReadAsync())
                     {
                         var simCat = rCat.IsDBNull(3) ? 0f : (float)rCat.GetDouble(3);
-                        if (simCat > 0.60)
+                        if (simCat > 0.45)
                         {
                             referenciaFinal = rCat.GetString(0);
                             descripcionFinal = rCat.GetString(1);
@@ -2961,7 +2979,7 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
                             matchOrigen = $"inventario_productos sim={simCat:F2}";
                             logger.LogInformation("[VISION N2] id={Id} match en catálogo: '{Nom}' sim={Sim:F2}", id, referenciaFinal, simCat);
                         }
-                        else if (simCat > 0.35 && fuente == "ia_groq")
+                        else if (simCat > 0.25 && fuente == "ia_groq")
                         {
                             precioFinal = rCat.GetDecimal(2);
                             fuente = "ia_groq+bd_catalogo";
@@ -2972,18 +2990,23 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
                 }
 
                 // Si sigue sin match, revisar fotos ya analizadas (aprendizaje de análisis previos)
-                if (fuente == "ia_groq" && !string.IsNullOrEmpty(referenciaGroq))
+                if (fuente == "ia_groq" && (!string.IsNullOrEmpty(referenciaGroq) || !string.IsNullOrEmpty(descripGroq)))
                 {
                     var cmdFotos = new NpgsqlCommand(@"
                         SELECT referencia, notas,
-                               similarity(LOWER(referencia), LOWER(@ref)) AS sim
+                               GREATEST(
+                                   similarity(LOWER(referencia), LOWER(@ref)),
+                                   similarity(LOWER(notas),      LOWER(@desc))
+                               ) AS sim
                         FROM inventario_por_imagen
                         WHERE referencia IS NOT NULL AND TRIM(referencia) != ''
                           AND revisado = TRUE
-                          AND similarity(LOWER(referencia), LOWER(@ref)) > 0.55
+                          AND (similarity(LOWER(referencia), LOWER(@ref))  > 0.45
+                            OR similarity(LOWER(notas),      LOWER(@desc)) > 0.40)
                         ORDER BY sim DESC
                         LIMIT 1", conn);
-                    cmdFotos.Parameters.AddWithValue("ref", referenciaGroq);
+                    cmdFotos.Parameters.AddWithValue("ref",  referenciaGroq ?? "");
+                    cmdFotos.Parameters.AddWithValue("desc", descripGroq ?? "");
 
                     await using var rFotos = await cmdFotos.ExecuteReaderAsync();
                     if (await rFotos.ReadAsync())
