@@ -1465,11 +1465,11 @@ async Task<(string? descripcion, decimal? precio, string? marca, string? fuente)
 JhonIABuscarEnWeb(string referencia, string descripcionGroq, string groqKey, IHttpClientFactory factory, ILogger logger)
 {
     if (string.IsNullOrEmpty(groqKey)) return (null, null, null, null);
-    // Prompt corto para evitar "Request Entity Too Large" en groq/compound
+    // groq/compound requiere tier superior — usar groq/compound-mini disponible en plan free
     var termino = !string.IsNullOrEmpty(referencia) ? referencia : descripcionGroq[..Math.Min(50, descripcionGroq.Length)];
     var prompt = $"Precio de \"{termino}\" en Colombia 2025 en pesos COP. Solo JSON: {{\"precio_cop\":numero_o_null,\"marca\":\"texto_o_null\",\"descripcion\":\"breve\",\"encontrado\":true}}";
 
-    var content = await JhonIAGroqChat("groq/compound", prompt, groqKey, factory, logger, 150);
+    var content = await JhonIAGroqChat("groq/compound-mini", prompt, groqKey, factory, logger, 200);
     if (content == null) return (null, null, null, null);
 
     content = content.Trim();
@@ -3229,7 +3229,7 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
             }
 
             // ── NIVEL 5: Si ni BD ni fotos previas encontraron el producto ───
-            // groq/compound tiene búsqueda web real — lo usamos como último recurso
+            // groq/compound-mini tiene búsqueda web real — lo usamos como último recurso
             // para enriquecer datos que no están en nuestra BD todavía.
             if (fuente == "ia_groq" && !string.IsNullOrEmpty(groqKey)
                 && (!string.IsNullOrEmpty(referenciaGroq) || !string.IsNullOrEmpty(descripGroq)))
@@ -3363,7 +3363,7 @@ app.MapGet("/jhonia/estado", async (IConfiguration configuration) =>
             "N2: caché trigram BD",
             "N3: límite rate Groq",
             "N4: Groq + Tool Use",
-            "N5: groq/compound búsqueda web"
+            "N5: groq/compound-mini búsqueda web"
         },
         estadisticas = stats,
         timestamp = DateTime.UtcNow
