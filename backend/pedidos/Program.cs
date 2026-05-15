@@ -2916,8 +2916,13 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
                     ? $"%{terminosTecnicos[0]}%"
                     : $"%{descBusq.ToLower().Split(' ').FirstOrDefault(w => w.Length >= 4) ?? ""}%";
 
-                // Buscar en inventario_stock — por referencia Y por descripción Groq
-                var cmdStock = new NpgsqlCommand(@"
+                // Buscar en inventario_stock — 2 estrategias:
+                // A) Similarity trigram (misma idioma) — umbral >0.45
+                // B) Keyword técnico LIKE + conteo único (cross-idioma) — si ≤3 resultados,
+                //    el término es lo suficientemente específico para confiar en el match
+
+                // Estrategia A: similarity
+                var cmdStockSim = new NpgsqlCommand(@"
                     SELECT codigo_producto, descripcion, precio_venta, stock_actual,
                            GREATEST(
                                similarity(LOWER(descripcion), LOWER(@ref)),
@@ -2925,42 +2930,72 @@ app.MapPost("/scan/inventario-por-imagen/analizar-sin-referencia", async (IConfi
                            ) AS sim
                     FROM inventario_stock
                     WHERE LOWER(codigo_producto) LIKE @like
-                       OR LOWER(descripcion)     LIKE @like
-                       OR LOWER(descripcion)     LIKE @desclike
-                       OR similarity(LOWER(descripcion), LOWER(@ref))  > 0.25
-                       OR similarity(LOWER(descripcion), LOWER(@desc)) > 0.25
-                    ORDER BY sim DESC, stock_actual DESC
-                    LIMIT 1", conn);
-                cmdStock.Parameters.AddWithValue("ref",      refBusq);
-                cmdStock.Parameters.AddWithValue("desc",     descBusq);
-                cmdStock.Parameters.AddWithValue("like",     terminoLike);
-                cmdStock.Parameters.AddWithValue("desclike", terminoDescLike);
+                       OR similarity(LOWER(descripcion), LOWER(@ref))  > 0.40
+                       OR similarity(LOWER(descripcion), LOWER(@desc)) > 0.40
+                    ORDER BY sim DESC LIMIT 1", conn);
+                cmdStockSim.Parameters.AddWithValue("ref",  refBusq);
+                cmdStockSim.Parameters.AddWithValue("desc", descBusq);
+                cmdStockSim.Parameters.AddWithValue("like", terminoLike);
 
-                await using var rStock = await cmdStock.ExecuteReaderAsync();
-                if (await rStock.ReadAsync())
+                await using var rStockSim = await cmdStockSim.ExecuteReaderAsync();
+                if (await rStockSim.ReadAsync())
                 {
-                    var simStock = rStock.IsDBNull(4) ? 0f : (float)rStock.GetDouble(4);
-                    if (simStock > 0.45 || (!string.IsNullOrEmpty(refBusq) && refBusq.Length > 3 &&
-                        rStock.GetString(0).Contains(refBusq, StringComparison.OrdinalIgnoreCase)))
+                    var simStock = rStockSim.IsDBNull(4) ? 0f : (float)rStockSim.GetDouble(4);
+                    if (simStock > 0.45 || rStockSim.GetString(0).Equals(refBusq, StringComparison.OrdinalIgnoreCase))
                     {
-                        // Match fuerte — usar datos reales de BD
-                        referenciaFinal = rStock.GetString(0);
-                        descripcionFinal = rStock.GetString(1);
-                        precioFinal     = rStock.GetDecimal(2);
+                        referenciaFinal = rStockSim.GetString(0);
+                        descripcionFinal = rStockSim.GetString(1);
+                        precioFinal     = rStockSim.GetDecimal(2);
                         fuente = "bd_stock";
                         matchOrigen = $"inventario_stock sim={simStock:F2}";
-                        logger.LogInformation("[VISION N2] id={Id} match en inventario_stock: '{Cod}' sim={Sim:F2}", id, referenciaFinal, simStock);
-                    }
-                    else if (simStock > 0.25)
-                    {
-                        // Match débil — enriquecer precio con dato real
-                        precioFinal = rStock.GetDecimal(2);
-                        fuente = "ia_groq+bd_stock";
-                        matchOrigen = $"inventario_stock parcial sim={simStock:F2}";
-                        logger.LogInformation("[VISION N2] id={Id} match parcial stock sim={Sim:F2}, precio real: {P}", id, simStock, precioFinal);
+                        logger.LogInformation("[VISION N2-A] id={Id} match stock sim: '{Cod}' sim={Sim:F2}", id, referenciaFinal, simStock);
                     }
                 }
-                await rStock.CloseAsync();
+                await rStockSim.CloseAsync();
+
+                // Estrategia B: keyword técnico — solo si A no encontró match
+                if (fuente == "ia_groq" && terminosTecnicos.Count > 0)
+                {
+                    // Contar cuántos productos coinciden con el keyword técnico
+                    var kwPattern = $"%{terminosTecnicos[0]}%";
+                    var cmdCount = new NpgsqlCommand(
+                        "SELECT COUNT(*) FROM inventario_stock WHERE LOWER(descripcion) LIKE @kw", conn);
+                    cmdCount.Parameters.AddWithValue("kw", kwPattern);
+                    var totalKw = (long)(await cmdCount.ExecuteScalarAsync() ?? 0L);
+
+                    if (totalKw > 0 && totalKw <= 4)
+                    {
+                        // Keyword específico con pocos matches — recuperar el mejor
+                        var cmdKw = new NpgsqlCommand(@"
+                            SELECT codigo_producto, descripcion, precio_venta, stock_actual,
+                                   similarity(LOWER(descripcion), LOWER(@desc)) AS sim
+                            FROM inventario_stock
+                            WHERE LOWER(descripcion) LIKE @kw
+                            ORDER BY stock_actual DESC, sim DESC LIMIT 1", conn);
+                        cmdKw.Parameters.AddWithValue("desc", descBusq);
+                        cmdKw.Parameters.AddWithValue("kw",   kwPattern);
+
+                        await using var rKw = await cmdKw.ExecuteReaderAsync();
+                        if (await rKw.ReadAsync())
+                        {
+                            var simKw = rKw.IsDBNull(4) ? 0f : (float)rKw.GetDouble(4);
+                            // Si precio real > 0 lo usamos como dato de precio real
+                            var precioKw = rKw.GetDecimal(2);
+                            if (precioKw > 0)
+                            {
+                                precioFinal = precioKw;
+                                fuente = "ia_groq+bd_stock";
+                                matchOrigen = $"keyword '{terminosTecnicos[0]}' → {totalKw} coincidencia(s) en stock";
+                                logger.LogInformation("[VISION N2-B] id={Id} keyword '{Kw}' ({Total} matches) → precio real ${P}", id, terminosTecnicos[0], totalKw, precioKw);
+                            }
+                        }
+                        await rKw.CloseAsync();
+                    }
+                    else if (totalKw > 4)
+                    {
+                        logger.LogInformation("[VISION N2-B] id={Id} keyword '{Kw}' demasiado genérico ({Total} matches), omitido", id, terminosTecnicos[0], totalKw);
+                    }
+                }
 
                 // Si aún no hay match fuerte, buscar en inventario_productos (catálogo JUQU)
                 if (fuente == "ia_groq" || fuente.StartsWith("ia_groq+"))
