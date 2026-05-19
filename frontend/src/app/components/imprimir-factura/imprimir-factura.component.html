@@ -1,0 +1,245 @@
+<div class="imp-wrapper">
+
+  <!-- ── TOOLBAR (oculto al imprimir) ─────────────────────── -->
+  <div class="imp-toolbar no-print">
+    <button class="tb-btn tb-back" (click)="volver()">← Historial</button>
+    <span class="tb-titulo">{{ numeroFactura() }}</span>
+    <div class="tb-acciones">
+      <button class="tb-btn" (click)="editando.update(v => !v)">
+        {{ editando() ? '✕ Cerrar edición' : '✏️ Editar' }}
+      </button>
+      <button class="tb-btn tb-email" (click)="enviarEmail()" [disabled]="enviandoEmail()">
+        {{ enviandoEmail() ? '⏳ Enviando...' : '📧 Enviar email' }}
+      </button>
+      <button class="tb-btn tb-print" (click)="imprimirFisico()">🖨️ Enviar físico</button>
+    </div>
+  </div>
+
+  <!-- Alertas -->
+  @if (mensajeOk()) {
+    <div class="imp-alert imp-ok no-print">{{ mensajeOk() }}</div>
+  }
+  @if (errorMsg()) {
+    <div class="imp-alert imp-err no-print">{{ errorMsg() }}</div>
+  }
+
+  @if (cargando()) {
+    <div class="imp-loading no-print">Cargando factura...</div>
+  } @else {
+
+    <div class="imp-body">
+
+      <!-- ── PANEL DE EDICIÓN (solo pantalla) ───────────────── -->
+      @if (editando()) {
+        <div class="edit-panel no-print">
+          <h3 class="ep-titulo">Editar campos</h3>
+
+          <!-- Sección 1: FACTURA -->
+          <div class="ep-section">
+            <p class="ep-section-title">1. Datos del cliente</p>
+            <label class="ep-label">Nombre cliente</label>
+            <input class="ep-inp" type="text" [value]="clienteNombre()"
+                   (input)="clienteNombre.set($any($event.target).value)" />
+            <label class="ep-label">NIT / Cédula</label>
+            <input class="ep-inp" type="text" [value]="clienteId()"
+                   (input)="clienteId.set($any($event.target).value)" />
+            <label class="ep-label">Email cliente</label>
+            <input class="ep-inp" type="email" [value]="clienteEmail()"
+                   (input)="clienteEmail.set($any($event.target).value)" placeholder="correo@ejemplo.com" />
+            <label class="ep-label">Teléfono</label>
+            <input class="ep-inp" type="text" [value]="clienteTelefono()"
+                   (input)="clienteTelefono.set($any($event.target).value)" />
+          </div>
+
+          <!-- Sección 2: PRODUCTOS -->
+          <div class="ep-section">
+            <p class="ep-section-title">2. Productos</p>
+            @for (it of items(); track $index; let i = $index) {
+              <div class="ep-item-row">
+                <input class="ep-inp ep-inp-desc" type="text" [value]="it.descripcion"
+                       (input)="cambiarDescItem(i, $any($event.target).value)" placeholder="Descripción" />
+                <div class="ep-item-nums">
+                  <div>
+                    <label class="ep-label">Cant</label>
+                    <div class="ep-cant-ctrl">
+                      <button (click)="cambiarCantItem(i, -1)">−</button>
+                      <span>{{ it.cantidad }}</span>
+                      <button (click)="cambiarCantItem(i, 1)">+</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="ep-label">Precio ($)</label>
+                    <input class="ep-inp ep-inp-num" type="number" min="0" [value]="it.precioUnitario"
+                           (input)="cambiarPrecioItem(i, +$any($event.target).value)" />
+                  </div>
+                  <button class="ep-del" (click)="quitarItem(i)">🗑</button>
+                </div>
+              </div>
+            }
+            <button class="ep-add-btn" (click)="agregarItem()">+ Agregar producto</button>
+          </div>
+
+          <!-- Sección 3: PAGO -->
+          <div class="ep-section">
+            <p class="ep-section-title">3. Pago</p>
+            <label class="ep-label">Método de pago</label>
+            <input class="ep-inp" type="text" [value]="metodoPago()"
+                   (input)="metodoPago.set($any($event.target).value)" placeholder="Ej: Contado / Efectivo" />
+            <label class="ep-label">Descuento ($)</label>
+            <input class="ep-inp" type="number" min="0" [value]="descuento()"
+                   (input)="descuento.set(+$any($event.target).value)" />
+          </div>
+
+          <!-- Sección 6: GARANTÍA -->
+          <div class="ep-section">
+            <p class="ep-section-title">6. Condiciones de garantía</p>
+            <textarea class="ep-inp ep-textarea" [value]="garantia()"
+                      (input)="garantia.set($any($event.target).value)" rows="4"></textarea>
+          </div>
+
+          <div class="ep-botones">
+            <button class="ep-btn-email" (click)="enviarEmail()" [disabled]="enviandoEmail()">
+              {{ enviandoEmail() ? '⏳ Enviando...' : '📧 Enviar al cliente' }}
+            </button>
+            <button class="ep-btn-print" (click)="imprimirFisico()">
+              🖨️ Enviar físico (PDF)
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- ── TICKET DE IMPRESIÓN ─────────────────────────────── -->
+      <div class="ticket" id="ticket-print">
+
+        <!-- Encabezado emisor -->
+        <div class="tk-header">
+          <p class="tk-empresa">OUTILTECH</p>
+          <p class="tk-sub">Carrera 2 A No. 18A 52, Bogotá</p>
+          <p class="tk-sub">NIT: 80244393-1 &nbsp;|&nbsp; Tel: 3045928793</p>
+          <p class="tk-sub">jhonatanhtech&#64;gmail.com</p>
+          <p class="tk-sub">AGENTE NO RETENEDOR DE IVA</p>
+          <p class="tk-sub tk-res">Res: 01272/20 de 26/12/2022</p>
+        </div>
+
+        <div class="tk-sep">----------------------------------------</div>
+
+        <!-- Datos factura -->
+        <p class="tk-tipo">Factura Electrónica de Venta</p>
+        <table class="tk-table">
+          <tr><td>No.</td><td class="tk-val">{{ numeroFactura() }}</td></tr>
+          <tr><td>Fecha:</td><td class="tk-val">{{ formatFecha(fecha()) }}</td></tr>
+          <tr><td>Cajera:</td><td class="tk-val">{{ cajera() }}</td></tr>
+          @if (clienteNombre()) {
+            <tr><td>Cliente:</td><td class="tk-val">{{ clienteNombre() }}</td></tr>
+          }
+          @if (clienteId()) {
+            <tr><td>NIT/CC:</td><td class="tk-val">{{ clienteId() }}</td></tr>
+          }
+          @if (clienteEmail()) {
+            <tr><td>Email:</td><td class="tk-val">{{ clienteEmail() }}</td></tr>
+          }
+          @if (clienteTelefono()) {
+            <tr><td>Tel:</td><td class="tk-val">{{ clienteTelefono() }}</td></tr>
+          }
+        </table>
+
+        <div class="tk-sep">----------------------------------------</div>
+
+        <!-- Productos -->
+        <table class="tk-items">
+          <thead>
+            <tr>
+              <th class="tk-col-cant">Cant</th>
+              <th class="tk-col-desc">Descripción</th>
+              <th class="tk-col-total">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (it of items(); track $index) {
+              <tr>
+                <td class="tk-col-cant">{{ it.cantidad }}</td>
+                <td class="tk-col-desc">{{ it.descripcion }}</td>
+                <td class="tk-col-total">${{ formatPeso(it.subtotal) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="tk-sep">----------------------------------------</div>
+
+        <!-- Artículos / totales -->
+        <table class="tk-totales">
+          <tr><td>A Base 19%:</td><td class="tk-right">${{ formatPeso(baseGravable()) }}</td></tr>
+          <tr><td>IVA 19%:</td><td class="tk-right">${{ formatPeso(ivaTotal()) }}</td></tr>
+          <tr><td>Subtotal:</td><td class="tk-right">${{ formatPeso(baseGravable()) }}</td></tr>
+          <tr><td>Impuestos:</td><td class="tk-right">${{ formatPeso(ivaTotal()) }}</td></tr>
+          @if (descuento() > 0) {
+            <tr><td>Descuento:</td><td class="tk-right">-${{ formatPeso(descuento()) }}</td></tr>
+          }
+          <tr class="tk-total-row">
+            <td>Subtotal + Impuestos:</td><td class="tk-right">${{ formatPeso(totalFinal()) }}</td>
+          </tr>
+          <tr class="tk-total-row tk-total-final">
+            <td>Total:</td><td class="tk-right">${{ formatPeso(totalFinal()) }}</td>
+          </tr>
+        </table>
+
+        <p class="tk-metodo">Forma de Pago: Contado</p>
+        <p class="tk-metodo">MEDIO DE PAGO</p>
+        <p class="tk-metodo">{{ metodoPago() }}</p>
+
+        <div class="tk-sep">----------------------------------------</div>
+
+        <p class="tk-imp">IMPORTANTE: El 19% es IVA</p>
+
+        <!-- Resolución DIAN -->
+        <table class="tk-table">
+          <tr><td>Res DIAN:</td><td class="tk-val">18v864100137808</td></tr>
+          <tr><td>Fecha:</td><td class="tk-val">2026-05-19</td></tr>
+          <tr><td>De 1883</td><td class="tk-val">hasta 1836-100000</td></tr>
+          <tr><td>Vigencia:</td><td class="tk-val">2027-05-19</td></tr>
+          <tr><td colspan="2">Régimen Fiscal: R-99-PN</td></tr>
+          <tr><td colspan="2">Responsabilidad tributaria: ZZ — No aplica</td></tr>
+          <tr><td colspan="2">Actividad Económica: 6311</td></tr>
+        </table>
+
+        <div class="tk-sep">----------------------------------------</div>
+
+        <!-- Validación + QR -->
+        <p class="tk-fecha-val">FECHA VALIDACIÓN: {{ formatFecha(fecha()) }}</p>
+        @if (qrDataUrl()) {
+          <div class="tk-qr-wrapper">
+            <img [src]="qrDataUrl()" alt="QR outiltech.co" class="tk-qr" />
+            <p class="tk-qr-label">www.outiltech.co</p>
+          </div>
+        }
+
+        <div class="tk-sep">----------------------------------------</div>
+
+        <!-- CUFE -->
+        <p class="tk-cufe-label">CUFE:</p>
+        <p class="tk-cufe">{{ cufe() }}</p>
+
+        <div class="tk-sep">----------------------------------------</div>
+
+        <!-- Implementador -->
+        <p class="tk-imp-label">Implementado por OUTILTECH</p>
+        <p class="tk-imp-label">NIT: 80244393-1 — Software Outiltech</p>
+        <p class="tk-imp-label">Identificador Portal Web:</p>
+        <p class="tk-imp-label">www.outiltech.co</p>
+
+        <div class="tk-sep">----------------------------------------</div>
+
+        <!-- Garantía -->
+        <p class="tk-garantia-title">CONDICIONES DE GARANTÍA:</p>
+        <p class="tk-garantia">{{ garantia() }}</p>
+
+        <div class="tk-sep">----------------------------------------</div>
+
+        <p class="tk-gracias">¡GRACIAS POR SU COMPRA!</p>
+        <p class="tk-sistema">Sistema: outiltech.co</p>
+
+      </div><!-- /ticket -->
+    </div><!-- /imp-body -->
+  }
+</div>

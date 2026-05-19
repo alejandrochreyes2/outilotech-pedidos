@@ -122,6 +122,17 @@ export class FacturacionService {
     );
   }
 
+  enviarEmailFactura(id: number, overrides: {
+    clienteEmail?: string; clienteNombre?: string;
+    metodoPago?: string; garantia?: string;
+  } = {}) {
+    return this.http.post<{ mensaje: string }>(
+      `${this.api}/api/facturacion/${id}/enviar-email`,
+      overrides,
+      this.headers
+    );
+  }
+
   // ── Scanner móvil ──────────────────────────────────────────
   crearSesionScanner() {
     return this.http.post<{ token: string }>(`${this.api}/api/scan/session`, {}, this.headers);

@@ -382,6 +382,7 @@
               <th>Total</th>
               <th>Pago</th>
               <th>Estado</th>
+              <th>Imprimir</th>
             </tr>
           </thead>
           <tbody>
@@ -395,6 +396,7 @@
                 <td class="text-right">${{ formatPeso(f.total) }}</td>
                 <td>{{ f.metodoPago ?? '—' }}</td>
                 <td><span class="badge {{ estadoClass(f.estado) }}">{{ f.estado }}</span></td>
+                <td><a class="btn-imprimir-hist" [href]="'/facturacion/imprimir/' + f.id" target="_blank">🖨️ Imprimir</a></td>
               </tr>
             }
           </tbody>

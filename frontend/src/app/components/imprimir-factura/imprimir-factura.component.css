@@ -1,0 +1,291 @@
+/* ── Wrapper pantalla ───────────────────────────────────── */
+.imp-wrapper {
+  min-height: 100vh;
+  background: #1a1a1a;
+  color: #f0f0f0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Toolbar ────────────────────────────────────────────── */
+.imp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.7rem 1.2rem;
+  background: #cc0000;
+  flex-wrap: wrap;
+}
+.tb-titulo {
+  flex: 1;
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+.tb-btn {
+  padding: 0.38rem 0.9rem;
+  border: 1.5px solid rgba(255,255,255,.5);
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.tb-btn:hover { background: rgba(255,255,255,.15); }
+.tb-back { border-color: transparent; }
+.tb-acciones { display: flex; gap: 0.5rem; margin-left: auto; flex-wrap: wrap; }
+.tb-email { border-color: #ffd; color: #ffd; }
+.tb-email:hover { background: rgba(255,255,200,.15); }
+.tb-print { background: #fff; color: #cc0000; font-weight: 700; border-color: #fff; }
+.tb-print:hover { background: #ffe; }
+
+/* ── Alertas ────────────────────────────────────────────── */
+.imp-alert {
+  padding: 0.5rem 1.2rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+.imp-ok  { background: #00662e; color: #a0ffc0; }
+.imp-err { background: #7a1010; color: #ffc0c0; }
+.imp-loading { padding: 2rem; text-align: center; color: #888; }
+
+/* ── Cuerpo ─────────────────────────────────────────────── */
+.imp-body {
+  display: flex;
+  gap: 2rem;
+  padding: 1.5rem;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+/* ── Panel de edición ───────────────────────────────────── */
+.edit-panel {
+  width: 320px;
+  flex-shrink: 0;
+  background: #242424;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  position: sticky;
+  top: 20px;
+}
+.ep-titulo {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.5rem;
+}
+.ep-section { margin-bottom: 1.2rem; }
+.ep-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #cc0000;
+  margin: 0 0 0.6rem;
+}
+.ep-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: #aaa;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.ep-inp {
+  width: 100%;
+  box-sizing: border-box;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #f0f0f0;
+  font-size: 0.88rem;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.65rem;
+}
+.ep-inp:focus { outline: none; border-color: #cc0000; }
+.ep-textarea { resize: vertical; font-family: inherit; }
+.ep-inp-desc { margin-bottom: 0.3rem; }
+.ep-inp-num  { width: 90px; }
+
+.ep-item-row {
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.ep-item-nums {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.ep-cant-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ep-cant-ctrl button {
+  background: #333;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.ep-cant-ctrl button:hover { background: #cc0000; }
+.ep-cant-ctrl span { min-width: 20px; text-align: center; font-weight: 700; }
+.ep-del { background: none; border: none; cursor: pointer; font-size: 1rem; opacity: 0.6; }
+.ep-del:hover { opacity: 1; }
+
+.ep-add-btn {
+  width: 100%;
+  padding: 0.4rem;
+  background: #2d2d2d;
+  border: 1px dashed #555;
+  border-radius: 6px;
+  color: #aaa;
+  font-size: 0.82rem;
+  cursor: pointer;
+  margin-top: 0.2rem;
+}
+.ep-add-btn:hover { border-color: #cc0000; color: #fff; }
+
+.ep-botones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+.ep-btn-email {
+  padding: 0.55rem;
+  border: none;
+  border-radius: 7px;
+  background: #444;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ep-btn-email:hover:not(:disabled) { background: #2a5298; }
+.ep-btn-email:disabled { opacity: 0.55; }
+.ep-btn-print {
+  padding: 0.55rem;
+  border: none;
+  border-radius: 7px;
+  background: #cc0000;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ep-btn-print:hover { background: #e60000; }
+
+/* ── TICKET ─────────────────────────────────────────────── */
+.ticket {
+  width: 302px;           /* 80mm en 96dpi */
+  background: #fff;
+  color: #000;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 10px 8px;
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.5);
+}
+
+/* Encabezado */
+.tk-header { text-align: center; margin-bottom: 4px; }
+.tk-empresa { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
+.tk-sub { margin: 1px 0; font-size: 10px; }
+.tk-res { font-size: 9px; color: #555; }
+
+.tk-sep { font-size: 9px; color: #bbb; margin: 4px 0; letter-spacing: -0.5px; }
+
+/* Datos factura */
+.tk-tipo { font-weight: 700; text-align: center; margin: 4px 0; }
+.tk-table { width: 100%; font-size: 10px; border-collapse: collapse; margin: 3px 0; }
+.tk-table td { padding: 1px 0; vertical-align: top; }
+.tk-val { font-weight: 700; text-align: right; }
+
+/* Ítems */
+.tk-items { width: 100%; border-collapse: collapse; font-size: 10px; margin: 3px 0; }
+.tk-items th { font-weight: 700; border-bottom: 1px solid #000; padding: 2px 0; }
+.tk-items td { padding: 2px 0; }
+.tk-col-cant  { width: 28px; text-align: center; }
+.tk-col-desc  { }
+.tk-col-total { width: 70px; text-align: right; }
+
+/* Totales */
+.tk-totales { width: 100%; border-collapse: collapse; font-size: 10px; margin: 3px 0; }
+.tk-totales td { padding: 1px 0; }
+.tk-right { text-align: right; }
+.tk-total-row td { font-weight: 700; border-top: 1px solid #ccc; padding-top: 3px; }
+.tk-total-final td { font-size: 13px; }
+
+/* Método de pago */
+.tk-metodo { margin: 2px 0; font-size: 10px; }
+
+/* Importante */
+.tk-imp { margin: 3px 0; font-size: 9px; font-style: italic; }
+
+/* DIAN */
+.tk-fecha-val { margin: 3px 0; font-size: 10px; font-weight: 700; }
+
+/* QR */
+.tk-qr-wrapper { text-align: center; margin: 6px 0; }
+.tk-qr { width: 100px; height: 100px; }
+.tk-qr-label { font-size: 9px; margin: 2px 0 0; color: #333; }
+
+/* CUFE */
+.tk-cufe-label { margin: 2px 0; font-size: 9px; font-weight: 700; }
+.tk-cufe { font-size: 8px; word-break: break-all; margin: 0; color: #333; }
+
+/* Implementador */
+.tk-imp-label { font-size: 9px; margin: 1px 0; text-align: center; }
+
+/* Garantía */
+.tk-garantia-title { font-weight: 700; font-size: 10px; margin: 3px 0 1px; }
+.tk-garantia { font-size: 9px; margin: 0; }
+
+/* Pie */
+.tk-gracias { font-size: 13px; font-weight: 700; text-align: center; margin: 6px 0 2px; }
+.tk-sistema { font-size: 9px; text-align: center; margin: 0; color: #555; }
+
+/* ── IMPRESIÓN TÉRMICA 80mm ─────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+
+  @page {
+    size: 80mm auto;
+    margin: 3mm;
+  }
+
+  body, html {
+    background: #fff !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  .imp-wrapper { background: #fff; }
+  .imp-body { padding: 0; justify-content: flex-start; }
+
+  .edit-panel { display: none !important; }
+
+  .ticket {
+    width: 100%;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+  }
+}

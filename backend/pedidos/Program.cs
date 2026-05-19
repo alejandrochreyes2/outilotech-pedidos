@@ -3863,6 +3863,149 @@ app.MapGet("/facturacion/{id:int}", async (int id) =>
 }).RequireAuthorization();
 
 // ============================================================
+// FACTURACIÓN — ENVIAR EMAIL AL CLIENTE
+// POST /facturacion/{id}/enviar-email
+// ============================================================
+app.MapPost("/facturacion/{id:int}/enviar-email", async (int id, HttpContext ctx) =>
+{
+    // Leer body opcional con ajustes del frontend
+    JsonElement body = default;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); } catch { }
+
+    string? overrideEmail     = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("clienteEmail",    out var ce)  ? ce.GetString()  : null;
+    string? overrideNombre    = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("clienteNombre",   out var cn)  ? cn.GetString()  : null;
+    string? overrideMetodo    = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("metodoPago",      out var mm)  ? mm.GetString()  : null;
+    string? overrideGarantia  = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("garantia",        out var gg)  ? gg.GetString()  : null;
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+
+    var cmdF = new NpgsqlCommand(@"
+        SELECT id, numero_factura, fecha, cajera, cliente_nombre, cliente_id,
+               cliente_email, cliente_telefono, subtotal, descuento, total, metodo_pago, estado
+        FROM facturas WHERE id = @id", conn);
+    cmdF.Parameters.AddWithValue("id", id);
+    await using var rF = await cmdF.ExecuteReaderAsync();
+    if (!await rF.ReadAsync()) return Results.NotFound(new { error = "Factura no encontrada" });
+
+    var numeroFactura = rF.GetString(1);
+    var fecha         = rF.GetDateTime(2);
+    var cajera        = rF.GetString(3);
+    var clienteNombre = overrideNombre ?? (rF.IsDBNull(4) ? null : rF.GetString(4));
+    var clienteId     = rF.IsDBNull(5) ? null : rF.GetString(5);
+    var clienteEmail  = overrideEmail  ?? (rF.IsDBNull(6) ? null : rF.GetString(6));
+    var subtotal      = rF.GetDecimal(8);
+    var descuento     = rF.GetDecimal(9);
+    var total         = rF.GetDecimal(10);
+    var metodoPago    = overrideMetodo ?? (rF.IsDBNull(11) ? "Contado" : rF.GetString(11));
+    await rF.CloseAsync();
+
+    if (string.IsNullOrWhiteSpace(clienteEmail))
+        return Results.BadRequest(new { error = "El cliente no tiene email registrado. Ingrese un email en la factura." });
+
+    var cmdI = new NpgsqlCommand(@"
+        SELECT descripcion, cantidad, precio_unitario, subtotal
+        FROM factura_items WHERE factura_id = @fid ORDER BY id", conn);
+    cmdI.Parameters.AddWithValue("fid", id);
+    await using var rI = await cmdI.ExecuteReaderAsync();
+    var itemsHtml = new System.Text.StringBuilder();
+    decimal baseGravable = 0; decimal ivaTotal = 0;
+    while (await rI.ReadAsync())
+    {
+        var desc   = rI.GetString(0);
+        var cant   = rI.GetInt32(1);
+        var precio = rI.GetDecimal(2);
+        var sub    = rI.GetDecimal(3);
+        baseGravable += Math.Round(sub / 1.19m, 2);
+        ivaTotal     += Math.Round(sub - sub / 1.19m, 2);
+        itemsHtml.Append($@"<tr>
+          <td style='padding:4px 8px;text-align:center;border-bottom:1px solid #eee'>{cant}</td>
+          <td style='padding:4px 8px;border-bottom:1px solid #eee'>{desc}</td>
+          <td style='padding:4px 8px;text-align:right;border-bottom:1px solid #eee'>${precio:N0}</td>
+          <td style='padding:4px 8px;text-align:right;border-bottom:1px solid #eee'>${sub:N0}</td>
+        </tr>");
+    }
+
+    var garantia = overrideGarantia ?? "Cubre defectos de fabricación. NO cubre golpes, humedad, display roto, sellos rotos, apagado o manipulación. Indispensable presentar este ticket para reclamación.";
+    var cufe     = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+                       System.Text.Encoding.UTF8.GetBytes($"outiltech-{id}-{numeroFactura}-80244393-1"))).ToLower();
+
+    var htmlBody = $@"<!DOCTYPE html><html><head><meta charset='utf-8'></head><body style='margin:0;padding:20px;background:#f5f5f5;font-family:Arial,sans-serif'>
+<div style='max-width:480px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1)'>
+  <div style='background:#cc0000;color:#fff;padding:20px;text-align:center'>
+    <h2 style='margin:0;font-size:22px'>OUTILTECH</h2>
+    <p style='margin:4px 0 0;font-size:12px'>Carrera 2 A No. 18A 52, Bogotá — NIT: 80244393-1</p>
+    <p style='margin:2px 0 0;font-size:12px'>Tel: 3045928793 | jhonatanhtech@gmail.com</p>
+    <p style='margin:4px 0 0;font-size:11px;opacity:.85'>AGENTE NO RETENEDOR DE IVA</p>
+  </div>
+  <div style='padding:16px 20px;border-bottom:1px solid #eee'>
+    <p style='margin:0;font-size:15px;font-weight:700;color:#cc0000'>Factura Electrónica de Venta</p>
+    <table style='width:100%;font-size:12px;margin-top:6px'>
+      <tr><td style='color:#666'>Número:</td><td style='font-weight:700'>{numeroFactura}</td></tr>
+      <tr><td style='color:#666'>Fecha:</td><td>{fecha:dd/MM/yyyy hh:mm tt}</td></tr>
+      <tr><td style='color:#666'>Cajera:</td><td>{cajera}</td></tr>
+      {(string.IsNullOrEmpty(clienteNombre) ? "" : $"<tr><td style='color:#666'>Cliente:</td><td>{clienteNombre}</td></tr>")}
+      {(string.IsNullOrEmpty(clienteId) ? "" : $"<tr><td style='color:#666'>NIT/CC:</td><td>{clienteId}</td></tr>")}
+    </table>
+  </div>
+  <div style='padding:16px 20px'>
+    <p style='margin:0 0 8px;font-weight:700;font-size:13px'>PRODUCTOS</p>
+    <table style='width:100%;font-size:12px;border-collapse:collapse'>
+      <thead><tr style='background:#f5f5f5'>
+        <th style='padding:6px 8px;text-align:center'>Cant</th>
+        <th style='padding:6px 8px;text-align:left'>Descripción</th>
+        <th style='padding:6px 8px;text-align:right'>Precio</th>
+        <th style='padding:6px 8px;text-align:right'>Subtotal</th>
+      </tr></thead>
+      <tbody>{itemsHtml}</tbody>
+    </table>
+  </div>
+  <div style='padding:0 20px 16px;background:#fafafa;border-top:1px solid #eee'>
+    <table style='width:100%;font-size:12px;margin-top:10px'>
+      <tr><td style='color:#666'>A Base 19%:</td><td style='text-align:right'>${baseGravable:N0}</td></tr>
+      <tr><td style='color:#666'>IVA 19%:</td><td style='text-align:right'>${ivaTotal:N0}</td></tr>
+      {(descuento > 0 ? $"<tr><td style='color:#666'>Descuento:</td><td style='text-align:right'>-${descuento:N0}</td></tr>" : "")}
+      <tr style='font-weight:700;font-size:14px;border-top:1px solid #ddd'>
+        <td style='padding-top:6px'>TOTAL:</td>
+        <td style='text-align:right;padding-top:6px;color:#cc0000'>${total:N0}</td>
+      </tr>
+    </table>
+    <p style='margin:10px 0 0;font-size:12px;color:#666'>Forma de pago: Contado — Medio: {metodoPago}</p>
+  </div>
+  <div style='padding:12px 20px;background:#fff7f7;border-top:1px solid #eee;font-size:11px;color:#555'>
+    <p style='margin:0 0 4px'><strong>Res. DIAN:</strong> 18v864100137808 | Vigencia: 2027-05-19</p>
+    <p style='margin:0;font-size:10px;color:#999'>CUFE: {cufe.Substring(0, 60)}...</p>
+  </div>
+  <div style='padding:12px 20px;border-top:1px solid #eee;font-size:11px;color:#555'>
+    <p style='margin:0 0 4px'><strong>Condiciones de garantía:</strong></p>
+    <p style='margin:0'>{garantia}</p>
+  </div>
+  <div style='padding:16px 20px;text-align:center;background:#f9f9f9;border-top:1px solid #eee'>
+    <p style='margin:0;font-size:14px;font-weight:700;color:#cc0000'>¡Gracias por su compra!</p>
+    <p style='margin:4px 0 0;font-size:11px;color:#999'>Sistema: <a href='https://www.outiltech.co' style='color:#cc0000'>outiltech.co</a></p>
+  </div>
+</div>
+</body></html>";
+
+    try
+    {
+        using var smtp = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587)
+        {
+            EnableSsl = true,
+            Credentials = new System.Net.NetworkCredential(emailUser, emailPass)
+        };
+        var mail = new System.Net.Mail.MailMessage(emailUser, clienteEmail,
+            $"Factura {numeroFactura} — OUTILTECH", htmlBody) { IsBodyHtml = true };
+        await smtp.SendMailAsync(mail);
+        return Results.Ok(new { mensaje = $"Factura enviada a {clienteEmail}" });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Error al enviar email: {ex.Message}");
+    }
+}).RequireAuthorization();
+
+// ============================================================
 // FACTURACIÓN — PAGAR
 // PATCH /facturacion/{id}/pagar
 // ============================================================

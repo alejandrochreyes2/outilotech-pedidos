@@ -561,6 +561,20 @@
 .num-factura { font-family: monospace; color: #ffc000; }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
+.btn-imprimir-hist {
+  display: inline-block;
+  padding: 3px 10px;
+  background: #1a1a1a;
+  border: 1px solid #555;
+  border-radius: 5px;
+  color: #f0f0f0;
+  font-size: 0.75rem;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.btn-imprimir-hist:hover { background: #cc0000; border-color: #cc0000; }
 
 .badge {
   padding: 2px 8px;
