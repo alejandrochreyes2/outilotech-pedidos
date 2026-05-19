@@ -302,6 +302,19 @@
 .cant-ctrl button:hover { background: #cc0000; }
 .cant-ctrl span { min-width: 20px; text-align: center; font-weight: 700; }
 
+.acciones-td { display: flex; align-items: center; gap: 2px; }
+
+.btn-edit {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.2s;
+  padding: 2px;
+}
+.btn-edit:hover { opacity: 1; }
+
 .btn-del {
   background: none;
   border: none;
@@ -312,6 +325,78 @@
   padding: 2px;
 }
 .btn-del:hover { opacity: 1; }
+
+/* ── Modal edición de ítem ──────────────────────────────── */
+.edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 900;
+}
+.edit-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 901;
+  background: #242424;
+  border: 1px solid #444;
+  border-radius: 10px;
+  padding: 1.2rem 1.4rem;
+  width: min(340px, 92vw);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.edit-titulo {
+  margin: 0 0 0.9rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+.edit-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #aaa;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+.edit-inp {
+  width: 100%;
+  box-sizing: border-box;
+  background: #1a1a1a;
+  border: 1px solid #555;
+  border-radius: 6px;
+  color: #f0f0f0;
+  font-size: 0.92rem;
+  padding: 0.42rem 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.edit-inp:focus { outline: none; border-color: #cc0000; }
+.edit-row { display: flex; gap: 0.7rem; }
+.edit-field { flex: 1; }
+.edit-btns { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.3rem; }
+.edit-btn-cancel {
+  padding: 0.4rem 1rem;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: transparent;
+  color: #ccc;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.edit-btn-cancel:hover { border-color: #999; color: #fff; }
+.edit-btn-save {
+  padding: 0.4rem 1.1rem;
+  border: none;
+  border-radius: 6px;
+  background: #cc0000;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.edit-btn-save:hover { background: #e60000; }
 
 /* ── Totales ─────────────────────────────────────────── */
 .totales-section {

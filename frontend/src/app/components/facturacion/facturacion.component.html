@@ -263,8 +263,9 @@
                     </td>
                     <td>${{ formatPeso(item.precio) }}</td>
                     <td>${{ formatPeso(item.subtotal) }}</td>
-                    <td>
-                      <button class="btn-del" (click)="quitarItem(i)">🗑</button>
+                    <td class="acciones-td">
+                      <button class="btn-edit" title="Editar" (click)="abrirEdicion(i)">✏️</button>
+                      <button class="btn-del"  title="Eliminar" (click)="quitarItem(i)">🗑</button>
                     </td>
                   </tr>
                 }
@@ -272,6 +273,33 @@
             </table>
           }
         </div>
+
+        <!-- Modal edición de ítem -->
+        @if (editIdx() !== null) {
+          <div class="edit-overlay" (click)="cancelarEdicion()"></div>
+          <div class="edit-modal">
+            <p class="edit-titulo">Editar producto</p>
+            <label class="edit-label">Producto</label>
+            <input class="edit-inp" type="text" [value]="editDesc()"
+                   (input)="editDesc.set($any($event.target).value)" />
+            <div class="edit-row">
+              <div class="edit-field">
+                <label class="edit-label">Cantidad</label>
+                <input class="edit-inp" type="number" min="1" [value]="editCant()"
+                       (input)="editCant.set(+$any($event.target).value)" />
+              </div>
+              <div class="edit-field">
+                <label class="edit-label">Precio ($)</label>
+                <input class="edit-inp" type="number" min="0" [value]="editPrecio()"
+                       (input)="editPrecio.set(+$any($event.target).value)" />
+              </div>
+            </div>
+            <div class="edit-btns">
+              <button class="edit-btn-cancel" (click)="cancelarEdicion()">Cancelar</button>
+              <button class="edit-btn-save"   (click)="guardarEdicion()">Guardar</button>
+            </div>
+          </div>
+        }
 
         <!-- Totales -->
         <div class="totales-section">

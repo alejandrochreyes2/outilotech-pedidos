@@ -241,6 +241,34 @@ export class FacturacionComponent implements OnInit, OnDestroy {
 
   quitarItem(idx: number) { this.items.set(this.items().filter((_, i) => i !== idx)); }
 
+  // ── Edición de ítem ────────────────────────────────────
+  editIdx      = signal<number | null>(null);
+  editDesc     = signal('');
+  editCant     = signal(1);
+  editPrecio   = signal(0);
+
+  abrirEdicion(i: number) {
+    const it = this.items()[i];
+    this.editIdx.set(i);
+    this.editDesc.set(it.descripcion);
+    this.editCant.set(it.cantidad);
+    this.editPrecio.set(it.precio);
+  }
+
+  guardarEdicion() {
+    const i = this.editIdx();
+    if (i === null) return;
+    const desc   = this.editDesc().trim() || this.items()[i].descripcion;
+    const cant   = Math.max(1, this.editCant());
+    const precio = Math.max(0, this.editPrecio());
+    const actuales = [...this.items()];
+    actuales[i] = { ...actuales[i], descripcion: desc, cantidad: cant, precio, subtotal: cant * precio };
+    this.items.set(actuales);
+    this.editIdx.set(null);
+  }
+
+  cancelarEdicion() { this.editIdx.set(null); }
+
   limpiarFactura() {
     this.items.set([]); this.descuento.set(0); this.clienteNombre.set('');
     this.clienteId.set(''); this.clienteTelefono.set(''); this.notas.set('');
