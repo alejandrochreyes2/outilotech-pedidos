@@ -33,7 +33,10 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
   fotoDataUrl    = signal('');
   fotoMimeType   = signal('image/jpeg');
   fotoReferencia = signal('');
-  fotoNotas      = signal('');
+  fotoMarca      = signal('');
+  fotoColor      = signal('');
+  fotoCantidad   = signal('');
+  fotoPrecio     = signal('');
   fotoEnviando   = signal(false);
 
   private jwtToken = '';
@@ -219,11 +222,24 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
   enviarFoto() {
     if (!this._fotoBase64 || this.fotoEnviando()) return;
     this.fotoEnviando.set(true);
+
+    // Construir notas estructuradas desde campos separados
+    const partes: string[] = [];
+    if (this.fotoMarca().trim())    partes.push(`Marca: ${this.fotoMarca().trim()}`);
+    if (this.fotoColor().trim())    partes.push(`Color: ${this.fotoColor().trim()}`);
+    if (this.fotoCantidad().trim()) partes.push(`Cantidad: ${this.fotoCantidad().trim()}`);
+    if (this.fotoPrecio().trim())   partes.push(`Precio: ${this.fotoPrecio().trim()}`);
+    const notasEstructuradas = partes.join(' | ');
+
     this.http.post(
       `${environment.apiUrl}/api/scan/session/${this.token}/foto`,
       {
         referencia: this.fotoReferencia().trim(),
-        notas     : this.fotoNotas().trim(),
+        notas     : notasEstructuradas,
+        marca     : this.fotoMarca().trim(),
+        color     : this.fotoColor().trim(),
+        cantidad  : this.fotoCantidad().trim(),
+        precio_estimado: this.fotoPrecio().trim(),
         imagen    : this._fotoBase64,
         mimeType  : this.fotoMimeType(),
       },
@@ -242,7 +258,10 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
     this.fotoDataUrl.set('');
     this._fotoBase64 = '';
     this.fotoReferencia.set('');
-    this.fotoNotas.set('');
+    this.fotoMarca.set('');
+    this.fotoColor.set('');
+    this.fotoCantidad.set('');
+    this.fotoPrecio.set('');
     this.estado.set('iniciando');
     setTimeout(() => this.iniciarCamara(), 200);
   }
