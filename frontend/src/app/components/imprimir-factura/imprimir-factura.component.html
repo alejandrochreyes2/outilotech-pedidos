@@ -198,7 +198,7 @@
         <div class="tk-sep">----------------------------------------</div>
 
         <!-- Validación + QR -->
-        <p class="tk-fecha-val">FECHA VALIDACIÓN: {{ formatFecha(fecha()) }}</p>
+        <p class="tk-fecha-val">FECHA VALIDACIÓN: {{ ahoraBogota() }}</p>
         @if (qrDataUrl()) {
           <div class="tk-qr-wrapper">
             <img [src]="qrDataUrl()" alt="QR outiltech.co" class="tk-qr" />

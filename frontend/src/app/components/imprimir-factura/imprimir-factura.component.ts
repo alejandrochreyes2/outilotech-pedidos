@@ -124,8 +124,21 @@ export class ImprimirFacturaComponent implements OnInit {
 
   formatFecha(f: string) {
     if (!f) return '';
-    try { return new Date(f).toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
-    catch { return f; }
+    try {
+      return new Date(f).toLocaleString('es-CO', {
+        timeZone: 'America/Bogota',
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true
+      });
+    } catch { return f; }
+  }
+
+  ahoraBogota() {
+    return new Date().toLocaleString('es-CO', {
+      timeZone: 'America/Bogota',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    });
   }
 
   // Edición de ítems
