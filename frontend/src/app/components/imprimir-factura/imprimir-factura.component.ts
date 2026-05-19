@@ -170,8 +170,13 @@ export class ImprimirFacturaComponent implements OnInit {
       },
       error: err => {
         this.enviandoEmail.set(false);
-        this.errorMsg.set(err?.error?.error ?? 'Error al enviar el email.');
-        setTimeout(() => this.errorMsg.set(''), 5000);
+        const msg = err?.error?.error
+          ?? err?.error?.detail
+          ?? err?.error?.title
+          ?? err?.message
+          ?? 'Error al enviar el email. Verifique que el servidor tenga las credenciales SMTP configuradas.';
+        this.errorMsg.set(msg);
+        setTimeout(() => this.errorMsg.set(''), 8000);
       }
     });
   }
