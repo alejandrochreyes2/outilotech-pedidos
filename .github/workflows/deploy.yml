@@ -3,6 +3,12 @@ name: CD — Deploy to Hetzner
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Servicio a desplegar (all/pedidos/usuarios/pagos/gateway/frontend)'
+        required: false
+        default: 'all'
 
 env:
   SERVER: 178.156.222.248
