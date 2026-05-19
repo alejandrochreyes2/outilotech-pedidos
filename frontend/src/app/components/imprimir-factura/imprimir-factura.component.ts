@@ -120,6 +120,7 @@ export class ImprimirFacturaComponent implements OnInit {
   }
 
   formatPeso(v: number) { return v.toLocaleString('es-CO'); }
+  sumSubtotal(acc: number, i: { subtotal: number }) { return acc + i.subtotal; }
 
   formatFecha(f: string) {
     if (!f) return '';

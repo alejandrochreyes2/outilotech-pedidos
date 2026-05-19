@@ -128,7 +128,7 @@
         <table class="tk-table">
           <tr><td>No.</td><td class="tk-val">{{ numeroFactura() }}</td></tr>
           <tr><td>Fecha:</td><td class="tk-val">{{ formatFecha(fecha()) }}</td></tr>
-          <tr><td>Cajera:</td><td class="tk-val">{{ cajera() }}</td></tr>
+          <tr><td>Cajero(a):</td><td class="tk-val">{{ cajera() }}</td></tr>
           @if (clienteNombre()) {
             <tr><td>Cliente:</td><td class="tk-val">{{ clienteNombre() }}</td></tr>
           }
@@ -167,18 +167,12 @@
 
         <div class="tk-sep">----------------------------------------</div>
 
-        <!-- Artículos / totales -->
+        <!-- Totales (sin IVA — agente NO retenedor) -->
         <table class="tk-totales">
-          <tr><td>A Base 19%:</td><td class="tk-right">${{ formatPeso(baseGravable()) }}</td></tr>
-          <tr><td>IVA 19%:</td><td class="tk-right">${{ formatPeso(ivaTotal()) }}</td></tr>
-          <tr><td>Subtotal:</td><td class="tk-right">${{ formatPeso(baseGravable()) }}</td></tr>
-          <tr><td>Impuestos:</td><td class="tk-right">${{ formatPeso(ivaTotal()) }}</td></tr>
           @if (descuento() > 0) {
+            <tr><td>Subtotal:</td><td class="tk-right">${{ formatPeso(items().reduce(sumSubtotal, 0)) }}</td></tr>
             <tr><td>Descuento:</td><td class="tk-right">-${{ formatPeso(descuento()) }}</td></tr>
           }
-          <tr class="tk-total-row">
-            <td>Subtotal + Impuestos:</td><td class="tk-right">${{ formatPeso(totalFinal()) }}</td>
-          </tr>
           <tr class="tk-total-row tk-total-final">
             <td>Total:</td><td class="tk-right">${{ formatPeso(totalFinal()) }}</td>
           </tr>
@@ -189,8 +183,6 @@
         <p class="tk-metodo">{{ metodoPago() }}</p>
 
         <div class="tk-sep">----------------------------------------</div>
-
-        <p class="tk-imp">IMPORTANTE: El 19% es IVA</p>
 
         <!-- Resolución DIAN -->
         <table class="tk-table">
