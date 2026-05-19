@@ -1,109 +1,168 @@
-name: Deploy Toyota Pedidos to Azure
+name: CD — Deploy to Hetzner
 
 on:
   push:
     branches: [main]
 
+env:
+  SERVER: 178.156.222.248
+  REPO_DIR: /tmp/outiltech-repo
+  COMPOSE_DIR: /data/coolify/applications/g12weuw6n4h1cag21oo53sd1
+  APP_PREFIX: g12weuw6n4h1cag21oo53sd1
+
 jobs:
-  build-and-deploy:
+  deploy:
+    name: Build & Deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Login to Azure
-        uses: azure/login@v1
+      - name: Checkout código
+        uses: actions/checkout@v4
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          fetch-depth: 2
 
-      - name: Login to ACR
+      # ── Detectar qué servicios cambiaron ────────────────────────
+      - name: Detectar servicios modificados
+        id: changes
         run: |
-          echo "${{ secrets.ACR_PASSWORD }}" | docker login \
-            ${{ secrets.ACR_LOGIN_SERVER }} \
-            --username ${{ secrets.ACR_USERNAME }} \
-            --password-stdin
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          echo "$CHANGED"
 
-      - name: Build and push usuarios
-        run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/usuarios:latest ./backend/usuarios
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/usuarios:latest
+          pedidos=false
+          usuarios=false
+          pagos=false
+          gateway=false
+          frontend=false
+          infra=false
 
-      - name: Build and push pedidos
-        run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/pedidos:latest ./backend/pedidos
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/pedidos:latest
+          echo "$CHANGED" | grep -q '^backend/pedidos/'   && pedidos=true
+          echo "$CHANGED" | grep -q '^backend/usuarios/'  && usuarios=true
+          echo "$CHANGED" | grep -q '^backend/pagos/'     && pagos=true
+          echo "$CHANGED" | grep -q '^backend/ApiGateway/'&& gateway=true
+          echo "$CHANGED" | grep -q '^frontend/'          && frontend=true
+          echo "$CHANGED" | grep -q '^infra/'             && infra=true
 
-      - name: Build and push pagos
-        run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/pagos:latest ./backend/pagos
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/pagos:latest
+          echo "pedidos=$pedidos"   >> $GITHUB_OUTPUT
+          echo "usuarios=$usuarios" >> $GITHUB_OUTPUT
+          echo "pagos=$pagos"       >> $GITHUB_OUTPUT
+          echo "gateway=$gateway"   >> $GITHUB_OUTPUT
+          echo "frontend=$frontend" >> $GITHUB_OUTPUT
+          echo "infra=$infra"       >> $GITHUB_OUTPUT
+          echo "commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Build and push gateway
-        run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/gateway:latest ./backend/ApiGateway
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/gateway:latest
+      # ── Desplegar en servidor via SSH ───────────────────────────
+      - name: Deploy al servidor
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          COMMIT:          ${{ steps.changes.outputs.commit }}
+          BUILD_PEDIDOS:   ${{ steps.changes.outputs.pedidos }}
+          BUILD_USUARIOS:  ${{ steps.changes.outputs.usuarios }}
+          BUILD_PAGOS:     ${{ steps.changes.outputs.pagos }}
+          BUILD_GATEWAY:   ${{ steps.changes.outputs.gateway }}
+          BUILD_FRONTEND:  ${{ steps.changes.outputs.frontend }}
+          APPLY_INFRA:     ${{ steps.changes.outputs.infra }}
+        with:
+          host:    ${{ env.SERVER }}
+          username: root
+          key:     ${{ secrets.SSH_DEPLOY_KEY }}
+          envs:    COMMIT,BUILD_PEDIDOS,BUILD_USUARIOS,BUILD_PAGOS,BUILD_GATEWAY,BUILD_FRONTEND,APPLY_INFRA
+          command_timeout: 18m
+          script: |
+            set -e
+            REPO_DIR=/tmp/outiltech-repo
+            COMPOSE_DIR=/data/coolify/applications/g12weuw6n4h1cag21oo53sd1
+            PREFIX=g12weuw6n4h1cag21oo53sd1
 
-      - name: Build and push frontend
-        run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest ./frontend
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+            # ── Clonar o actualizar código ────────────────────────
+            if [ -d "$REPO_DIR/.git" ]; then
+              cd $REPO_DIR && git fetch origin && git reset --hard origin/main
+            else
+              git clone https://github.com/alejandrochreyes2/outilotech-pedidos.git $REPO_DIR
+              cd $REPO_DIR
+            fi
+            echo "✓ Código actualizado al commit $COMMIT"
 
-      - name: Generate docker-compose with real values
-        run: |
-          cat > docker-compose.deploy.yml << 'EOF'
-          version: '3.8'
-          services:
-            frontend:
-              image: ACR_SERVER_PLACEHOLDER/frontend:latest
-              ports:
-                - "80:80"
-              depends_on:
-                - gateway
-            gateway:
-              image: ACR_SERVER_PLACEHOLDER/gateway:latest
-              environment:
-                - ASPNETCORE_ENVIRONMENT=Production
-                - ASPNETCORE_URLS=http://+:5000
-                - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
-                - Jwt__Issuer=toyota-pedidos-api
-                - Jwt__Audience=toyota-pedidos-client
-            usuarios:
-              image: ACR_SERVER_PLACEHOLDER/usuarios:latest
-              environment:
-                - ASPNETCORE_ENVIRONMENT=Production
-                - ASPNETCORE_URLS=http://+:3001
-                - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
-                - Jwt__Issuer=toyota-pedidos-api
-                - Jwt__Audience=toyota-pedidos-client
-            pedidos:
-              image: ACR_SERVER_PLACEHOLDER/pedidos:latest
-              environment:
-                - ASPNETCORE_ENVIRONMENT=Production
-                - ASPNETCORE_URLS=http://+:3002
-                - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
-                - Jwt__Issuer=toyota-pedidos-api
-                - Jwt__Audience=toyota-pedidos-client
-            pagos:
-              image: ACR_SERVER_PLACEHOLDER/pagos:latest
-              environment:
-                - ASPNETCORE_ENVIRONMENT=Production
-                - ASPNETCORE_URLS=http://+:3003
-                - Jwt__Key=ToyotaSecretKey2026SuperSegura!MínimoCincuentaCaracteres!!
-                - Jwt__Issuer=toyota-pedidos-api
-                - Jwt__Audience=toyota-pedidos-client
-          EOF
-          sed -i "s|ACR_SERVER_PLACEHOLDER|${{ secrets.ACR_LOGIN_SERVER }}|g" docker-compose.deploy.yml
+            # ── Aplicar pg_hba.conf si cambió ─────────────────────
+            if [ "$APPLY_INFRA" = "true" ]; then
+              echo "→ Aplicando infra/postgres/pg_hba.conf..."
+              PG_CONTAINER=$(docker ps --filter "name=${PREFIX}" --format "{{.Names}}" | grep postgres)
+              docker cp $REPO_DIR/infra/postgres/pg_hba.conf $PG_CONTAINER:/var/lib/postgresql/data/pg_hba.conf
+              docker exec $PG_CONTAINER psql -U root -d postgres -c "SELECT pg_reload_conf();" > /dev/null
+              echo "✓ pg_hba.conf recargado"
+            fi
 
-      - name: Deploy multi-container to Azure Web App
+            # ── Función helper para build + restart ───────────────
+            deploy_service() {
+              SERVICE=$1
+              BUILD_CONTEXT=$2
+              IMAGE="${PREFIX}_${SERVICE}:${COMMIT}"
+
+              echo "→ Construyendo ${SERVICE}..."
+              docker build -t $IMAGE $REPO_DIR/$BUILD_CONTEXT
+
+              # Actualizar tag en docker-compose.yaml
+              OLD_TAG=$(grep "image:.*${PREFIX}_${SERVICE}:" $COMPOSE_DIR/docker-compose.yaml | grep -o "${SERVICE}:[a-f0-9]*" | head -1)
+              sed -i "s|${PREFIX}_${SERVICE}:[a-f0-9]*|${PREFIX}_${SERVICE}:${COMMIT}|g" $COMPOSE_DIR/docker-compose.yaml
+
+              echo "→ Reiniciando ${SERVICE}..."
+              cd $COMPOSE_DIR && docker compose up -d --no-deps $SERVICE
+              echo "✓ ${SERVICE} desplegado ($IMAGE)"
+            }
+
+            # ── Construir y desplegar servicios modificados ───────
+            cd $COMPOSE_DIR
+
+            if [ "$BUILD_PEDIDOS" = "true" ]; then
+              deploy_service "pedidos" "backend/pedidos"
+            fi
+
+            if [ "$BUILD_USUARIOS" = "true" ]; then
+              deploy_service "usuarios" "backend/usuarios"
+            fi
+
+            if [ "$BUILD_PAGOS" = "true" ]; then
+              deploy_service "pagos" "backend/pagos"
+            fi
+
+            if [ "$BUILD_GATEWAY" = "true" ]; then
+              deploy_service "apigateway" "backend/ApiGateway"
+            fi
+
+            if [ "$BUILD_FRONTEND" = "true" ]; then
+              echo "→ Construyendo frontend Angular..."
+              docker build -t ${PREFIX}_frontend:${COMMIT} $REPO_DIR/frontend
+              OLD=$(grep "image:.*${PREFIX}_frontend:" docker-compose.yaml | grep -o "frontend:[a-f0-9]*" | head -1)
+              sed -i "s|${PREFIX}_frontend:[a-f0-9]*|${PREFIX}_frontend:${COMMIT}|g" docker-compose.yaml
+              docker compose up -d --no-deps frontend
+              echo "✓ Frontend desplegado"
+            fi
+
+            # ── Limpiar imágenes antiguas (guardar últimas 3) ─────
+            for SVC in pedidos usuarios pagos apigateway frontend; do
+              docker images "${PREFIX}_${SVC}" --format "{{.ID}} {{.Tag}}" \
+                | sort -k2 -r | tail -n +4 \
+                | awk '{print $1}' | xargs -r docker rmi -f 2>/dev/null || true
+            done
+
+            echo ""
+            echo "════════════════════════════════════════"
+            echo " Deploy completado — commit: $COMMIT"
+            echo " $(date)"
+            echo "════════════════════════════════════════"
+
+      # ── Verificar salud del sistema ─────────────────────────────
+      - name: Health check
         run: |
-          az webapp config container set \
-            --name ${{ secrets.AZURE_APP_NAME }} \
-            --resource-group toyota-pedidos-rg \
-            --multicontainer-config-type compose \
-            --multicontainer-config-file docker-compose.deploy.yml \
-            --container-registry-url https://${{ secrets.ACR_LOGIN_SERVER }} \
-            --container-registry-user ${{ secrets.ACR_USERNAME }} \
-            --container-registry-password "${{ secrets.ACR_PASSWORD }}"
-          az webapp restart \
-            --name ${{ secrets.AZURE_APP_NAME }} \
-            --resource-group toyota-pedidos-rg
+          sleep 10
+          STATUS=$(curl -sk -o /dev/null -w "%{http_code}" \
+            https://api.outiltech.co/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"jhonatanhtech@gmail.com","password":"Admin1327"}' \
+            --max-time 15)
+          echo "HTTP status login: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Health check falló (HTTP $STATUS)"
+            exit 1
+          fi
+          echo "✅ Sistema operativo — login OK"
