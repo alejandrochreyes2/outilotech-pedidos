@@ -68,17 +68,24 @@ jobs:
           BUILD_GATEWAY:   ${{ steps.changes.outputs.gateway }}
           BUILD_FRONTEND:  ${{ steps.changes.outputs.frontend }}
           APPLY_INFRA:     ${{ steps.changes.outputs.infra }}
+          GMAIL_APP_PASS:  ${{ secrets.GMAIL_APP_PASSWORD }}
         with:
           host:    ${{ env.SERVER }}
           username: root
           key:     ${{ secrets.SSH_DEPLOY_KEY }}
-          envs:    COMMIT,BUILD_PEDIDOS,BUILD_USUARIOS,BUILD_PAGOS,BUILD_GATEWAY,BUILD_FRONTEND,APPLY_INFRA
+          envs:    COMMIT,BUILD_PEDIDOS,BUILD_USUARIOS,BUILD_PAGOS,BUILD_GATEWAY,BUILD_FRONTEND,APPLY_INFRA,GMAIL_APP_PASS
           command_timeout: 18m
           script: |
             set -e
             REPO_DIR=/tmp/outiltech-repo
             COMPOSE_DIR=/data/coolify/applications/g12weuw6n4h1cag21oo53sd1
             PREFIX=g12weuw6n4h1cag21oo53sd1
+
+            # ── Credenciales email (se aplica siempre) ───────────
+            if [ -n "$GMAIL_APP_PASS" ]; then
+              sed -i "s|Email__Password=.*|Email__Password=${GMAIL_APP_PASS}|" $COMPOSE_DIR/docker-compose.yaml
+              echo "✓ Email credentials configured"
+            fi
 
             # ── Clonar o actualizar código ────────────────────────
             if [ -d "$REPO_DIR/.git" ]; then
