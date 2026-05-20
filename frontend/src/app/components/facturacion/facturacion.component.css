@@ -1119,6 +1119,35 @@
 .np-readonly { opacity: 0.6; cursor: default; font-family: monospace; color: #ffc000; }
 .np-row { display: flex; gap: 0.7rem; }
 .np-row .np-field { flex: 1; }
+.np-field-hint { display: flex; align-items: flex-end; padding-bottom: 0.4rem; }
+.np-hint-inline { font-size: 0.75rem; color: #aaa; margin: 0; line-height: 1.4; }
+
+.np-cant-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.np-cant-ctrl button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: #3a3a3a;
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.np-cant-ctrl button:hover { background: #cc0000; }
+.np-cant-inp {
+  width: 70px !important;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0 !important;
+}
 .np-hint {
   font-size: 0.77rem;
   color: #888;

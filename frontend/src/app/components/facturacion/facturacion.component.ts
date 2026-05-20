@@ -149,6 +149,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   npPrecio      = signal(0);
   npCosto       = signal(0);
   npCategoria   = signal('Accesorio');
+  npCantidad    = signal(1);
   npGuardando   = signal(false);
   npFotoId      = signal<number | null>(null); // ID de la foto que originó este modal
 
@@ -409,6 +410,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
           this.npPrecio.set(0);
           this.npCosto.set(0);
           this.npCategoria.set('Accesorio');
+          this.npCantidad.set(1);
           this.mostrarNuevoProducto.set(true);
         }
       }
@@ -425,6 +427,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
       precio:       this.npPrecio(),
       costo:        this.npCosto(),
       categoria:    this.npCategoria(),
+      cantidad:     this.npCantidad(),
       cajera:       this.auth.currentUser()?.name ?? ''
     }).subscribe({
       next: r => {
@@ -514,6 +517,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     this.npPrecio.set(0);
     this.npCosto.set(0);
     this.npCategoria.set('Accesorio');
+    this.npCantidad.set(1);
     // Guardar el ID de la foto para marcarla revisada al guardar
     this.npFotoId.set(item.id ?? null);
     this.mostrarFotos.set(false);

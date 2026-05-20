@@ -3618,6 +3618,7 @@ app.MapPost("/inventario/nuevo-producto", async (HttpContext ctx) => {
     var precio       = body.TryGetProperty("precio",       out var p)  ? p.GetDecimal() : 0m;
     var costo        = body.TryGetProperty("costo",        out var co) ? co.GetDecimal() : 0m;
     var categoria    = body.TryGetProperty("categoria",    out var ca) ? ca.GetString()  ?? "Accesorio" : "Accesorio";
+    var cantidad     = body.TryGetProperty("cantidad",     out var qt) ? Math.Max(1, qt.GetInt32()) : 1;
     var cajera       = body.TryGetProperty("cajera",       out var cj) ? cj.GetString()  ?? "" : "";
 
     if (string.IsNullOrEmpty(descripcion))
@@ -3651,21 +3652,22 @@ app.MapPost("/inventario/nuevo-producto", async (HttpContext ctx) => {
         await using var cmd = new NpgsqlCommand(@"
             INSERT INTO inventario_stock
               (codigo_producto, descripcion, stock_actual, precio_venta, costo_unitario, entradas)
-            VALUES (@cod, @desc, 1, @precio, @costo, 1)
+            VALUES (@cod, @desc, @cantidad, @precio, @costo, @cantidad)
             ON CONFLICT (codigo_producto) DO UPDATE
               SET descripcion    = EXCLUDED.descripcion,
                   precio_venta   = EXCLUDED.precio_venta,
                   costo_unitario = EXCLUDED.costo_unitario,
-                  stock_actual   = inventario_stock.stock_actual + 1,
-                  entradas       = inventario_stock.entradas + 1,
+                  stock_actual   = inventario_stock.stock_actual + @cantidad,
+                  entradas       = inventario_stock.entradas + @cantidad,
                   updated_at     = NOW()
             RETURNING codigo_producto, stock_actual", conn);
 
         var codigo = string.IsNullOrEmpty(codigoBarras) ? $"MAN-{Guid.NewGuid().ToString("N")[..8].ToUpper()}" : codigoBarras;
-        cmd.Parameters.AddWithValue("@cod",    codigo);
-        cmd.Parameters.AddWithValue("@desc",   descripcion);
-        cmd.Parameters.AddWithValue("@precio", precio);
-        cmd.Parameters.AddWithValue("@costo",  costo);
+        cmd.Parameters.AddWithValue("@cod",      codigo);
+        cmd.Parameters.AddWithValue("@desc",     descripcion);
+        cmd.Parameters.AddWithValue("@precio",   precio);
+        cmd.Parameters.AddWithValue("@costo",    costo);
+        cmd.Parameters.AddWithValue("@cantidad", cantidad);
         await using var r = await cmd.ExecuteReaderAsync();
         await r.ReadAsync();
         var codGuardado = r.GetString(0);

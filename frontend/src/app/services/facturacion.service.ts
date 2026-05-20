@@ -218,6 +218,7 @@ export class FacturacionService {
     precio: number;
     costo: number;
     categoria: string;
+    cantidad: number;
     cajera: string;
   }) {
     return this.http.post<{

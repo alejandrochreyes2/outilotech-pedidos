@@ -555,6 +555,24 @@
             </div>
           </div>
 
+          <div class="np-row">
+            <div class="np-field">
+              <label>Cantidad en inventario <span class="np-req">*</span></label>
+              <div class="np-cant-ctrl">
+                <button type="button" (click)="npCantidad.set(npCantidad() > 1 ? npCantidad() - 1 : 1)">−</button>
+                <input type="number" min="1" [value]="npCantidad()"
+                       (input)="npCantidad.set(+$any($event.target).value < 1 ? 1 : +$any($event.target).value)"
+                       class="np-input np-cant-inp" />
+                <button type="button" (click)="npCantidad.update(v => v + 1)">+</button>
+              </div>
+            </div>
+            <div class="np-field np-field-hint">
+              <p class="np-hint-inline">
+                📦 Unidades que tienes físicamente en el inventario ahora mismo
+              </p>
+            </div>
+          </div>
+
           <div class="np-field">
             <label>Categoría</label>
             <select [value]="npCategoria()"
@@ -572,7 +590,7 @@
           </div>
 
           <p class="np-hint">
-            💡 El producto se guardará en el inventario con stock 1 y podrá actualizarlo después.
+            💡 El producto se guardará en el inventario con la cantidad indicada. Podrá ajustarla después desde el inventario.
           </p>
 
           <div class="np-acciones">
