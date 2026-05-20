@@ -528,12 +528,37 @@
   ══════════════════════════════════════════════════════════ -->
   @if (mostrarNuevoProducto()) {
     <div class="scanner-overlay" (click)="cerrarNuevoProducto()">
-      <div class="scanner-modal nuevo-producto-modal" (click)="$event.stopPropagation()">
+      <div class="scanner-modal nuevo-producto-modal" [class.np-split]="fotoPin()" (click)="$event.stopPropagation()">
 
         <div class="scanner-header">
           <h3>📦 Agregar nuevo producto al inventario</h3>
           <button class="btn-cerrar-scanner" (click)="cerrarNuevoProducto()">✕</button>
         </div>
+
+        <!-- Layout dividido cuando viene de foto -->
+        <div class="np-split-body">
+
+        @if (fotoPin(); as fp) {
+          <!-- Panel izquierdo: foto de referencia -->
+          <div class="np-foto-panel">
+            <p class="np-foto-panel-title">📷 Foto de referencia</p>
+            <div class="foto-zoom-bar">
+              <button class="btn-zoom" title="Alejar" (click)="zoomFotoPin.update(z => z > 0.5 ? +(z - 0.25).toFixed(2) : z)">−</button>
+              <span class="zoom-label">{{ (zoomFotoPin() * 100).toFixed(0) }}%</span>
+              <button class="btn-zoom" title="Acercar" (click)="zoomFotoPin.update(z => z < 4 ? +(z + 0.25).toFixed(2) : z)">+</button>
+              <button class="btn-zoom-reset" title="Tamaño original" (click)="zoomFotoPin.set(1)">⊙</button>
+            </div>
+            <div class="foto-zoom-wrap np-foto-wrap">
+              <img [src]="'data:' + fp.mimeType + ';base64,' + fp.imagen"
+                   alt="Foto referencia"
+                   class="foto-preview-grande"
+                   [style.transform]="'scale(' + zoomFotoPin() + ')'"
+                   [style.transformOrigin]="'top left'" />
+            </div>
+            <p class="np-foto-ref">{{ fp.referencia || '(sin referencia)' }}</p>
+            <p class="np-foto-notas-pin">{{ fp.notas || '' }}</p>
+          </div>
+        }
 
         <div class="np-body">
           @if (npCodigo()) {
@@ -614,6 +639,7 @@
           </div>
         </div>
 
+        </div><!-- /np-split-body -->
       </div>
     </div>
   }

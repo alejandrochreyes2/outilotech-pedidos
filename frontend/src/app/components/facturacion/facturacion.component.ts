@@ -131,7 +131,9 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   fotosPendientesCnt = signal(0);
   mostrarFotos     = signal(false);
   imagenSeleccionada = signal<{id:number; imagen:string; mimeType:string; referencia:string; notas:string} | null>(null);
-  zoomFoto         = signal(1);   // 1 = tamaño original
+  zoomFoto         = signal(1);   // zoom en visor de lista de fotos
+  fotoPin          = signal<{imagen:string; mimeType:string; referencia:string; notas:string} | null>(null); // foto fijada en modal producto
+  zoomFotoPin      = signal(1);   // zoom de la foto fijada
   analizandoFotos  = signal(false);
   resultadosAnalisis = signal<any[]>([]);
   mostrarResultadosAnalisis = signal(false);
@@ -434,6 +436,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
       next: r => {
         this.npGuardando.set(false);
         this.mostrarNuevoProducto.set(false);
+        this.fotoPin.set(null);
         // Si vino de una foto pendiente, marcarla como revisada
         const fotoId = this.npFotoId();
         if (fotoId) {
@@ -454,7 +457,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     });
   }
 
-  cerrarNuevoProducto() { this.mostrarNuevoProducto.set(false); this.npFotoId.set(null); }
+  cerrarNuevoProducto() { this.mostrarNuevoProducto.set(false); this.npFotoId.set(null); this.fotoPin.set(null); }
 
   // ── Analizar fotos sin referencia con Claude Vision ──
   analizarFotosSinReferencia() {
@@ -516,14 +519,22 @@ export class FacturacionComponent implements OnInit, OnDestroy {
 
   agregarDesdeFoto(item: any) {
     this.npCodigo.set('');
-    // item puede ser un ProductoPOS (fuente='imagen') o un registro de fotosPendientes
     this.npDescripcion.set(item.referencia || item.descripcion || '');
     this.npPrecio.set(0);
     this.npCosto.set(0);
     this.npCategoria.set('Accesorio');
     this.npCantidad.set(1);
-    // Guardar el ID de la foto para marcarla revisada al guardar
     this.npFotoId.set(item.id ?? null);
+
+    // Fijar la foto en el panel izquierdo del modal de nuevo producto
+    const img = this.imagenSeleccionada();
+    if (img) {
+      this.zoomFotoPin.set(1);
+      this.fotoPin.set({ imagen: img.imagen, mimeType: img.mimeType, referencia: img.referencia, notas: img.notas });
+    } else {
+      this.fotoPin.set(null);
+    }
+
     this.mostrarFotos.set(false);
     this.imagenSeleccionada.set(null);
     this.mostrarNuevoProducto.set(true);

@@ -1157,7 +1157,49 @@
 
 /* ── Modal Nuevo Producto ────────────────────────────── */
 .nuevo-producto-modal { max-width: 460px; }
-.np-body { display: flex; flex-direction: column; gap: 0.8rem; padding: 0.2rem 0; }
+
+/* Modo split (foto + formulario lado a lado) */
+.nuevo-producto-modal.np-split { max-width: 860px; width: 98vw; }
+.np-split-body {
+  display: flex;
+  gap: 0;
+  overflow: hidden;
+}
+/* Panel izquierdo — foto de referencia */
+.np-foto-panel {
+  width: 340px;
+  min-width: 260px;
+  max-width: 380px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem 0.8rem 0;
+  border-right: 1px solid #2a2a2a;
+  margin-right: 1rem;
+}
+.np-foto-panel-title {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.np-foto-wrap { max-height: 340px; }
+.np-foto-ref {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #f0f0f0;
+  font-weight: 600;
+}
+.np-foto-notas-pin {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #888;
+  line-height: 1.3;
+}
+/* El formulario ocupa el resto */
+.np-body { display: flex; flex-direction: column; gap: 0.8rem; padding: 0.2rem 0; flex: 1; min-width: 0; }
 .np-field { display: flex; flex-direction: column; gap: 0.3rem; }
 .np-field label { font-size: 0.8rem; color: #aaa; }
 .np-req { color: #cc0000; }
