@@ -1,4 +1,9 @@
-<div class="chatbot-host">
+<div class="chatbot-host"
+     [style.top]="fabTop !== null ? fabTop + 'px' : null"
+     [style.left]="fabLeft !== null ? fabLeft + 'px' : null"
+     [style.bottom]="fabTop !== null ? 'auto' : null"
+     [style.right]="fabLeft !== null ? 'auto' : null"
+     [class.fab-dragging]="fabDragging">
 
   @if (isOpen) {
   <div class="chatbot-panel">
@@ -130,8 +135,12 @@
   </div>
   }
 
-  <!-- ── Botón flotante Jhon ────────────────────────────────── -->
-  <button class="jhon-fab" (click)="toggleChat()" title="Chatear con Jhon IA">
+  <!-- ── Botón flotante Jhon (arrastrable) ──────────────────── -->
+  <button class="jhon-fab"
+          title="Arrastrar para mover · Click para chatear"
+          (mousedown)="startDragFab($event)"
+          (touchstart)="startDragFab($event)"
+          (click)="onFabClick()">
     @if (!avatarError) {
     <img src="assets/images/jhon-avatar.png" class="fab-avatar" alt="Jhon IA" (error)="onAvatarError()">
     } @else {

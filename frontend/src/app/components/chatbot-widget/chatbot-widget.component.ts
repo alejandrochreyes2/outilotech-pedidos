@@ -85,6 +85,49 @@ export class ChatbotWidgetComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ── Drag del widget ───────────────────────────────────────────
+  fabTop:  number | null = null;  // null = usa CSS default (bottom/right)
+  fabLeft: number | null = null;
+  fabDragging = false;
+  private _fabOffX = 0;
+  private _fabOffY = 0;
+  private _fabMoved = false;
+
+  startDragFab(e: MouseEvent | TouchEvent) {
+    const el = (e.currentTarget as HTMLElement).closest('.chatbot-host') as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const cx = e instanceof MouseEvent ? e.clientX : (e as TouchEvent).touches[0].clientX;
+    const cy = e instanceof MouseEvent ? e.clientY : (e as TouchEvent).touches[0].clientY;
+    this._fabOffX = cx - rect.left;
+    this._fabOffY = cy - rect.top;
+    this.fabDragging = true;
+    this._fabMoved   = false;
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  @HostListener('document:touchmove', ['$event'])
+  onFabMove(e: MouseEvent | TouchEvent) {
+    if (!this.fabDragging) return;
+    const cx = e instanceof MouseEvent ? e.clientX : (e as TouchEvent).touches[0].clientX;
+    const cy = e instanceof MouseEvent ? e.clientY : (e as TouchEvent).touches[0].clientY;
+    this.fabTop  = Math.max(0, Math.min(window.innerHeight - 70, cy - this._fabOffY));
+    this.fabLeft = Math.max(0, Math.min(window.innerWidth  - 70, cx - this._fabOffX));
+    this._fabMoved = true;
+    e.preventDefault();
+  }
+
+  @HostListener('document:mouseup')
+  @HostListener('document:touchend')
+  onFabUp() { this.fabDragging = false; }
+
+  onFabClick() {
+    if (!this._fabMoved) this.toggleChat();
+    this._fabMoved = false;
+  }
+  // ─────────────────────────────────────────────────────────────
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     if (this.isOpen && !this.elementRef.nativeElement.contains(event.target)) {

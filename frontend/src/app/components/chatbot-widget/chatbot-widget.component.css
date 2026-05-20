@@ -11,14 +11,16 @@
   gap: 12px;
 }
 
-/* ── Botón flotante Jhon ─────────────────────────────────────── */
+/* ── Botón flotante Jhon (arrastrable) ──────────────────────── */
 .jhon-fab {
   width: 60px;
   height: 60px;
   border-radius: 50%;
   background: #FF6B00;
   border: none;
-  cursor: pointer;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -35,6 +37,7 @@
   box-shadow: 0 6px 28px rgba(255, 107, 0, 0.65);
   animation: none;
 }
+.fab-dragging .jhon-fab { cursor: grabbing; transform: scale(1.08); animation: none; }
 
 .fab-avatar {
   width: 100%;
