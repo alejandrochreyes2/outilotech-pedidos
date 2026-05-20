@@ -96,60 +96,67 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// Seed
-try
+// Seed — con reintentos para cuando postgres aún está iniciando
+var seedOk = false;
+for (int attempt = 1; attempt <= 8 && !seedOk; attempt++)
 {
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.EnsureCreated();
-    try {
-        var creator = db.GetService<Microsoft.EntityFrameworkCore.Storage.IRelationalDatabaseCreator>();
-        creator.CreateTables();
-    } catch { }
-
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-
-    // Crear roles
-    var seedRoles = new[] { "Admin", "Vendedor", "User" };
-    foreach (var role in seedRoles)
+    try
     {
-        if (!await roleManager.RoleExistsAsync(role))
-            await roleManager.CreateAsync(new IdentityRole(role));
-    }
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.Database.EnsureCreated();
+        try {
+            var creator = db.GetService<Microsoft.EntityFrameworkCore.Storage.IRelationalDatabaseCreator>();
+            creator.CreateTables();
+        } catch { }
 
-    // Crear usuarios
-    var seedUsers = new[]
-    {
-        (Email: "alejandrochreyes2@gmail.com",    UserName: "alejandro_admin",    FullName: "Jhonatan Hernandez",         Password: "Kx9#mT4$vR2n", Role: "Admin"),
-        (Email: "contactanos@outiltech.co",        UserName: "jhonatan_admin",     FullName: "Jhonnathan Hernández Medina", Password: "Admin1327",     Role: "Admin"),
-        (Email: "jhonatanhtech@gmail.com",         UserName: "jhonatanhtech",      FullName: "Jhonnathan Hernández Medina", Password: "Admin1327",     Role: "Admin"),
-        (Email: "vendedor@outiltech.co",           UserName: "vendedor_outiltech", FullName: "Vendedor Outiltech",          Password: "Bw3$pL7#qN5j", Role: "Vendedor"),
-        (Email: "usuario@outiltech.co",            UserName: "usuario_outiltech",  FullName: "Usuario Outiltech",           Password: "Ym6#cF1$hK8s", Role: "User"),
-    };
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-    foreach (var (Email, UserName, FullName, Password, Role) in seedUsers)
-    {
-        if (await userManager.FindByEmailAsync(Email) == null)
+        // Crear roles
+        var seedRoles = new[] { "Admin", "Vendedor", "User" };
+        foreach (var role in seedRoles)
         {
-            var u = new ApplicationUser { UserName = UserName, Email = Email, FullName = FullName, EmailConfirmed = true };
-            var result = await userManager.CreateAsync(u, Password);
-            if (result.Succeeded)
+            if (!await roleManager.RoleExistsAsync(role))
+                await roleManager.CreateAsync(new IdentityRole(role));
+        }
+
+        // Crear usuarios
+        var seedUsers = new[]
+        {
+            (Email: "alejandrochreyes2@gmail.com",    UserName: "alejandro_admin",    FullName: "Jhonatan Hernandez",         Password: "Kx9#mT4$vR2n", Role: "Admin"),
+            (Email: "contactanos@outiltech.co",        UserName: "jhonatan_admin",     FullName: "Jhonnathan Hernández Medina", Password: "Admin1327",     Role: "Admin"),
+            (Email: "jhonatanhtech@gmail.com",         UserName: "jhonatanhtech",      FullName: "Jhonnathan Hernández Medina", Password: "Admin1327",     Role: "Admin"),
+            (Email: "vendedor@outiltech.co",           UserName: "vendedor_outiltech", FullName: "Vendedor Outiltech",          Password: "Bw3$pL7#qN5j", Role: "Vendedor"),
+            (Email: "usuario@outiltech.co",            UserName: "usuario_outiltech",  FullName: "Usuario Outiltech",           Password: "Ym6#cF1$hK8s", Role: "User"),
+        };
+
+        foreach (var (Email, UserName, FullName, Password, Role) in seedUsers)
+        {
+            if (await userManager.FindByEmailAsync(Email) == null)
             {
-                await userManager.AddToRoleAsync(u, Role);
-                Console.WriteLine($"[SEED] {Email} → {Role}");
-            }
-            else
-            {
-                Console.WriteLine($"[SEED ERROR] {Email}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                var u = new ApplicationUser { UserName = UserName, Email = Email, FullName = FullName, EmailConfirmed = true };
+                var result = await userManager.CreateAsync(u, Password);
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(u, Role);
+                    Console.WriteLine($"[SEED] {Email} → {Role}");
+                }
+                else
+                {
+                    Console.WriteLine($"[SEED ERROR] {Email}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
             }
         }
+        seedOk = true;
     }
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"[SEED ERROR] {ex.Message}");
-}
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[SEED] Intento {attempt}/8 falló: {ex.Message.Split('\n')[0]}");
+        if (attempt < 8) await Task.Delay(attempt * 3000); // espera progresiva: 3s, 6s, 9s...
+    }
+} // fin for reintentos
+if (!seedOk) Console.WriteLine("[SEED] No se pudo conectar a postgres después de 8 intentos — la BD ya existe o hay un problema de red.");
 
 if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();

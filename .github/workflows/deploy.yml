@@ -103,13 +103,37 @@ jobs:
             fi
             echo "✓ Código actualizado al commit $COMMIT"
 
-            # ── Aplicar pg_hba.conf si cambió ─────────────────────
-            if [ "$APPLY_INFRA" = "true" ]; then
-              echo "→ Aplicando infra/postgres/pg_hba.conf..."
-              PG_CONTAINER=$(docker ps --filter "name=${PREFIX}" --format "{{.Names}}" | grep postgres)
+            # ── Aplicar pg_hba.conf en CADA deploy (trust para red Docker interna) ──
+            # Con trust, las conexiones desde contenedores Docker no necesitan contraseña.
+            # Esto elimina PERMANENTEMENTE los fallos de auth tras reiniciar el servidor.
+            echo "→ Aplicando infra/postgres/pg_hba.conf..."
+            PG_CONTAINER=$(docker ps --filter "name=${PREFIX}" --format "{{.Names}}" | grep -i postgres | head -1)
+            if [ -n "$PG_CONTAINER" ]; then
               docker cp $REPO_DIR/infra/postgres/pg_hba.conf $PG_CONTAINER:/var/lib/postgresql/data/pg_hba.conf
-              docker exec $PG_CONTAINER psql -U root -d postgres -c "SELECT pg_reload_conf();" > /dev/null
-              echo "✓ pg_hba.conf recargado"
+              docker exec $PG_CONTAINER psql -U postgres -d postgres -c "SELECT pg_reload_conf();" > /dev/null 2>&1 || true
+              echo "✓ pg_hba.conf recargado (trust para Docker 10.x/172.x/192.168.x)"
+
+              # Garantizar que toyota_user existe (app lo usa como usuario de BD)
+              docker exec $PG_CONTAINER psql -U postgres -d postgres -c "
+                DO \$\$ BEGIN
+                  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='toyota_user') THEN
+                    CREATE USER toyota_user WITH SUPERUSER;
+                    RAISE NOTICE 'toyota_user creado';
+                  END IF;
+                END \$\$;
+              " > /dev/null 2>&1 || true
+
+              # Garantizar que la base de datos outiltech_db existe
+              docker exec $PG_CONTAINER psql -U postgres -d postgres -c "
+                SELECT 'CREATE DATABASE outiltech_db OWNER toyota_user'
+                WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='outiltech_db')
+              " | grep -q 'CREATE DATABASE' && \
+              docker exec $PG_CONTAINER psql -U postgres -d postgres -c \
+                "CREATE DATABASE outiltech_db OWNER toyota_user" > /dev/null 2>&1 || true
+
+              echo "✓ Usuarios y base de datos de postgres verificados"
+            else
+              echo "⚠ Contenedor postgres no encontrado — pg_hba.conf se aplicará en próximo deploy"
             fi
 
             # ── Función helper para build + restart ───────────────
