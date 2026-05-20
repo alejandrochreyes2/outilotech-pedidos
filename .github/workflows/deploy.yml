@@ -113,6 +113,14 @@ jobs:
               docker exec $PG_CONTAINER psql -U postgres -d postgres -c "SELECT pg_reload_conf();" > /dev/null 2>&1 || true
               echo "✓ pg_hba.conf recargado (trust para Docker 10.x/172.x/192.168.x)"
 
+              # Sincronizar la contrasena real de postgres con el Secret de GitHub
+              # (POSTGRES_PASSWORD en .env solo aplica en inicializacion, no en reinicio)
+              if [ -n "$PG_PASS" ]; then
+                docker exec $PG_CONTAINER psql -U postgres -d postgres -c \
+                  "ALTER USER postgres WITH PASSWORD '${PG_PASS}';" > /dev/null 2>&1 || true
+                echo "✓ ALTER USER postgres WITH PASSWORD actualizado"
+              fi
+
               # Garantizar que toyota_user existe (app lo usa como usuario de BD)
               docker exec $PG_CONTAINER psql -U postgres -d postgres -c "
                 DO \$\$ BEGIN
