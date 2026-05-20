@@ -131,6 +131,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   fotosPendientesCnt = signal(0);
   mostrarFotos     = signal(false);
   imagenSeleccionada = signal<{id:number; imagen:string; mimeType:string; referencia:string; notas:string} | null>(null);
+  zoomFoto         = signal(1);   // 1 = tamaño original
   analizandoFotos  = signal(false);
   resultadosAnalisis = signal<any[]>([]);
   mostrarResultadosAnalisis = signal(false);
@@ -491,10 +492,13 @@ export class FacturacionComponent implements OnInit, OnDestroy {
 
   verFoto(item: any) {
     this.svc.obtenerImagenInventario(item.id).subscribe({
-      next: r => this.imagenSeleccionada.set({
-        id: item.id, imagen: r.imagen, mimeType: r.mimeType,
-        referencia: item.referencia, notas: item.notas
-      }),
+      next: r => {
+        this.zoomFoto.set(1);
+        this.imagenSeleccionada.set({
+          id: item.id, imagen: r.imagen, mimeType: r.mimeType,
+          referencia: item.referencia, notas: item.notas
+        });
+      },
       error: () => {}
     });
   }

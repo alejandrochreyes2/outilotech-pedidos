@@ -465,8 +465,20 @@
         @if (imagenSeleccionada(); as img) {
           <!-- Detalle de imagen seleccionada -->
           <div class="foto-detalle">
-            <img [src]="'data:' + img.mimeType + ';base64,' + img.imagen" alt="Foto producto"
-                 class="foto-preview-grande" />
+            <!-- Controles de zoom -->
+            <div class="foto-zoom-bar">
+              <button class="btn-zoom" title="Alejar" (click)="zoomFoto.update(z => z > 0.5 ? +(z - 0.25).toFixed(2) : z)">−</button>
+              <span class="zoom-label">{{ (zoomFoto() * 100).toFixed(0) }}%</span>
+              <button class="btn-zoom" title="Acercar" (click)="zoomFoto.update(z => z < 4 ? +(z + 0.25).toFixed(2) : z)">+</button>
+              <button class="btn-zoom-reset" title="Tamaño original" (click)="zoomFoto.set(1)">⊙</button>
+            </div>
+            <!-- Contenedor con scroll cuando el zoom es grande -->
+            <div class="foto-zoom-wrap">
+              <img [src]="'data:' + img.mimeType + ';base64,' + img.imagen" alt="Foto producto"
+                   class="foto-preview-grande"
+                   [style.transform]="'scale(' + zoomFoto() + ')'"
+                   [style.transformOrigin]="'top left'" />
+            </div>
             <div class="foto-info">
               <p class="foto-ref"><strong>Referencia:</strong> {{ img.referencia || '(sin referencia)' }}</p>
               <p class="foto-notas"><strong>Notas:</strong> {{ img.notas || '—' }}</p>
