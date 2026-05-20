@@ -156,14 +156,56 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   npGuardando   = signal(false);
   npFotoId      = signal<number | null>(null); // ID de la foto que originó este modal
 
+  // ── Drag del botón JhonIA ─────────────────────────────
+  jhonPos = signal<{top:number; left:number} | null>(null); // null = posición CSS por defecto
+  private _jhonDragging = false;
+  private _jhonDragOffX = 0;
+  private _jhonDragOffY = 0;
+  private _jhonMoved    = false;
+  private _jhonMouseMove = (e: MouseEvent | TouchEvent) => {
+    if (!this._jhonDragging) return;
+    const cx = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
+    const cy = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
+    const top  = Math.max(0, Math.min(window.innerHeight - 48, cy - this._jhonDragOffY));
+    const left = Math.max(0, Math.min(window.innerWidth  - 96, cx - this._jhonDragOffX));
+    this.jhonPos.set({ top, left });
+    this._jhonMoved = true;
+  };
+  private _jhonMouseUp = () => { this._jhonDragging = false; };
+
+  startDragJhon(e: MouseEvent | TouchEvent) {
+    const el = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const cx = e instanceof MouseEvent ? e.clientX : (e as TouchEvent).touches[0].clientX;
+    const cy = e instanceof MouseEvent ? e.clientY : (e as TouchEvent).touches[0].clientY;
+    this._jhonDragOffX = cx - el.left;
+    this._jhonDragOffY = cy - el.top;
+    this._jhonDragging = true;
+    this._jhonMoved    = false;
+    e.preventDefault();
+  }
+
+  clickJhon() {
+    // Solo abre/cierra si no hubo movimiento real
+    if (!this._jhonMoved) this.toggleJhon();
+    this._jhonMoved = false;
+  }
+
   ngOnInit() {
     this.cargarSiguienteNumero();
     this.cargarFotosPendientes();
+    window.addEventListener('mousemove', this._jhonMouseMove as EventListener);
+    window.addEventListener('touchmove', this._jhonMouseMove as EventListener, { passive: false });
+    window.addEventListener('mouseup',   this._jhonMouseUp);
+    window.addEventListener('touchend',  this._jhonMouseUp);
   }
 
   ngOnDestroy() {
     this.detenerScanner();
     this.limpiarSesionMovil();
+    window.removeEventListener('mousemove', this._jhonMouseMove as EventListener);
+    window.removeEventListener('touchmove', this._jhonMouseMove as EventListener);
+    window.removeEventListener('mouseup',   this._jhonMouseUp);
+    window.removeEventListener('touchend',  this._jhonMouseUp);
   }
 
   // ── Número de factura ──────────────────────────────────

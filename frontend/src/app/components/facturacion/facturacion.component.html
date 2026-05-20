@@ -19,14 +19,27 @@
     </div>
   </div>
 
-  <!-- ── BOTÓN JHONIA ───────────────────────────────────────── -->
-  <button class="btn-jhon-toggle" (click)="toggleJhon()" [class.active]="jhonPanelAbierto()">
+  <!-- ── BOTÓN JHONIA (arrastrable) ────────────────────────── -->
+  <button class="btn-jhon-toggle"
+          [class.active]="jhonPanelAbierto()"
+          [class.jhon-dragging]="_jhonDragging"
+          [style.top]="jhonPos() ? jhonPos()!.top + 'px' : null"
+          [style.left]="jhonPos() ? jhonPos()!.left + 'px' : null"
+          [style.bottom]="jhonPos() ? 'auto' : null"
+          [style.right]="jhonPos() ? 'auto' : null"
+          (mousedown)="startDragJhon($event)"
+          (touchstart)="startDragJhon($event)"
+          (click)="clickJhon()">
     🤖 JhonIA {{ jhonPanelAbierto() ? '▼' : '▲' }}
   </button>
 
-  <!-- ── PANEL JHONIA ──────────────────────────────────────── -->
+  <!-- ── PANEL JHONIA (sigue al botón) ─────────────────────── -->
   @if (jhonPanelAbierto()) {
-    <div class="jhon-panel">
+    <div class="jhon-panel"
+         [style.top]="jhonPos() ? (jhonPos()!.top - 390 < 0 ? jhonPos()!.top + 52 + 'px' : jhonPos()!.top - 390 + 'px') : null"
+         [style.left]="jhonPos() ? jhonPos()!.left + 'px' : null"
+         [style.bottom]="jhonPos() ? 'auto' : null"
+         [style.right]="jhonPos() ? 'auto' : null">
       <div class="jhon-chat" id="jhon-chat">
         @for (m of jhonMensajes(); track $index) {
           <div class="jhon-msg" [class.jhon-msg-user]="m.rol === 'user'" [class.jhon-msg-bot]="m.rol === 'jhon'">

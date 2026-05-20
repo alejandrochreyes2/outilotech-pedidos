@@ -654,7 +654,7 @@
   font-size: 0.85rem;
 }
 
-/* ── Botón JhonIA toggle ─────────────────────────────── */
+/* ── Botón JhonIA toggle (arrastrable) ──────────────── */
 .btn-jhon-toggle {
   position: fixed;
   bottom: 1rem;
@@ -662,6 +662,9 @@
   background: #1a1a2e;
   color: #a0d0ff;
   border: 1.5px solid #0066cc;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
   border-radius: 20px;
   padding: 0.45rem 1rem;
   font-size: 0.82rem;
@@ -672,6 +675,7 @@
   box-shadow: 0 2px 12px rgba(0,102,204,0.4);
 }
 .btn-jhon-toggle:hover, .btn-jhon-toggle.active { background: #0066cc; color: #fff; }
+.btn-jhon-toggle.jhon-dragging { cursor: grabbing; box-shadow: 0 6px 24px rgba(0,102,204,0.7); }
 
 /* ── Panel JhonIA ────────────────────────────────────── */
 .jhon-panel {
