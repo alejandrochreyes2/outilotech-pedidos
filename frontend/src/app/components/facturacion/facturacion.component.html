@@ -22,7 +22,7 @@
   <!-- ── BOTÓN JHONIA (arrastrable) ────────────────────────── -->
   <button class="btn-jhon-toggle"
           [class.active]="jhonPanelAbierto()"
-          [class.jhon-dragging]="_jhonDragging"
+          [class.jhon-dragging]="jhonDragging()"
           [style.top]="jhonPos() ? jhonPos()!.top + 'px' : null"
           [style.left]="jhonPos() ? jhonPos()!.left + 'px' : null"
           [style.bottom]="jhonPos() ? 'auto' : null"
