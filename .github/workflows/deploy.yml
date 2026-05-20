@@ -69,11 +69,12 @@ jobs:
           BUILD_FRONTEND:  ${{ steps.changes.outputs.frontend }}
           APPLY_INFRA:     ${{ steps.changes.outputs.infra }}
           GMAIL_APP_PASS:  ${{ secrets.GMAIL_APP_PASSWORD }}
+          PG_PASS:         ${{ secrets.POSTGRES_PASSWORD }}
         with:
           host:    ${{ env.SERVER }}
           username: root
           key:     ${{ secrets.SSH_DEPLOY_KEY }}
-          envs:    COMMIT,BUILD_PEDIDOS,BUILD_USUARIOS,BUILD_PAGOS,BUILD_GATEWAY,BUILD_FRONTEND,APPLY_INFRA,GMAIL_APP_PASS
+          envs:    COMMIT,BUILD_PEDIDOS,BUILD_USUARIOS,BUILD_PAGOS,BUILD_GATEWAY,BUILD_FRONTEND,APPLY_INFRA,GMAIL_APP_PASS,PG_PASS
           command_timeout: 18m
           script: |
             set -e
@@ -81,11 +82,16 @@ jobs:
             COMPOSE_DIR=/data/coolify/applications/g12weuw6n4h1cag21oo53sd1
             PREFIX=g12weuw6n4h1cag21oo53sd1
 
-            # ── Credenciales email (se aplica siempre al .env) ───
+            # ── Credenciales email y DB (se aplica siempre al .env) ─
             if [ -n "$GMAIL_APP_PASS" ]; then
               sed -i "s|Email__User=.*|Email__User=jhonatanhtech@gmail.com|" $COMPOSE_DIR/.env
               sed -i "s|Email__Password=.*|Email__Password=${GMAIL_APP_PASS}|" $COMPOSE_DIR/.env
               echo "✓ Email credentials configured"
+            fi
+            if [ -n "$PG_PASS" ]; then
+              sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${PG_PASS}|" $COMPOSE_DIR/.env
+              sed -i "s|Password=[^;]*|Password=${PG_PASS}|g" $COMPOSE_DIR/.env
+              echo "✓ DB password configured"
             fi
 
             # ── Clonar o actualizar código ────────────────────────
