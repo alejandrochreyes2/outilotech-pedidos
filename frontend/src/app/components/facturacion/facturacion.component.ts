@@ -4,6 +4,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
+import { Router } from '@angular/router';
 import {
   FacturacionService, ProductoPOS, ItemFactura
 } from '../../services/facturacion.service';
@@ -20,8 +21,9 @@ import QRCode from 'qrcode';
   styleUrls: ['./facturacion.component.css']
 })
 export class FacturacionComponent implements OnInit, OnDestroy {
-  private svc    = inject(FacturacionService);
+  private svc     = inject(FacturacionService);
   private jhonSvc = inject(JhonIaService);
+  private router  = inject(Router);
   auth            = inject(AuthService);
 
   @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
@@ -380,12 +382,21 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   abrirScanner() {
     this.ocrTextoExtraido.set('');
     this.ocrResultados.set([]);
-    this.mostrarScanner.set(true);
-    // En móvil ir directo a la cámara del dispositivo (no mostrar opciones)
+    // En móvil navegar al flujo de foto de producto (mobile-scanner)
     if (window.innerWidth <= 768) {
-      this.modoScanner.set('camara');
-      setTimeout(() => this.iniciarCamaraLocal(), 300);
+      // Pasar el JWT al mobile-scanner para saltar el login
+      const jwt  = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('currentUser') ?? '{}');
+      if (jwt) {
+        sessionStorage.setItem('scanner_jwt',    jwt);
+        sessionStorage.setItem('scanner_nombre', user?.name ?? user?.email ?? '');
+      }
+      this.svc.crearSesionScanner().subscribe({
+        next: r => this.router.navigate(['/scanner', r.token]),
+        error: () => this.mostrarError('No se pudo iniciar el escáner. Intente de nuevo.')
+      });
     } else {
+      this.mostrarScanner.set(true);
       this.modoScanner.set('opciones');
     }
   }
