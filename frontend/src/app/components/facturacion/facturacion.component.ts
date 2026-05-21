@@ -378,10 +378,16 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   // ══════════════════════════════════════════════════════════
 
   abrirScanner() {
-    this.modoScanner.set('opciones');
     this.ocrTextoExtraido.set('');
     this.ocrResultados.set([]);
     this.mostrarScanner.set(true);
+    // En móvil ir directo a la cámara del dispositivo (no mostrar opciones)
+    if (window.innerWidth <= 768) {
+      this.modoScanner.set('camara');
+      setTimeout(() => this.iniciarCamaraLocal(), 300);
+    } else {
+      this.modoScanner.set('opciones');
+    }
   }
 
   cerrarScanner() {
