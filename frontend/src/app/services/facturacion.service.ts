@@ -174,6 +174,16 @@ export class FacturacionService {
     return this.http.patch(`${this.api}/api/scan/inventario-por-imagen/${id}/revisar`, {}, this.headers);
   }
 
+  agregarVentaPendiente(descripcion: string, precio: number, cantidad: number) {
+    return this.http.post(`${this.api}/api/facturacion/venta-pendiente`, { descripcion, precio, cantidad }, this.headers);
+  }
+
+  obtenerVentasPendientes() {
+    return this.http.get<{ descripcion: string; precio: number; cantidad: number }[]>(
+      `${this.api}/api/facturacion/venta-pendiente`, this.headers
+    );
+  }
+
   actualizarImagenInventario(id: number, referencia: string, notas: string) {
     return this.http.patch(
       `${this.api}/api/scan/inventario-por-imagen/${id}`,

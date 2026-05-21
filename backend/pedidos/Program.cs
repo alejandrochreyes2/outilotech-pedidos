@@ -400,11 +400,19 @@ using (var scope = app.Services.CreateScope())
               revisado      BOOLEAN DEFAULT FALSE
             );
             CREATE INDEX IF NOT EXISTS idx_inv_imagen_revisado ON inventario_por_imagen(revisado, fecha DESC);
+            CREATE TABLE IF NOT EXISTS ventas_pendientes (
+              id          SERIAL PRIMARY KEY,
+              cajera      VARCHAR(200) NOT NULL,
+              descripcion TEXT NOT NULL,
+              precio      DECIMAL(12,2) DEFAULT 0,
+              cantidad    INTEGER DEFAULT 1,
+              creado_en   TIMESTAMPTZ DEFAULT NOW()
+            );
         ";
         cmd4.ExecuteNonQuery();
 
         conn.Close();
-        Console.WriteLine("[DB] Tablas inventario_productos, conversaciones, JhonIA e inventario_por_imagen verificadas/creadas.");
+        Console.WriteLine("[DB] Tablas inventario_productos, conversaciones, JhonIA, inventario_por_imagen y ventas_pendientes verificadas/creadas.");
     }
     catch (Exception ex)
     {
@@ -3885,6 +3893,52 @@ app.MapGet("/facturacion/{id:int}", async (int id) =>
             subtotal = rI.GetDecimal(5), fuente = rI.GetString(6)
         });
     return Results.Ok(new { factura, items });
+}).RequireAuthorization();
+
+// ============================================================
+// VENTAS PENDIENTES — SINCRONIZACIÓN CELULAR ↔ PC
+// POST /facturacion/venta-pendiente   — guarda producto desde celular
+// GET  /facturacion/venta-pendiente   — recoge y borra pendientes (PC)
+// ============================================================
+app.MapPost("/facturacion/venta-pendiente", async (HttpContext ctx) =>
+{
+    var user   = ctx.User.Identity?.Name ?? ctx.User.Claims.FirstOrDefault(c => c.Type == "fullName")?.Value
+                 ?? ctx.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Name)?.Value
+                 ?? "cajera";
+    JsonElement body = default;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); } catch { }
+    var descripcion = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("descripcion", out var d) ? d.GetString() ?? "" : "";
+    var precio      = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("precio",      out var p) ? (p.TryGetDecimal(out var pv) ? pv : 0m) : 0m;
+    var cantidad    = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("cantidad",    out var q) ? (q.TryGetInt32(out var qv)  ? qv : 1)  : 1;
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    await using var cmd = new NpgsqlCommand(
+        "INSERT INTO ventas_pendientes (cajera, descripcion, precio, cantidad) VALUES (@c, @d, @p, @q)", conn);
+    cmd.Parameters.AddWithValue("@c", user);
+    cmd.Parameters.AddWithValue("@d", descripcion);
+    cmd.Parameters.AddWithValue("@p", precio);
+    cmd.Parameters.AddWithValue("@q", cantidad);
+    await cmd.ExecuteNonQueryAsync();
+    return Results.Ok(new { ok = true });
+}).RequireAuthorization();
+
+app.MapGet("/facturacion/venta-pendiente", async (HttpContext ctx) =>
+{
+    var user = ctx.User.Identity?.Name ?? ctx.User.Claims.FirstOrDefault(c => c.Type == "fullName")?.Value
+               ?? ctx.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Name)?.Value
+               ?? "cajera";
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    await using var cmd = new NpgsqlCommand(
+        "DELETE FROM ventas_pendientes WHERE cajera = @c RETURNING descripcion, precio, cantidad", conn);
+    cmd.Parameters.AddWithValue("@c", user);
+    await using var r = await cmd.ExecuteReaderAsync();
+    var items = new System.Collections.Generic.List<object>();
+    while (await r.ReadAsync())
+        items.Add(new { descripcion = r.GetString(0), precio = r.GetDecimal(1), cantidad = r.GetInt32(2) });
+    return Results.Ok(items);
 }).RequireAuthorization();
 
 // ============================================================

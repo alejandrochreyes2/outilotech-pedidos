@@ -276,6 +276,9 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
     if (this.fotoCantidad().trim()) partes.push(`Cantidad: ${this.fotoCantidad().trim()}`);
     if (this.fotoPrecio().trim())   partes.push(`Precio: ${this.fotoPrecio().trim()}`);
 
+    const headers = { Authorization: `Bearer ${this.jwtToken}` };
+
+    // 1. Guardar foto en inventario_por_imagen
     this.http.post(
       `${environment.apiUrl}/api/scan/session/${this.token}/foto`,
       {
@@ -288,9 +291,16 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
         imagen:          this._fotoBase64,
         mimeType:        this.fotoMimeType(),
       },
-      { headers: { Authorization: `Bearer ${this.jwtToken}` } }
+      { headers }
     ).subscribe({
       next: () => {
+        // 2. Publicar en BD para que PC lo recoja por polling
+        this.http.post(
+          `${environment.apiUrl}/api/facturacion/venta-pendiente`,
+          { descripcion: this.fotoReferencia().trim() || 'Producto sin referencia', precio, cantidad },
+          { headers }
+        ).subscribe({ error: () => {} });
+
         this.fotoEnviando.set(false);
         this.router.navigate(['/facturacion']);
       },

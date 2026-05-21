@@ -202,10 +202,42 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     this._jhonMoved = false;
   }
 
+  private ventaPendienteInterval: any;
+
   ngOnInit() {
     this.cargarSiguienteNumero();
     this.cargarFotosPendientes();
     this.cargarProductoDesdeScanner();
+    this.iniciarPollingVentasPendientes();
+  }
+
+  private iniciarPollingVentasPendientes() {
+    this.ventaPendienteInterval = setInterval(() => {
+      this.svc.obtenerVentasPendientes().subscribe({
+        next: (productos) => {
+          if (!productos?.length) return;
+          productos.forEach(prod => {
+            const precio   = prod.precio ?? 0;
+            const cantidad = prod.cantidad ?? 1;
+            this.items.update(current => [
+              ...current,
+              {
+                codigo:      `IMG-${Date.now()}`,
+                descripcion: prod.descripcion || 'Producto sin referencia',
+                precio,
+                cantidad,
+                subtotal:    precio * cantidad,
+                fuente:      'stock' as const
+              }
+            ]);
+          });
+          if (window.innerWidth <= 768) this.vistaMovil.set('factura');
+          this.mensajeExito.set(`📱 ${productos.length} producto(s) agregado(s) desde el celular`);
+          setTimeout(() => this.mensajeExito.set(''), 4000);
+        },
+        error: () => {}
+      });
+    }, 3000);
   }
 
   private cargarProductoDesdeScanner() {
@@ -236,6 +268,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.detenerScanner();
     this.limpiarSesionMovil();
+    clearInterval(this.ventaPendienteInterval);
   }
 
   // ── Número de factura ──────────────────────────────────
