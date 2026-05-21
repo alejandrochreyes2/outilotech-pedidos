@@ -518,10 +518,17 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   guardarEditFotoPin() {
     const fp = this.fotoPin();
     if (!fp) return;
-    const nuevaRef = this.fpRefEdit().trim();
-    this.fotoPin.set({ ...fp, referencia: nuevaRef, notas: this.fpNotasEdit().trim() });
+    const nuevaRef   = this.fpRefEdit().trim();
+    const nuevasNotas = this.fpNotasEdit().trim();
+    this.fotoPin.set({ ...fp, referencia: nuevaRef, notas: nuevasNotas });
     if (nuevaRef) this.npDescripcion.set(nuevaRef);
     this.editandoFotoPin.set(false);
+    // Persistir en BD si tenemos el id de la foto
+    const fotoId = this.npFotoId();
+    if (fotoId) {
+      this.svc.actualizarImagenInventario(fotoId, nuevaRef, nuevasNotas)
+        .subscribe({ error: () => {} });
+    }
   }
 
   // ── Analizar fotos sin referencia con Claude Vision ──

@@ -2901,6 +2901,24 @@ app.MapPatch("/scan/inventario-por-imagen/{id}/revisar", async (int id) => {
     return Results.Ok(new { ok = true });
 }).RequireAuthorization();
 
+// PATCH /scan/inventario-por-imagen/{id} — actualizar referencia y notas (requiere auth)
+app.MapPatch("/scan/inventario-por-imagen/{id:int}", async (int id, HttpContext ctx) => {
+    JsonElement body = default;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); } catch { }
+    var referencia = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("referencia", out var r) ? r.GetString() : null;
+    var notas      = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("notas",      out var n) ? n.GetString() : null;
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    await using var cmd = new NpgsqlCommand(
+        "UPDATE inventario_por_imagen SET referencia = @ref, notas = @notas WHERE id = @id", conn);
+    cmd.Parameters.AddWithValue("@ref",   (object?)referencia ?? DBNull.Value);
+    cmd.Parameters.AddWithValue("@notas", (object?)notas      ?? DBNull.Value);
+    cmd.Parameters.AddWithValue("@id",    id);
+    await cmd.ExecuteNonQueryAsync();
+    return Results.Ok(new { ok = true });
+}).RequireAuthorization();
+
 // ============================================================
 // SCAN — ANALIZAR IMÁGENES SIN REFERENCIA (JHONIA MULTI-NIVEL)
 // POST /scan/inventario-por-imagen/analizar-sin-referencia

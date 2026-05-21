@@ -174,6 +174,14 @@ export class FacturacionService {
     return this.http.patch(`${this.api}/api/scan/inventario-por-imagen/${id}/revisar`, {}, this.headers);
   }
 
+  actualizarImagenInventario(id: number, referencia: string, notas: string) {
+    return this.http.patch(
+      `${this.api}/api/scan/inventario-por-imagen/${id}`,
+      { referencia, notas },
+      this.headers
+    );
+  }
+
   analizarFotosSinReferencia() {
     return this.http.post<{
       analizadas: number;
