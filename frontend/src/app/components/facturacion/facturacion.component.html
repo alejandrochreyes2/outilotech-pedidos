@@ -568,8 +568,29 @@
                    [style.transform]="'scale(' + zoomFotoPin() + ')'"
                    [style.transformOrigin]="'top left'" />
             </div>
-            <p class="np-foto-ref">{{ fp.referencia || '(sin referencia)' }}</p>
-            <p class="np-foto-notas-pin">{{ fp.notas || '' }}</p>
+            @if (!editandoFotoPin()) {
+              <p class="np-foto-ref">{{ fp.referencia || '(sin referencia)' }}</p>
+              <p class="np-foto-notas-pin">{{ fp.notas || '' }}</p>
+              <button class="btn-edit-foto-pin" (click)="iniciarEditFotoPin()">✏️ Editar</button>
+            } @else {
+              <div class="foto-pin-edit">
+                <label class="foto-pin-edit-label">Descripción / Referencia</label>
+                <input class="foto-pin-edit-input"
+                       [ngModel]="fpRefEdit()"
+                       (ngModelChange)="fpRefEdit.set($event)"
+                       placeholder="Descripción del producto">
+                <label class="foto-pin-edit-label">Notas (Marca, Color, etc.)</label>
+                <textarea class="foto-pin-edit-input foto-pin-edit-textarea"
+                          [ngModel]="fpNotasEdit()"
+                          (ngModelChange)="fpNotasEdit.set($event)"
+                          placeholder="Marca: X | Color: Y | Cantidad: Z"
+                          rows="3"></textarea>
+                <div class="foto-pin-edit-actions">
+                  <button class="btn-save-foto-pin" (click)="guardarEditFotoPin()">✅ Guardar</button>
+                  <button class="btn-cancel-foto-pin" (click)="editandoFotoPin.set(false)">✕ Cancelar</button>
+                </div>
+              </div>
+            }
           </div>
         }
 

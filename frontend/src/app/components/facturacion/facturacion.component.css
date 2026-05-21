@@ -1202,6 +1202,56 @@
   color: #888;
   line-height: 1.3;
 }
+.btn-edit-foto-pin {
+  margin-top: 8px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  background: #2a2a2a;
+  color: #ccc;
+  border: 1px solid #444;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-edit-foto-pin:hover { background: #383838; color: #fff; }
+.foto-pin-edit { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.foto-pin-edit-label { font-size: 0.72rem; color: #aaa; margin: 0; }
+.foto-pin-edit-input {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 0.78rem;
+  background: #1e1e1e;
+  color: #f0f0f0;
+  border: 1px solid #555;
+  border-radius: 6px;
+  box-sizing: border-box;
+  resize: none;
+  font-family: inherit;
+}
+.foto-pin-edit-input:focus { outline: none; border-color: #cc0000; }
+.foto-pin-edit-textarea { min-height: 54px; }
+.foto-pin-edit-actions { display: flex; gap: 6px; margin-top: 4px; }
+.btn-save-foto-pin {
+  flex: 1;
+  padding: 5px 0;
+  font-size: 0.75rem;
+  background: #cc0000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-save-foto-pin:hover { background: #a80000; }
+.btn-cancel-foto-pin {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  background: #2a2a2a;
+  color: #aaa;
+  border: 1px solid #444;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-cancel-foto-pin:hover { background: #383838; color: #fff; }
 /* El formulario ocupa el resto */
 .np-body { display: flex; flex-direction: column; gap: 0.8rem; padding: 0.2rem 0; flex: 1; min-width: 0; }
 .np-field { display: flex; flex-direction: column; gap: 0.3rem; }

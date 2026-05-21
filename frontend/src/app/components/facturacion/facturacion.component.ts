@@ -134,6 +134,9 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   zoomFoto         = signal(1);   // zoom en visor de lista de fotos
   fotoPin          = signal<{imagen:string; mimeType:string; referencia:string; notas:string} | null>(null); // foto fijada en modal producto
   zoomFotoPin      = signal(1);   // zoom de la foto fijada
+  editandoFotoPin  = signal(false);
+  fpRefEdit        = signal('');
+  fpNotasEdit      = signal('');
   analizandoFotos  = signal(false);
   resultadosAnalisis = signal<any[]>([]);
   mostrarResultadosAnalisis = signal(false);
@@ -497,7 +500,29 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     });
   }
 
-  cerrarNuevoProducto() { this.mostrarNuevoProducto.set(false); this.npFotoId.set(null); this.fotoPin.set(null); }
+  cerrarNuevoProducto() {
+    this.mostrarNuevoProducto.set(false);
+    this.npFotoId.set(null);
+    this.fotoPin.set(null);
+    this.editandoFotoPin.set(false);
+  }
+
+  iniciarEditFotoPin() {
+    const fp = this.fotoPin();
+    if (!fp) return;
+    this.fpRefEdit.set(fp.referencia || '');
+    this.fpNotasEdit.set(fp.notas || '');
+    this.editandoFotoPin.set(true);
+  }
+
+  guardarEditFotoPin() {
+    const fp = this.fotoPin();
+    if (!fp) return;
+    const nuevaRef = this.fpRefEdit().trim();
+    this.fotoPin.set({ ...fp, referencia: nuevaRef, notas: this.fpNotasEdit().trim() });
+    if (nuevaRef) this.npDescripcion.set(nuevaRef);
+    this.editandoFotoPin.set(false);
+  }
 
   // ── Analizar fotos sin referencia con Claude Vision ──
   analizarFotosSinReferencia() {
