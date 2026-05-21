@@ -205,6 +205,32 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.cargarSiguienteNumero();
     this.cargarFotosPendientes();
+    this.cargarProductoDesdeScanner();
+  }
+
+  private cargarProductoDesdeScanner() {
+    const raw = sessionStorage.getItem('scanner_vender');
+    if (!raw) return;
+    sessionStorage.removeItem('scanner_vender');
+    try {
+      const prod = JSON.parse(raw) as { descripcion: string; precio: number; cantidad: number };
+      const desc  = prod.descripcion || 'Producto sin referencia';
+      const precio = prod.precio ?? 0;
+      const cantidad = prod.cantidad ?? 1;
+      this.items.update(current => [
+        ...current,
+        {
+          codigo:      `IMG-${Date.now()}`,
+          descripcion: desc,
+          precio,
+          cantidad,
+          subtotal:    precio * cantidad,
+          fuente:      'stock' as const
+        }
+      ]);
+      // En móvil, ir directo a la vista de factura para ver el producto agregado
+      if (window.innerWidth <= 768) this.vistaMovil.set('factura');
+    } catch {}
   }
 
   ngOnDestroy() {

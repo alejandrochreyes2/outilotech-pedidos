@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
@@ -43,7 +43,7 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
   private mediaStream: MediaStream | null = null;
   private animFrame: number | null = null;
 
-  constructor(private route: ActivatedRoute, private http: HttpClient) {}
+  constructor(private route: ActivatedRoute, private http: HttpClient, private router: Router) {}
 
   ngOnInit() {
     this.token = this.route.snapshot.params['token'] ?? '';
@@ -249,6 +249,55 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
       error: () => {
         this.fotoEnviando.set(false);
         this.mensajeError.set('Error al enviar la foto. Intente de nuevo.');
+        this.estado.set('error');
+      }
+    });
+  }
+
+  enviarFotoYVender() {
+    if (!this._fotoBase64 || this.fotoEnviando()) return;
+    this.fotoEnviando.set(true);
+
+    // Parsear precio
+    const precioStr = this.fotoPrecio().replace(/[$\s]/g, '').replace(/\./g, '').replace(',', '.');
+    const precio    = parseFloat(precioStr) || 0;
+    const cantidad  = parseInt(this.fotoCantidad()) || 1;
+
+    // Guardar en sessionStorage para que facturacion lo agregue al abrir
+    sessionStorage.setItem('scanner_vender', JSON.stringify({
+      descripcion: this.fotoReferencia().trim() || 'Producto sin referencia',
+      precio,
+      cantidad
+    }));
+
+    const partes: string[] = [];
+    if (this.fotoMarca().trim())    partes.push(`Marca: ${this.fotoMarca().trim()}`);
+    if (this.fotoColor().trim())    partes.push(`Color: ${this.fotoColor().trim()}`);
+    if (this.fotoCantidad().trim()) partes.push(`Cantidad: ${this.fotoCantidad().trim()}`);
+    if (this.fotoPrecio().trim())   partes.push(`Precio: ${this.fotoPrecio().trim()}`);
+
+    this.http.post(
+      `${environment.apiUrl}/api/scan/session/${this.token}/foto`,
+      {
+        referencia:      this.fotoReferencia().trim(),
+        notas:           partes.join(' | '),
+        marca:           this.fotoMarca().trim(),
+        color:           this.fotoColor().trim(),
+        cantidad:        this.fotoCantidad().trim(),
+        precio_estimado: this.fotoPrecio().trim(),
+        imagen:          this._fotoBase64,
+        mimeType:        this.fotoMimeType(),
+      },
+      { headers: { Authorization: `Bearer ${this.jwtToken}` } }
+    ).subscribe({
+      next: () => {
+        this.fotoEnviando.set(false);
+        this.router.navigate(['/facturacion']);
+      },
+      error: () => {
+        this.fotoEnviando.set(false);
+        sessionStorage.removeItem('scanner_vender');
+        this.mensajeError.set('Error al guardar. Intente de nuevo.');
         this.estado.set('error');
       }
     });
