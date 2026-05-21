@@ -94,8 +94,9 @@ jobs:
             fi
             if [ -n "$PG_PASS" ]; then
               sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${PG_PASS}|" $COMPOSE_DIR/.env
-              sed -i "s|Password=[^;]*|Password=${PG_PASS}|g" $COMPOSE_DIR/.env
-              echo "✓ DB password configured"
+              # Solo reemplaza Password= en líneas de ConnectionString (contienen Host= o Database=)
+              sed -i "/Host=\|Database=/s|Password=[^;]*|Password=${PG_PASS}|g" $COMPOSE_DIR/.env
+              echo "✓ DB password configured (Email__Password protegido)"
             fi
 
             # ── Clonar o actualizar código ────────────────────────
