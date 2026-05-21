@@ -22,6 +22,7 @@ var emailPass   = builder.Configuration["Email:Password"]    ?? "";
 var emailAdmin  = builder.Configuration["Email:AdminEmail"]  ?? "alejandrochreyes2@gmail.com";
 
 Console.WriteLine($"[JWT CONFIG] Key len={jwtKey.Length} Issuer={jwtIssuer} Audience={jwtAudience}");
+Console.WriteLine($"[EMAIL CONFIG] User='{emailUser}' PassLen={emailPass.Length} (ok={emailPass.Length >= 16})");
 
 var pgConnectionString = builder.Configuration.GetConnectionString("PostgreSQL")
     ?? "Host=postgres;Port=5432;Database=outiltech_db;Username=toyota_user;Password=Toyota2026!";
@@ -903,7 +904,9 @@ async Task EnviarEmailBienvenidaChatbot(string emailDestino, string? nombre, str
 </div></body></html>";
 
 #pragma warning disable SYSLIB0006
-        using var smtp = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587) { EnableSsl = true, Credentials = new System.Net.NetworkCredential(emailUser, emailPass) };
+        using var smtp = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587) {
+            EnableSsl = true, UseDefaultCredentials = false, DeliveryMethod = System.Net.Mail.SmtpDeliveryMethod.Network,
+            Credentials = new System.Net.NetworkCredential(emailUser, emailPass) };
 #pragma warning restore SYSLIB0006
         var mail = new System.Net.Mail.MailMessage(emailUser, emailDestino, "Jhon IA registró tu consulta · Outiltech", htmlBody) { IsBodyHtml = true };
         await smtp.SendMailAsync(mail);
@@ -943,7 +946,9 @@ async Task EnviarTranscriptoEmail(string emailDestino, string? nombre, string se
 </div></body></html>";
 
 #pragma warning disable SYSLIB0006
-        using var smtp = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587) { EnableSsl = true, Credentials = new System.Net.NetworkCredential(emailUser, emailPass) };
+        using var smtp = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587) {
+            EnableSsl = true, UseDefaultCredentials = false, DeliveryMethod = System.Net.Mail.SmtpDeliveryMethod.Network,
+            Credentials = new System.Net.NetworkCredential(emailUser, emailPass) };
 #pragma warning restore SYSLIB0006
         var mail = new System.Net.Mail.MailMessage(emailUser, emailDestino, "Tu conversación con Jhon IA · Outiltech", htmlBody) { IsBodyHtml = true };
         await smtp.SendMailAsync(mail);
@@ -3989,20 +3994,31 @@ app.MapPost("/facturacion/{id:int}/enviar-email", async (int id, HttpContext ctx
 </div>
 </body></html>";
 
+    if (string.IsNullOrEmpty(emailUser) || emailPass.Length < 8)
+        return Results.Problem("Email no configurado en el servidor. Contacte al administrador.");
+
     try
     {
+#pragma warning disable SYSLIB0006
         using var smtp = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587)
         {
-            EnableSsl = true,
+            EnableSsl  = true,
+            DeliveryMethod = System.Net.Mail.SmtpDeliveryMethod.Network,
+            UseDefaultCredentials = false,
             Credentials = new System.Net.NetworkCredential(emailUser, emailPass)
         };
+#pragma warning restore SYSLIB0006
         var mail = new System.Net.Mail.MailMessage(emailUser, clienteEmail,
             $"Factura {numeroFactura} — OUTILTECH", htmlBody) { IsBodyHtml = true };
+        Console.WriteLine($"[EMAIL] Enviando factura {numeroFactura} a {clienteEmail} desde {emailUser}");
         await smtp.SendMailAsync(mail);
+        Console.WriteLine($"[EMAIL] OK — {numeroFactura} enviada a {clienteEmail}");
         return Results.Ok(new { mensaje = $"Factura enviada a {clienteEmail}" });
     }
     catch (Exception ex)
     {
+        Console.WriteLine($"[EMAIL ERROR] {ex.Message}");
+
         return Results.Problem($"Error al enviar email: {ex.Message}");
     }
 }).RequireAuthorization();
