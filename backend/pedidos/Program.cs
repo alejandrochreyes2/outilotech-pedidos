@@ -3981,8 +3981,8 @@ app.MapPost("/facturacion/{id:int}/enviar-email", async (int id, HttpContext ctx
   </div>
   <div style='padding:12px 20px;border-top:1px solid #eee;text-align:center'>
     <p style='margin:0 0 8px;font-size:11px;color:#555;font-weight:700'>Escanea para verificar tu factura</p>
-    <img src='https://api.qrserver.com/v1/create-qr-code/?data={Uri.EscapeDataString($"https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey={cufe}")}&size=120x120&format=png' alt='QR Factura' width='120' height='120' style='border:1px solid #ddd;padding:4px;border-radius:4px'>
-    <p style='margin:6px 0 0;font-size:10px;color:#999'>Consulta DIAN: catalogo-vpfe.dian.gov.co</p>
+    <img src='https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2Fwww.outiltech.co&size=120x120&format=png' alt='QR Factura' width='120' height='120' style='border:1px solid #ddd;padding:4px;border-radius:4px'>
+    <p style='margin:6px 0 0;font-size:10px;color:#999'>www.outiltech.co</p>
   </div>
   <div style='padding:12px 20px;border-top:1px solid #eee;font-size:11px;color:#555'>
     <p style='margin:0 0 4px'><strong>Condiciones de garantía:</strong></p>
