@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
-type Estado = 'login' | 'iniciando' | 'escaneando' | 'encontrado' | 'error' | 'enviado' | 'foto' | 'foto-enviada';
+type Estado = 'login' | 'iniciando' | 'escaneando' | 'encontrado' | 'error' | 'enviado' | 'foto' | 'foto-enviada' | 'vender-ok';
 
 @Component({
   selector: 'app-mobile-scanner',
@@ -43,7 +43,7 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
   private mediaStream: MediaStream | null = null;
   private animFrame: number | null = null;
 
-  constructor(private route: ActivatedRoute, private http: HttpClient, private router: Router) {}
+  constructor(private route: ActivatedRoute, private http: HttpClient, public router: Router) {}
 
   ngOnInit() {
     this.token = this.route.snapshot.params['token'] ?? '';
@@ -302,7 +302,7 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
         ).subscribe({ error: () => {} });
 
         this.fotoEnviando.set(false);
-        this.router.navigate(['/facturacion']);
+        this.estado.set('vender-ok'); // Mostrar pantalla intermedia
       },
       error: () => {
         this.fotoEnviando.set(false);
