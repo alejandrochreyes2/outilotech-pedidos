@@ -29,7 +29,8 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   @ViewChild('captureCanvas') captureCanvas!: ElementRef<HTMLCanvasElement>;
 
   // ── Estado de la pantalla ──────────────────────────────
-  pestana = signal<'pos' | 'historial'>('pos');
+  pestana    = signal<'pos' | 'historial'>('pos');
+  vistaMovil = signal<'catalogo' | 'factura'>('catalogo');
 
   // ── Búsqueda ───────────────────────────────────────────
   searchQuery = signal('');
@@ -276,6 +277,8 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     } else {
       this.items.set([...actuales, { codigo: p.codigo, descripcion: p.descripcion, cantidad: 1, precio: p.precio, fuente: p.fuente, subtotal: p.precio }]);
     }
+    // En móvil, al agregar un producto ir directo a la factura
+    if (window.innerWidth <= 768) this.vistaMovil.set('factura');
   }
 
   cambiarCantidad(idx: number, delta: number) {

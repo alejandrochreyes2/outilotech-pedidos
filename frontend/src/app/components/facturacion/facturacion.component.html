@@ -76,7 +76,7 @@
     <div class="pos-body">
 
       <!-- ── COLUMNA IZQUIERDA: Catálogo ───────────────── -->
-      <div class="col-catalogo">
+      <div class="col-catalogo" [class.mobile-hidden]="vistaMovil() !== 'catalogo'">
         <!-- Barra de búsqueda -->
         <div class="search-bar">
           <input
@@ -229,7 +229,7 @@
       </div>
 
       <!-- ── COLUMNA DERECHA: Factura ──────────────────── -->
-      <div class="col-factura">
+      <div class="col-factura" [class.mobile-hidden]="vistaMovil() !== 'factura'">
         <!-- Header factura -->
         <div class="factura-header">
           <div class="factura-numero">{{ numeroFactura() }}</div>
@@ -357,6 +357,19 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- ── Navegación inferior móvil ──────────────────────── -->
+    <div class="mobile-nav">
+      <button class="mobile-nav-btn" [class.active]="vistaMovil() === 'catalogo'" (click)="vistaMovil.set('catalogo')">
+        🔍 Buscar
+      </button>
+      <button class="mobile-nav-btn factura-btn" [class.active]="vistaMovil() === 'factura'" (click)="vistaMovil.set('factura')">
+        🧾 Factura
+        @if (items().length > 0) {
+          <span class="mobile-nav-badge">{{ items().length }}</span>
+        }
+      </button>
     </div>
   }
 

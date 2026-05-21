@@ -1419,4 +1419,139 @@
 .res-precio-antes { color: #ef4444; text-decoration: line-through; }
 .res-arrow { color: #64748b; }
 .res-precio-nuevo { color: #4ade80; font-weight: 700; }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE MÓVIL  (≤ 768 px)
+══════════════════════════════════════════════════════════ */
+
+/* ── Barra de navegación inferior (solo móvil) ─────────── */
+.mobile-nav {
+  display: none; /* oculta en desktop */
+}
+
+@media (max-width: 768px) {
+
+  /* Wrapper: dejar espacio para la nav bar inferior */
+  .pos-wrapper { padding-bottom: 56px; }
+
+  /* ── Header más compacto ─────────────────────────────── */
+  .pos-header { padding: 0.4rem 0.7rem; gap: 0.4rem; }
+  .pos-icon { font-size: 1.2rem; }
+  .pos-header h1 { font-size: 0.95rem; }
+  .pos-subtitle { font-size: 0.65rem; }
+  .tab-btn { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
+
+  /* ── Cuerpo POS: columnas apiladas ──────────────────── */
+  .pos-body { flex-direction: column; position: relative; }
+  .col-catalogo,
+  .col-factura { flex: 1; width: 100%; border-right: none; overflow-y: auto; }
+
+  /* Ocultar columna no activa en móvil */
+  .mobile-hidden { display: none !important; }
+
+  /* ── Barra de búsqueda ────────────────────────────────── */
+  .search-bar { flex-wrap: wrap; gap: 0.4rem; padding: 0.5rem; }
+  .search-input { width: 100%; flex: unset; font-size: 0.85rem; }
+  .btn-scanner { flex: 1; font-size: 0.78rem; padding: 0.45rem 0.5rem; }
+  .btn-fotos   { flex: 1; font-size: 0.78rem; padding: 0.45rem 0.5rem; }
+  .btn-jhonia  { flex: 1; font-size: 0.78rem; padding: 0.45rem 0.5rem; }
+
+  /* ── Tabs catálogo ────────────────────────────────────── */
+  .cat-tab { font-size: 0.72rem; padding: 0.4rem 0.2rem; }
+
+  /* ── Tabla de productos: ocultar columna Código ────────── */
+  .tabla-productos .col-codigo { display: none; }
+  .tabla-productos th:first-child { display: none; }
+  .tabla-productos td:first-child { display: none; }
+
+  /* ── Columna factura ─────────────────────────────────── */
+  .col-factura { background: #1e1e1e; }
+  .factura-header { padding: 0.5rem 0.8rem; }
+  .factura-numero { font-size: 1rem; }
+  .cliente-section { gap: 0.35rem; padding: 0.5rem 0.7rem; }
+  .inp-cliente { font-size: 0.85rem; padding: 0.4rem 0.6rem; }
+
+  /* ── Tabla ítems: columnas ajustadas ─────────────────── */
+  .tabla-items th, .tabla-items td { font-size: 0.78rem; padding: 0.3rem 0.2rem; }
+  .item-desc { max-width: 110px; white-space: normal; word-break: break-word; font-size: 0.75rem; }
+  .cant-ctrl button { width: 22px; height: 22px; font-size: 0.8rem; }
+  .cant-ctrl span { font-size: 0.8rem; min-width: 16px; }
+
+  /* ── Totales ─────────────────────────────────────────── */
+  .totales-section { padding: 0.4rem 0.7rem; }
+  .total-row { font-size: 0.88rem; }
+  .total-final { font-size: 1.1rem; }
+
+  /* ── Métodos de pago: 2×2 ─────────────────────────────── */
+  .metodos-pago { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; padding: 0.5rem 0.7rem; }
+  .btn-metodo { font-size: 0.82rem; padding: 0.55rem 0.3rem; }
+
+  /* ── Notas y botones de acción ────────────────────────── */
+  .inp-notas { margin: 0 0.7rem; font-size: 0.85rem; }
+  .acciones { padding: 0.5rem 0.7rem; gap: 0.4rem; }
+  .btn-limpiar { font-size: 0.82rem; padding: 0.5rem 0.8rem; }
+  .btn-cobrar  { font-size: 0.9rem;  padding: 0.55rem 1rem; }
+
+  /* ── Botón JhonIA flotante ────────────────────────────── */
+  .btn-jhon-toggle {
+    bottom: 64px !important; /* encima de la nav bar */
+    right: 10px  !important;
+    font-size: 0.78rem;
+    padding: 0.4rem 0.7rem;
+  }
+  .jhon-panel {
+    width: calc(100vw - 20px) !important;
+    left: 10px   !important;
+    right: 10px  !important;
+    max-width: none !important;
+  }
+
+  /* ── Historial: tabla scrollable ─────────────────────── */
+  .historial-wrapper { overflow-x: auto; }
+  .tabla-historial { font-size: 0.74rem; min-width: 520px; }
+  .historial-filtros { flex-wrap: wrap; gap: 0.4rem; }
+  .inp-filtro { font-size: 0.82rem; }
+
+  /* ── Nav inferior móvil ────────────────────────────────── */
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: #1a1a1a;
+    border-top: 1px solid #333;
+    z-index: 200;
+  }
+  .mobile-nav-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #888;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s, background 0.2s;
+  }
+  .mobile-nav-btn.active { color: #fff; background: #cc0000; }
+  .mobile-nav-badge {
+    position: absolute;
+    top: 6px;
+    right: calc(50% - 28px);
+    background: #fff;
+    color: #cc0000;
+    font-size: 0.65rem;
+    font-weight: 800;
+    border-radius: 10px;
+    padding: 1px 5px;
+    min-width: 16px;
+    text-align: center;
+  }
+}
 .res-fuente { background: #1e1b4b; color: #818cf8; border-radius: 4px; padding: 1px 6px; font-size: 0.68rem; }
