@@ -3916,15 +3916,12 @@ app.MapPost("/facturacion/{id:int}/enviar-email", async (int id, HttpContext ctx
     cmdI.Parameters.AddWithValue("fid", id);
     await using var rI = await cmdI.ExecuteReaderAsync();
     var itemsHtml = new System.Text.StringBuilder();
-    decimal baseGravable = 0; decimal ivaTotal = 0;
     while (await rI.ReadAsync())
     {
         var desc   = rI.GetString(0);
         var cant   = rI.GetInt32(1);
         var precio = rI.GetDecimal(2);
         var sub    = rI.GetDecimal(3);
-        baseGravable += Math.Round(sub / 1.19m, 2);
-        ivaTotal     += Math.Round(sub - sub / 1.19m, 2);
         itemsHtml.Append($@"<tr>
           <td style='padding:4px 8px;text-align:center;border-bottom:1px solid #eee'>{cant}</td>
           <td style='padding:4px 8px;border-bottom:1px solid #eee'>{desc}</td>
@@ -3969,8 +3966,6 @@ app.MapPost("/facturacion/{id:int}/enviar-email", async (int id, HttpContext ctx
   </div>
   <div style='padding:0 20px 16px;background:#fafafa;border-top:1px solid #eee'>
     <table style='width:100%;font-size:12px;margin-top:10px'>
-      <tr><td style='color:#666'>A Base 19%:</td><td style='text-align:right'>${baseGravable:N0}</td></tr>
-      <tr><td style='color:#666'>IVA 19%:</td><td style='text-align:right'>${ivaTotal:N0}</td></tr>
       {(descuento > 0 ? $"<tr><td style='color:#666'>Descuento:</td><td style='text-align:right'>-${descuento:N0}</td></tr>" : "")}
       <tr style='font-weight:700;font-size:14px;border-top:1px solid #ddd'>
         <td style='padding-top:6px'>TOTAL:</td>
@@ -3980,8 +3975,14 @@ app.MapPost("/facturacion/{id:int}/enviar-email", async (int id, HttpContext ctx
     <p style='margin:10px 0 0;font-size:12px;color:#666'>Forma de pago: Contado — Medio: {metodoPago}</p>
   </div>
   <div style='padding:12px 20px;background:#fff7f7;border-top:1px solid #eee;font-size:11px;color:#555'>
-    <p style='margin:0 0 4px'><strong>Res. DIAN:</strong> 18v864100137808 | Vigencia: 2027-05-19</p>
-    <p style='margin:0;font-size:10px;color:#999'>CUFE: {cufe.Substring(0, 60)}...</p>
+    <p style='margin:0 0 4px'><strong>Res. DIAN No.:</strong> 18764100137808 del 2024-05-19</p>
+    <p style='margin:0 0 2px'>Rango autorizado: del 1 al 5000 | Vigencia: 2027-05-19</p>
+    <p style='margin:6px 0 2px;font-size:10px;color:#777;word-break:break-all'><strong>CUFE:</strong> {cufe}</p>
+  </div>
+  <div style='padding:12px 20px;border-top:1px solid #eee;text-align:center'>
+    <p style='margin:0 0 8px;font-size:11px;color:#555;font-weight:700'>Escanea para verificar tu factura</p>
+    <img src='https://api.qrserver.com/v1/create-qr-code/?data={Uri.EscapeDataString($"https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey={cufe}")}&size=120x120&format=png' alt='QR Factura' width='120' height='120' style='border:1px solid #ddd;padding:4px;border-radius:4px'>
+    <p style='margin:6px 0 0;font-size:10px;color:#999'>Consulta DIAN: catalogo-vpfe.dian.gov.co</p>
   </div>
   <div style='padding:12px 20px;border-top:1px solid #eee;font-size:11px;color:#555'>
     <p style='margin:0 0 4px'><strong>Condiciones de garantía:</strong></p>
