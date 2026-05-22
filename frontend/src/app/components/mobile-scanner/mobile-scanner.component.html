@@ -171,6 +171,54 @@
     </div>
   }
 
+  <!-- ANALIZANDO — IA buscando el producto -->
+  @if (estado() === 'analizando') {
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;text-align:center">
+      <img [src]="fotoDataUrl()" alt="Foto" style="width:180px;border-radius:12px;border:2px solid #cc0000;opacity:0.7"/>
+      <div style="width:44px;height:44px;border:4px solid #333;border-top-color:#cc0000;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+      <h3 style="color:#ccc;margin:0;font-size:17px">🤖 Analizando con IA...</h3>
+      <p style="color:#666;font-size:12px;margin:0">Buscando el producto en el inventario</p>
+    </div>
+  }
+
+  <!-- FOTO-MATCH — producto encontrado en la BD -->
+  @if (estado() === 'foto-match') {
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:20px 18px;gap:14px;width:100%;max-width:480px;box-sizing:border-box">
+      <img [src]="fotoDataUrl()" alt="Foto" style="width:100%;border-radius:10px;border:2px solid #4ade80;max-height:180px;object-fit:cover"/>
+      <div style="background:#002a15;border:1px solid #4ade80;border-radius:12px;padding:14px 18px;width:100%;box-sizing:border-box">
+        <p style="color:#4ade80;font-size:12px;font-weight:700;margin:0 0 6px;letter-spacing:0.5px">✅ PRODUCTO ENCONTRADO EN INVENTARIO</p>
+        <p style="color:#fff;font-size:15px;font-weight:700;margin:0 0 4px">{{ matchProducto()?.descripcion }}</p>
+        <p style="color:#86efac;font-size:13px;margin:0 0 2px">Código: <strong>{{ matchProducto()?.codigo }}</strong></p>
+        <p style="color:#86efac;font-size:13px;margin:0 0 2px">Precio: <strong>${{ matchProducto()?.precio | number:'1.0-0' }}</strong></p>
+        <p style="color:#86efac;font-size:13px;margin:0">Stock disponible: <strong>{{ matchProducto()?.stock }}</strong> und.</p>
+      </div>
+
+      <div style="width:100%;display:flex;flex-direction:column;gap:5px">
+        <label style="color:#ccc;font-size:11px;font-weight:700;letter-spacing:0.5px">CANTIDAD A VENDER</label>
+        <input type="number" min="1"
+               placeholder="1"
+               [value]="fotoCantidad()"
+               (input)="fotoCantidad.set($any($event.target).value)"
+               style="background:#1a1a1a;border:1px solid #cc0000;color:#fff;padding:11px 14px;border-radius:8px;font-size:15px;outline:none;width:100%;box-sizing:border-box"/>
+      </div>
+
+      <button (click)="confirmarMatchYVender()" [disabled]="fotoEnviando()"
+              [style.opacity]="fotoEnviando() ? '0.6' : '1'"
+              style="width:100%;background:#cc0000;color:#fff;border:none;padding:16px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer">
+        @if (fotoEnviando()) { ⏳ Agregando... } @else { 🛒 Vender este producto }
+      </button>
+
+      <button (click)="estado.set('foto')"
+              style="width:100%;background:#1a1a1a;color:#aaa;border:1px solid #444;padding:12px;border-radius:10px;font-size:14px;cursor:pointer">
+        ❌ No es este producto — llenar datos manualmente
+      </button>
+
+      <p style="color:#555;font-size:11px;margin:0;text-align:center">
+        Referencia detectada por IA: <em>{{ matchRefDetectada() }}</em> · Confianza: {{ matchConfianza() }}
+      </p>
+    </div>
+  }
+
   <!-- MODO FOTO — captura tomada -->
   @if (estado() === 'foto') {
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;width:100%;max-width:480px;padding:16px;box-sizing:border-box;gap:12px">

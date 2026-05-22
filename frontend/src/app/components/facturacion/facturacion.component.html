@@ -149,7 +149,11 @@
                         }
                       </td>
                       <td class="col-precio">${{ formatPeso(p.precio) }}</td>
-                      <td>
+                      <td class="acciones-td-cat">
+                        @if (p.fuente === 'stock') {
+                          <button class="btn-edit-prod" title="Editar producto"
+                                  (click)="abrirEditarProducto(p); $event.stopPropagation()">✏️</button>
+                        }
                         <button class="btn-add" [disabled]="p.stock === 0 && p.fuente === 'stock'"
                                 (click)="agregarProducto(p); $event.stopPropagation()">
                           +
@@ -207,13 +211,17 @@
                       @if (p.fuente === 'imagen') { — }
                       @else { ${{ formatPeso(p.precio) }} }
                     </td>
-                    <td>
+                    <td class="acciones-td-cat">
                       @if (p.fuente === 'imagen') {
                         <button class="btn-add btn-add-foto" title="Agregar al inventario"
                                 (click)="agregarDesdeFoto(p); $event.stopPropagation()">
                           📋
                         </button>
                       } @else {
+                        @if (p.fuente === 'stock') {
+                          <button class="btn-edit-prod" title="Editar producto"
+                                  (click)="abrirEditarProducto(p); $event.stopPropagation()">✏️</button>
+                        }
                         <button class="btn-add" [disabled]="p.stock === 0 && p.fuente === 'stock'"
                                 (click)="agregarProducto(p); $event.stopPropagation()">
                           +
@@ -835,6 +843,70 @@
           </div>
         }
 
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL EDITAR PRODUCTO DEL CATÁLOGO
+  ══════════════════════════════════════════════════════════ -->
+  @if (editandoProductoCat()) {
+    <div class="scanner-overlay" (click)="editandoProductoCat.set(false)">
+      <div class="scanner-modal" style="max-width:420px" (click)="$event.stopPropagation()">
+        <div class="scanner-header">
+          <h3>✏️ Editar producto</h3>
+          <button class="btn-cerrar-scanner" (click)="editandoProductoCat.set(false)">✕</button>
+        </div>
+        <div class="np-body">
+          <div class="np-field">
+            <label>Código</label>
+            <input type="text" [value]="editProdCodigo()" readonly class="np-input np-readonly" />
+          </div>
+          <div class="np-field">
+            <label>Descripción / Referencia <span class="np-req">*</span></label>
+            <input type="text" [value]="editProdDesc()"
+                   (input)="editProdDesc.set($any($event.target).value)" class="np-input" />
+          </div>
+          <div class="np-row">
+            <div class="np-field">
+              <label>Precio de venta ($)</label>
+              <input type="number" min="0" [value]="editProdPrecio()"
+                     (input)="editProdPrecio.set(+$any($event.target).value)" class="np-input" />
+            </div>
+            <div class="np-field">
+              <label>Costo unitario ($)</label>
+              <input type="number" min="0" [value]="editProdCosto()"
+                     (input)="editProdCosto.set(+$any($event.target).value)" class="np-input" />
+            </div>
+          </div>
+          <div class="np-row">
+            <div class="np-field">
+              <label>Stock actual <span class="np-req">*</span></label>
+              <div class="np-cant-ctrl">
+                <button type="button" (click)="editProdStock.update(v => Math.max(0, v - 1))">−</button>
+                <input type="number" min="0" [value]="editProdStock()"
+                       (input)="editProdStock.set(+$any($event.target).value < 0 ? 0 : +$any($event.target).value)"
+                       class="np-input np-cant-inp" />
+                <button type="button" (click)="editProdStock.update(v => v + 1)">+</button>
+              </div>
+            </div>
+            <div class="np-field">
+              <label>Categoría</label>
+              <select [value]="editProdCat()" (change)="editProdCat.set($any($event.target).value)" class="np-input">
+                <option>Accesorio</option><option>Cable</option><option>Cargador</option>
+                <option>Auricular</option><option>Power Bank</option><option>Holder / Soporte</option>
+                <option>Protector</option><option>Otro</option>
+              </select>
+            </div>
+          </div>
+          <div class="np-acciones">
+            <button class="btn-limpiar" (click)="editandoProductoCat.set(false)">Cancelar</button>
+            <button class="btn-cobrar" [disabled]="editProdGuardando() || !editProdDesc().trim()"
+                    (click)="guardarEditProducto()">
+              @if (editProdGuardando()) { ⏳ Guardando... } @else { 💾 Guardar cambios }
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   }

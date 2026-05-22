@@ -1420,6 +1420,21 @@
 .res-arrow { color: #64748b; }
 .res-precio-nuevo { color: #4ade80; font-weight: 700; }
 
+/* ── Botón editar producto en catálogo ─────────────────── */
+.acciones-td-cat { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+.btn-edit-prod {
+  background: transparent;
+  border: 1px solid #444;
+  color: #aaa;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 13px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-edit-prod:hover { background: #2a2a2a; color: #fff; border-color: #888; }
+
 /* ══════════════════════════════════════════════════════════
    RESPONSIVE MÓVIL  (≤ 768 px)
 ══════════════════════════════════════════════════════════ */

@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
-type Estado = 'login' | 'iniciando' | 'escaneando' | 'encontrado' | 'error' | 'enviado' | 'foto' | 'foto-enviada' | 'vender-ok';
+type Estado = 'login' | 'iniciando' | 'escaneando' | 'encontrado' | 'error' | 'enviado' | 'foto' | 'foto-enviada' | 'vender-ok' | 'analizando' | 'foto-match';
 
 @Component({
   selector: 'app-mobile-scanner',
@@ -214,10 +214,85 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
     this.fotoDataUrl.set(dataUrl);
     this.fotoMimeType.set('image/jpeg');
     this.detener();
-    this.estado.set('foto');
+    // Analizar automáticamente con IA antes de mostrar el formulario
+    this.estado.set('analizando');
+    this.analizarFotoInstant();
+  }
+
+  private analizarFotoInstant() {
+    this.http.post<{
+      match: { codigo: string; descripcion: string; stock: number; precio: number; fuente: string } | null;
+      refDetectada?: string; confianza?: string; razon?: string;
+    }>(
+      `${environment.apiUrl}/api/scan/analizar-foto-instant`,
+      { imagen: this._fotoBase64, mimeType: this.fotoMimeType() },
+      { headers: { Authorization: `Bearer ${this.jwtToken}` } }
+    ).subscribe({
+      next: (res) => {
+        if (res.match) {
+          // Producto encontrado — prellenar datos y mostrar confirmación
+          this.matchProducto.set(res.match);
+          this.matchConfianza.set(res.confianza ?? 'media');
+          this.matchRefDetectada.set(res.refDetectada ?? '');
+          this.fotoReferencia.set(res.match.descripcion);
+          this.fotoPrecio.set(String(res.match.precio));
+          this.fotoCantidad.set('1');
+          this.estado.set('foto-match');
+        } else {
+          // No encontrado — ir al formulario manual
+          this.estado.set('foto');
+        }
+      },
+      error: () => {
+        // En caso de error de red, continuar con el flujo normal
+        this.estado.set('foto');
+      }
+    });
+  }
+
+  confirmarMatchYVender() {
+    const match = this.matchProducto();
+    if (!match || this.fotoEnviando()) return;
+    this.fotoEnviando.set(true);
+    const precio   = match.precio;
+    const cantidad = parseInt(this.fotoCantidad()) || 1;
+
+    // Guardar foto en inventario_por_imagen
+    this.http.post(
+      `${environment.apiUrl}/api/scan/session/${this.token}/foto`,
+      {
+        referencia: match.descripcion,
+        notas:      `Código: ${match.codigo} | Stock: ${match.stock}`,
+        imagen:     this._fotoBase64,
+        mimeType:   this.fotoMimeType()
+      },
+      { headers: { Authorization: `Bearer ${this.jwtToken}` } }
+    ).subscribe({ error: () => {} });
+
+    // Publicar en ventas_pendientes para que PC lo recoja
+    this.http.post(
+      `${environment.apiUrl}/api/facturacion/venta-pendiente`,
+      { descripcion: match.descripcion, precio, cantidad },
+      { headers: { Authorization: `Bearer ${this.jwtToken}` } }
+    ).subscribe({
+      next: () => {
+        sessionStorage.setItem('scanner_vender', JSON.stringify({ descripcion: match.descripcion, precio, cantidad }));
+        this.fotoEnviando.set(false);
+        this.estado.set('vender-ok');
+      },
+      error: () => {
+        this.fotoEnviando.set(false);
+        this.estado.set('vender-ok'); // igual navegar
+      }
+    });
   }
 
   private _fotoBase64 = '';
+
+  // Producto encontrado automáticamente por IA
+  matchProducto = signal<{ codigo: string; descripcion: string; stock: number; precio: number } | null>(null);
+  matchConfianza = signal('');
+  matchRefDetectada = signal('');
 
   enviarFoto() {
     if (!this._fotoBase64 || this.fotoEnviando()) return;

@@ -151,6 +151,53 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   jhonIAEnriqueciendo = signal(false);
   jhonIAResultados   = signal<any[]>([]);
 
+  // ── Editar producto del catálogo ───────────────────────
+  editandoProductoCat  = signal(false);
+  editProdCodigo       = signal('');
+  editProdDesc         = signal('');
+  editProdPrecio       = signal(0);
+  editProdCosto        = signal(0);
+  editProdStock        = signal(0);
+  editProdCat          = signal('Accesorio');
+  editProdGuardando    = signal(false);
+
+  abrirEditarProducto(p: ProductoPOS) {
+    this.editProdCodigo.set(p.codigo);
+    this.editProdDesc.set(p.descripcion);
+    this.editProdPrecio.set(p.precio);
+    this.editProdCosto.set(p.costo ?? 0);
+    this.editProdStock.set(p.stock);
+    this.editProdCat.set('Accesorio');
+    this.editandoProductoCat.set(true);
+  }
+
+  guardarEditProducto() {
+    if (this.editProdGuardando()) return;
+    this.editProdGuardando.set(true);
+    this.svc.editarProducto(this.editProdCodigo(), {
+      descripcion: this.editProdDesc().trim() || undefined,
+      precio:      this.editProdPrecio() >= 0 ? this.editProdPrecio() : undefined,
+      costo:       this.editProdCosto()  >= 0 ? this.editProdCosto()  : undefined,
+      stock:       this.editProdStock()  >= 0 ? this.editProdStock()  : undefined,
+      categoria:   this.editProdCat()    || undefined
+    }).subscribe({
+      next: (r) => {
+        this.editProdGuardando.set(false);
+        this.editandoProductoCat.set(false);
+        this.mensajeExito.set(`✅ ${r.descripcion} actualizado — Stock: ${r.stock} · Precio: $${this.formatPeso(r.precio)}`);
+        setTimeout(() => this.mensajeExito.set(''), 4000);
+        // Refrescar búsqueda actual
+        if (this.searchQuery().length >= 2) {
+          const q = this.searchQuery();
+          this.searchQuery.set('');
+          setTimeout(() => { this.searchQuery.set(q); const el = document.getElementById('searchInput') as HTMLInputElement; if (el) { el.value = q; el.dispatchEvent(new Event('input')); } }, 50);
+        }
+        if (this.tabCatalogo() === 'todo') this.cargarTodos();
+      },
+      error: () => { this.editProdGuardando.set(false); this.mostrarError('Error al actualizar el producto'); }
+    });
+  }
+
   // ── Nuevo producto desde barcode desconocido ──────────
   mostrarNuevoProducto = signal(false);
   npCodigo      = signal('');

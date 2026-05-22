@@ -244,6 +244,23 @@ export class FacturacionService {
     }>(`${this.api}/api/jhonia/enriquecer-inventario`, { limite, soloSinPrecio }, this.headers);
   }
 
+  // ── Editar producto en inventario ─────────────────────────
+  editarProducto(codigo: string, dto: {
+    descripcion?: string; precio?: number; costo?: number; stock?: number; categoria?: string;
+  }) {
+    return this.http.patch<{ ok: boolean; codigo: string; descripcion: string; stock: number; precio: number }>(
+      `${this.api}/api/inventario/${encodeURIComponent(codigo)}`, dto, this.headers
+    );
+  }
+
+  // ── Reconocimiento automático por foto ────────────────────
+  analizarFotoInstant(imagen: string, mimeType: string) {
+    return this.http.post<{
+      match: { codigo: string; descripcion: string; stock: number; precio: number; fuente: string } | null;
+      refDetectada?: string; confianza?: string; razon?: string;
+    }>(`${this.api}/api/scan/analizar-foto-instant`, { imagen, mimeType }, this.headers);
+  }
+
   // ── Agregar producto nuevo desde escáner ──────────────────
   agregarProductoNuevo(dto: {
     codigoBarras: string;

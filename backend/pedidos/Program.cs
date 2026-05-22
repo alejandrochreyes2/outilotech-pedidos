@@ -3733,6 +3733,167 @@ app.MapPost("/inventario/nuevo-producto", async (HttpContext ctx) => {
 }).RequireAuthorization();
 
 // ============================================================
+// PATCH /inventario/{codigo} — editar producto en inventario_stock
+// ============================================================
+app.MapPatch("/inventario/{codigo}", async (string codigo, HttpContext ctx) =>
+{
+    JsonElement body;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); }
+    catch { return Results.BadRequest(new { error = "JSON inválido" }); }
+
+    var desc  = body.TryGetProperty("descripcion",   out var dv) ? dv.GetString() : null;
+    var precio = body.TryGetProperty("precio",        out var pv) ? (pv.TryGetDecimal(out var pd) ? (decimal?)pd : null) : null;
+    var costo  = body.TryGetProperty("costo",         out var cv) ? (cv.TryGetDecimal(out var cd) ? (decimal?)cd : null) : null;
+    var stock  = body.TryGetProperty("stock",         out var sv) ? (sv.TryGetInt32(out var si)  ? (int?)si   : null) : null;
+    var cat    = body.TryGetProperty("categoria",     out var kv) ? kv.GetString() : null;
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+
+    var sets = new List<string>();
+    var cmd  = new NpgsqlCommand();
+    cmd.Connection = conn;
+    if (desc  != null) { sets.Add("descripcion = @desc");     cmd.Parameters.AddWithValue("@desc",  desc); }
+    if (precio != null) { sets.Add("precio_venta = @precio");  cmd.Parameters.AddWithValue("@precio", precio.Value); }
+    if (costo  != null) { sets.Add("costo_unitario = @costo"); cmd.Parameters.AddWithValue("@costo",  costo.Value); }
+    if (stock  != null) { sets.Add("stock_actual = @stock");   cmd.Parameters.AddWithValue("@stock",  stock.Value); }
+    if (cat    != null) { sets.Add("categoria = @cat");        cmd.Parameters.AddWithValue("@cat",    cat); }
+
+    if (sets.Count == 0) return Results.BadRequest(new { error = "Sin campos a actualizar" });
+
+    sets.Add("updated_at = NOW()");
+    cmd.CommandText = $"UPDATE inventario_stock SET {string.Join(", ", sets)} WHERE codigo_producto = @cod RETURNING codigo_producto, descripcion, stock_actual, precio_venta";
+    cmd.Parameters.AddWithValue("@cod", codigo);
+
+    await using var r = await cmd.ExecuteReaderAsync();
+    if (!await r.ReadAsync()) return Results.NotFound(new { error = "Producto no encontrado" });
+
+    return Results.Ok(new {
+        ok = true,
+        codigo = r.GetString(0),
+        descripcion = r.GetString(1),
+        stock = r.GetInt32(2),
+        precio = r.GetDecimal(3)
+    });
+}).RequireAuthorization();
+
+// ============================================================
+// POST /scan/analizar-foto-instant — reconocer producto por foto (IA + BD)
+// Retorna el producto de inventario si existe, o null si no se encontró
+// ============================================================
+app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguration configuration, IHttpClientFactory factory, ILogger<Program> logger) =>
+{
+    JsonElement body;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); }
+    catch { return Results.BadRequest(new { error = "JSON inválido" }); }
+
+    var imagen   = body.TryGetProperty("imagen",   out var iv) ? iv.GetString() ?? "" : "";
+    var mimeType = body.TryGetProperty("mimeType", out var mv) ? mv.GetString() ?? "image/jpeg" : "image/jpeg";
+
+    if (string.IsNullOrEmpty(imagen)) return Results.BadRequest(new { error = "imagen requerida" });
+
+    var groqKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? configuration["GROQ_API_KEY"] ?? "";
+    if (string.IsNullOrEmpty(groqKey)) return Results.Ok(new { match = (object?)null, razon = "sin_api_key" });
+
+    try
+    {
+        // ── Vision: identificar referencia/código del producto ────────────
+        using var client = factory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(30);
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", groqKey);
+
+        var prompt = @"Eres un sistema de inventario OutilTech. Analiza la imagen y extrae el código o referencia del producto. Responde SOLO JSON sin texto extra:
+{""referencia"":""codigo exacto visible (ej: A001, JQ-14, Samsung A15)"",""posibles_codigos"":[""cod1"",""cod2""],""confianza"":""alta|media|baja""}";
+
+        var payload = new System.Text.Json.Nodes.JsonObject
+        {
+            ["model"] = "meta-llama/llama-4-scout-17b-16e-instruct",
+            ["max_tokens"] = 200,
+            ["messages"] = new System.Text.Json.Nodes.JsonArray
+            {
+                new System.Text.Json.Nodes.JsonObject
+                {
+                    ["role"] = "user",
+                    ["content"] = new System.Text.Json.Nodes.JsonArray
+                    {
+                        new System.Text.Json.Nodes.JsonObject
+                        {
+                            ["type"] = "image_url",
+                            ["image_url"] = new System.Text.Json.Nodes.JsonObject { ["url"] = $"data:{mimeType};base64,{imagen}" }
+                        },
+                        new System.Text.Json.Nodes.JsonObject { ["type"] = "text", ["text"] = prompt }
+                    }
+                }
+            }
+        };
+
+        var resp = await client.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", payload);
+        if (!resp.IsSuccessStatusCode)
+            return Results.Ok(new { match = (object?)null, razon = "error_vision" });
+
+        var respText = await resp.Content.ReadAsStringAsync();
+        var respJson = JsonSerializer.Deserialize<JsonElement>(respText);
+        var raw = respJson.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "{}";
+        raw = raw.Trim();
+        if (raw.StartsWith("```json")) raw = raw[7..];
+        if (raw.StartsWith("```"))     raw = raw[3..];
+        if (raw.EndsWith("```"))       raw = raw[..^3];
+        raw = raw.Trim();
+
+        var info = JsonSerializer.Deserialize<JsonElement>(raw);
+        var refGroq = info.TryGetProperty("referencia", out var rv) ? rv.GetString()?.Trim() ?? "" : "";
+        var posibles = new List<string> { refGroq };
+        if (info.TryGetProperty("posibles_codigos", out var pc) && pc.ValueKind == JsonValueKind.Array)
+            foreach (var el in pc.EnumerateArray())
+                if (el.GetString() is string s && !string.IsNullOrEmpty(s)) posibles.Add(s);
+        var confianza = info.TryGetProperty("confianza", out var cv2) ? cv2.GetString() ?? "media" : "media";
+
+        if (string.IsNullOrEmpty(refGroq) || confianza == "baja")
+            return Results.Ok(new { match = (object?)null, razon = "confianza_baja" });
+
+        // ── Buscar en inventario_stock por codigo y descripción ──────────
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+
+        foreach (var cod in posibles.Distinct().Where(c => !string.IsNullOrEmpty(c)))
+        {
+            await using var cmd = new NpgsqlCommand(@"
+                SELECT codigo_producto, descripcion, stock_actual, precio_venta, costo_unitario
+                FROM inventario_stock
+                WHERE LOWER(codigo_producto) = LOWER(@cod)
+                   OR LOWER(descripcion) LIKE LOWER(@like)
+                ORDER BY CASE WHEN LOWER(codigo_producto) = LOWER(@cod) THEN 0 ELSE 1 END
+                LIMIT 1", conn);
+            cmd.Parameters.AddWithValue("@cod",  cod);
+            cmd.Parameters.AddWithValue("@like", $"%{cod.ToLower().Replace(" ", "%")}%");
+            await using var r = await cmd.ExecuteReaderAsync();
+            if (await r.ReadAsync())
+            {
+                return Results.Ok(new {
+                    match = new {
+                        codigo      = r.GetString(0),
+                        descripcion = r.GetString(1),
+                        stock       = r.GetInt32(2),
+                        precio      = r.GetDecimal(3),
+                        fuente      = "stock"
+                    },
+                    refDetectada = refGroq,
+                    confianza
+                });
+            }
+        }
+
+        return Results.Ok(new { match = (object?)null, razon = "no_encontrado_en_bd", refDetectada = refGroq });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ANALIZAR-FOTO-INSTANT] Error");
+        return Results.Ok(new { match = (object?)null, razon = "error_interno" });
+    }
+}).RequireAuthorization();
+
+// ============================================================
 // FACTURACIÓN — SIGUIENTE NÚMERO
 // GET /facturacion/siguiente-numero
 // ============================================================
