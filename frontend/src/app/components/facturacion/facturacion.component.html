@@ -246,6 +246,11 @@
                  (input)="clienteTelefono.set($any($event.target).value)" class="inp-cliente" />
         </div>
 
+        <!-- Botón agregar otro producto con foto (solo móvil) -->
+        <button class="btn-fotografiar-mas mobile-only" (click)="abrirScanner()">
+          📸 Fotografiar otro producto
+        </button>
+
         <!-- Items de la factura -->
         <div class="items-section">
           @if (items().length === 0) {

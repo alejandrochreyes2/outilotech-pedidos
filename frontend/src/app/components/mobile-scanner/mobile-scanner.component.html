@@ -286,20 +286,14 @@
         </p>
       </div>
 
-      <!-- Opción 1: Fotografiar otro -->
-      <button (click)="reintentar()"
-              style="background:#cc0000;color:#fff;border:none;padding:16px 20px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;width:100%;max-width:320px">
-        📸 Fotografiar otro producto
-      </button>
-
-      <!-- Opción 2: Ver factura -->
+      <!-- Solo una acción: ir a la factura (ahí podrá fotografiar más productos) -->
       <button (click)="router.navigate(['/facturacion'])"
-              style="background:#1a1a1a;color:#ccc;border:1px solid #444;padding:14px 20px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;width:100%;max-width:320px">
+              style="background:#cc0000;color:#fff;border:none;padding:16px 20px;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;width:100%;max-width:320px">
         🧾 Ver factura y cobrar
       </button>
 
       <p style="color:#555;font-size:11px;margin:0">
-        El producto ya aparece en la factura del PC en segundos
+        El producto ya aparece en la factura · Puede agregar más desde ahí
       </p>
     </div>
   }

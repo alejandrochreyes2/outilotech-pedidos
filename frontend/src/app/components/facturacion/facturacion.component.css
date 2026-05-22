@@ -1429,6 +1429,26 @@
   display: none; /* oculta en desktop */
 }
 
+/* ── Elementos solo visibles en móvil ──────────────────── */
+.mobile-only {
+  display: none;
+}
+
+/* ── Botón Fotografiar otro producto (móvil) ───────────── */
+.btn-fotografiar-mas {
+  width: 100%;
+  background: #cc0000;
+  color: #fff;
+  border: none;
+  padding: 13px 16px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 10px;
+  letter-spacing: 0.2px;
+}
+
 @media (max-width: 768px) {
 
   /* Wrapper: dejar espacio para la nav bar inferior */
@@ -1440,6 +1460,9 @@
   .pos-header h1 { font-size: 0.95rem; }
   .pos-subtitle { font-size: 0.65rem; }
   .tab-btn { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
+
+  /* ── Elementos solo visibles en móvil ──────────────── */
+  .mobile-only { display: block; }
 
   /* ── Cuerpo POS: columnas apiladas ──────────────────── */
   .pos-body { flex-direction: column; position: relative; }
