@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
+// v2 — análisis automático con IA al tomar foto
 type Estado = 'login' | 'iniciando' | 'escaneando' | 'encontrado' | 'error' | 'enviado' | 'foto' | 'foto-enviada' | 'vender-ok' | 'analizando' | 'foto-match';
 
 @Component({
