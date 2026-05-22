@@ -3902,42 +3902,48 @@ app.MapGet("/facturacion/{id:int}", async (int id) =>
 // ============================================================
 app.MapPost("/facturacion/venta-pendiente", async (HttpContext ctx) =>
 {
-    var user   = ctx.User.Identity?.Name ?? ctx.User.Claims.FirstOrDefault(c => c.Type == "fullName")?.Value
-                 ?? ctx.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Name)?.Value
-                 ?? "cajera";
+    // Usar email como clave (claim más confiable en JWT)
+    var emailKey = ctx.User.Claims.FirstOrDefault(c =>
+        c.Type == System.Security.Claims.ClaimTypes.Email || c.Type == "email")?.Value
+        ?? ctx.User.Identity?.Name ?? "todos";
+
     JsonElement body = default;
     try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); } catch { }
     var descripcion = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("descripcion", out var d) ? d.GetString() ?? "" : "";
     var precio      = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("precio",      out var p) ? (p.TryGetDecimal(out var pv) ? pv : 0m) : 0m;
     var cantidad    = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("cantidad",    out var q) ? (q.TryGetInt32(out var qv)  ? qv : 1)  : 1;
 
+    Console.WriteLine($"[VENTA-PENDIENTE] POST email={emailKey} desc={descripcion} precio={precio} cant={cantidad}");
+
     await using var conn = new NpgsqlConnection(pgConnectionString);
     await conn.OpenAsync();
     await using var cmd = new NpgsqlCommand(
         "INSERT INTO ventas_pendientes (cajera, descripcion, precio, cantidad) VALUES (@c, @d, @p, @q)", conn);
-    cmd.Parameters.AddWithValue("@c", user);
+    cmd.Parameters.AddWithValue("@c", emailKey);
     cmd.Parameters.AddWithValue("@d", descripcion);
     cmd.Parameters.AddWithValue("@p", precio);
     cmd.Parameters.AddWithValue("@q", cantidad);
     await cmd.ExecuteNonQueryAsync();
-    return Results.Ok(new { ok = true });
+    return Results.Ok(new { ok = true, key = emailKey });
 }).RequireAuthorization();
 
 app.MapGet("/facturacion/venta-pendiente", async (HttpContext ctx) =>
 {
-    var user = ctx.User.Identity?.Name ?? ctx.User.Claims.FirstOrDefault(c => c.Type == "fullName")?.Value
-               ?? ctx.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Name)?.Value
-               ?? "cajera";
+    var emailKey = ctx.User.Claims.FirstOrDefault(c =>
+        c.Type == System.Security.Claims.ClaimTypes.Email || c.Type == "email")?.Value
+        ?? ctx.User.Identity?.Name ?? "todos";
 
     await using var conn = new NpgsqlConnection(pgConnectionString);
     await conn.OpenAsync();
     await using var cmd = new NpgsqlCommand(
         "DELETE FROM ventas_pendientes WHERE cajera = @c RETURNING descripcion, precio, cantidad", conn);
-    cmd.Parameters.AddWithValue("@c", user);
+    cmd.Parameters.AddWithValue("@c", emailKey);
     await using var r = await cmd.ExecuteReaderAsync();
     var items = new System.Collections.Generic.List<object>();
     while (await r.ReadAsync())
         items.Add(new { descripcion = r.GetString(0), precio = r.GetDecimal(1), cantidad = r.GetInt32(2) });
+    if (items.Count > 0)
+        Console.WriteLine($"[VENTA-PENDIENTE] GET email={emailKey} => {items.Count} item(s)");
     return Results.Ok(items);
 }).RequireAuthorization();
 
