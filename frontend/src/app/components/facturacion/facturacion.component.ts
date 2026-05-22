@@ -1,5 +1,5 @@
 import {
-  Component, OnInit, OnDestroy, signal, computed, inject, ViewChild, ElementRef, HostListener
+  Component, OnInit, OnDestroy, signal, computed, inject, effect, ViewChild, ElementRef, HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -162,12 +162,34 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   npGuardando   = signal(false);
   npFotoId      = signal<number | null>(null); // ID de la foto que originó este modal
 
+  // ── Persistencia del carrito ───────────────────────────
+  private readonly CART_KEY = 'pos_carrito';
+  private _cargaCompleta = false;
+
   // ── Drag del botón JhonIA ─────────────────────────────
   jhonPos      = signal<{top:number; left:number} | null>(null);
   jhonDragging = signal(false);
   private _jhonDragOffX = 0;
   private _jhonDragOffY = 0;
   private _jhonMoved    = false;
+
+  constructor() {
+    // Auto-guarda el carrito en localStorage cada vez que cambia algún campo
+    effect(() => {
+      if (!this._cargaCompleta) return;
+      const items = this.items();
+      if (items.length === 0) { localStorage.removeItem(this.CART_KEY); return; }
+      localStorage.setItem(this.CART_KEY, JSON.stringify({
+        numeroFactura: this.numeroFactura(),
+        items,
+        descuento:       this.descuento(),
+        clienteNombre:   this.clienteNombre(),
+        clienteId:       this.clienteId(),
+        clienteTelefono: this.clienteTelefono(),
+        notas:           this.notas()
+      }));
+    });
+  }
 
   startDragJhon(e: MouseEvent | TouchEvent) {
     const el = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -205,10 +227,29 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   private ventaPendienteInterval: any;
 
   ngOnInit() {
-    this.cargarSiguienteNumero();
+    const restaurado = this.restaurarCarrito();
+    if (!restaurado) this.cargarSiguienteNumero();
+    this._cargaCompleta = true;
     this.cargarFotosPendientes();
     this.cargarProductoDesdeScanner();
     this.iniciarPollingVentasPendientes();
+  }
+
+  private restaurarCarrito(): boolean {
+    const raw = localStorage.getItem(this.CART_KEY);
+    if (!raw) return false;
+    try {
+      const c = JSON.parse(raw);
+      if (!c.items?.length) return false;
+      this.numeroFactura.set(c.numeroFactura ?? 'FE-2026-....');
+      this.items.set(c.items);
+      this.descuento.set(c.descuento ?? 0);
+      this.clienteNombre.set(c.clienteNombre ?? '');
+      this.clienteId.set(c.clienteId ?? '');
+      this.clienteTelefono.set(c.clienteTelefono ?? '');
+      this.notas.set(c.notas ?? '');
+      return true;
+    } catch { return false; }
   }
 
   private iniciarPollingVentasPendientes() {
