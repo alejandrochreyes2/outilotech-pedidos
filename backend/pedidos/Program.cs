@@ -408,11 +408,22 @@ using (var scope = app.Services.CreateScope())
               cantidad    INTEGER DEFAULT 1,
               creado_en   TIMESTAMPTZ DEFAULT NOW()
             );
+            CREATE TABLE IF NOT EXISTS carrito_activo (
+              cajera           VARCHAR(200) PRIMARY KEY,
+              numero_factura   VARCHAR(50)  NOT NULL DEFAULT '',
+              items            TEXT         NOT NULL DEFAULT '[]',
+              descuento        DECIMAL(12,2) NOT NULL DEFAULT 0,
+              cliente_nombre   VARCHAR(200) NOT NULL DEFAULT '',
+              cliente_id       VARCHAR(100) NOT NULL DEFAULT '',
+              cliente_telefono VARCHAR(50)  NOT NULL DEFAULT '',
+              notas            TEXT         NOT NULL DEFAULT '',
+              actualizado_en   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+            );
         ";
         cmd4.ExecuteNonQuery();
 
         conn.Close();
-        Console.WriteLine("[DB] Tablas inventario_productos, conversaciones, JhonIA, inventario_por_imagen y ventas_pendientes verificadas/creadas.");
+        Console.WriteLine("[DB] Tablas inventario_productos, conversaciones, JhonIA, inventario_por_imagen, ventas_pendientes y carrito_activo verificadas/creadas.");
     }
     catch (Exception ex)
     {
@@ -3945,6 +3956,98 @@ app.MapGet("/facturacion/venta-pendiente", async (HttpContext ctx) =>
     if (items.Count > 0)
         Console.WriteLine($"[VENTA-PENDIENTE] GET email={emailKey} => {items.Count} item(s)");
     return Results.Ok(items);
+}).RequireAuthorization();
+
+// ============================================================
+// CARRITO ACTIVO — sync bidireccional celular ↔ PC
+// PUT /facturacion/carrito   — guarda estado completo
+// GET /facturacion/carrito   — lee estado (para sync en otro dispositivo)
+// ============================================================
+app.MapPut("/facturacion/carrito", async (HttpContext ctx) =>
+{
+    var emailKey = ctx.User.Claims.FirstOrDefault(c =>
+        c.Type == System.Security.Claims.ClaimTypes.Email || c.Type == "email")?.Value
+        ?? ctx.User.Identity?.Name ?? "todos";
+
+    JsonElement body = default;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); } catch { }
+
+    var itemsRaw = body.ValueKind == JsonValueKind.Object && body.TryGetProperty("items", out var itv)
+        ? itv.GetRawText() : "[]";
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+
+    // Si items vacío, borrar el carrito
+    if (itemsRaw == "[]" || itemsRaw == "null")
+    {
+        await using var del = new NpgsqlCommand("DELETE FROM carrito_activo WHERE cajera = @c", conn);
+        del.Parameters.AddWithValue("@c", emailKey);
+        await del.ExecuteNonQueryAsync();
+        return Results.Ok(new { ok = true });
+    }
+
+    var nf  = body.TryGetProperty("numeroFactura",   out var nfv)  ? nfv.GetString()  ?? "" : "";
+    var desc = body.TryGetProperty("descuento",       out var dv)   ? (dv.TryGetDecimal(out var dd) ? dd : 0m) : 0m;
+    var cn  = body.TryGetProperty("clienteNombre",   out var cnv)  ? cnv.GetString()  ?? "" : "";
+    var ci  = body.TryGetProperty("clienteId",        out var civ)  ? civ.GetString()  ?? "" : "";
+    var ct  = body.TryGetProperty("clienteTelefono", out var ctv)  ? ctv.GetString()  ?? "" : "";
+    var no  = body.TryGetProperty("notas",            out var nov)  ? nov.GetString()  ?? "" : "";
+
+    await using var cmd = new NpgsqlCommand(@"
+        INSERT INTO carrito_activo (cajera, numero_factura, items, descuento, cliente_nombre, cliente_id, cliente_telefono, notas, actualizado_en)
+        VALUES (@c, @nf, @it, @d, @cn, @ci, @ct, @no, NOW())
+        ON CONFLICT (cajera) DO UPDATE SET
+            numero_factura   = EXCLUDED.numero_factura,
+            items            = EXCLUDED.items,
+            descuento        = EXCLUDED.descuento,
+            cliente_nombre   = EXCLUDED.cliente_nombre,
+            cliente_id       = EXCLUDED.cliente_id,
+            cliente_telefono = EXCLUDED.cliente_telefono,
+            notas            = EXCLUDED.notas,
+            actualizado_en   = NOW()", conn);
+    cmd.Parameters.AddWithValue("@c",  emailKey);
+    cmd.Parameters.AddWithValue("@nf", nf);
+    cmd.Parameters.AddWithValue("@it", itemsRaw);
+    cmd.Parameters.AddWithValue("@d",  desc);
+    cmd.Parameters.AddWithValue("@cn", cn);
+    cmd.Parameters.AddWithValue("@ci", ci);
+    cmd.Parameters.AddWithValue("@ct", ct);
+    cmd.Parameters.AddWithValue("@no", no);
+    await cmd.ExecuteNonQueryAsync();
+    return Results.Ok(new { ok = true });
+}).RequireAuthorization();
+
+app.MapGet("/facturacion/carrito", async (HttpContext ctx) =>
+{
+    var emailKey = ctx.User.Claims.FirstOrDefault(c =>
+        c.Type == System.Security.Claims.ClaimTypes.Email || c.Type == "email")?.Value
+        ?? ctx.User.Identity?.Name ?? "todos";
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    await using var cmd = new NpgsqlCommand(@"
+        SELECT numero_factura, items, descuento, cliente_nombre, cliente_id, cliente_telefono, notas,
+               EXTRACT(EPOCH FROM actualizado_en)::bigint * 1000
+        FROM carrito_activo WHERE cajera = @c", conn);
+    cmd.Parameters.AddWithValue("@c", emailKey);
+    await using var r = await cmd.ExecuteReaderAsync();
+    if (!await r.ReadAsync()) return Results.NotFound();
+
+    JsonElement itemsEl;
+    try   { itemsEl = JsonSerializer.Deserialize<JsonElement>(r.GetString(1)); }
+    catch { itemsEl = JsonSerializer.Deserialize<JsonElement>("[]"); }
+
+    return Results.Ok(new {
+        numeroFactura   = r.GetString(0),
+        items           = itemsEl,
+        descuento       = r.GetDecimal(2),
+        clienteNombre   = r.GetString(3),
+        clienteId       = r.GetString(4),
+        clienteTelefono = r.GetString(5),
+        notas           = r.GetString(6),
+        actualizadoEn   = r.GetInt64(7)   // ms desde epoch
+    });
 }).RequireAuthorization();
 
 // ============================================================

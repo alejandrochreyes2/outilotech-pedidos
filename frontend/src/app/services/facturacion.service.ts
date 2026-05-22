@@ -174,6 +174,21 @@ export class FacturacionService {
     return this.http.patch(`${this.api}/api/scan/inventario-por-imagen/${id}/revisar`, {}, this.headers);
   }
 
+  guardarCarritoServidor(cart: {
+    numeroFactura: string; items: any[]; descuento: number;
+    clienteNombre: string; clienteId: string; clienteTelefono: string; notas: string;
+  }) {
+    return this.http.put(`${this.api}/api/facturacion/carrito`, cart, this.headers);
+  }
+
+  obtenerCarritoServidor() {
+    return this.http.get<{
+      numeroFactura: string; items: any[]; descuento: number;
+      clienteNombre: string; clienteId: string; clienteTelefono: string;
+      notas: string; actualizadoEn: number;
+    }>(`${this.api}/api/facturacion/carrito`, this.headers);
+  }
+
   agregarVentaPendiente(descripcion: string, precio: number, cantidad: number) {
     return this.http.post(`${this.api}/api/facturacion/venta-pendiente`, { descripcion, precio, cantidad }, this.headers);
   }

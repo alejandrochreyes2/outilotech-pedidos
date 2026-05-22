@@ -165,6 +165,9 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   // ── Persistencia del carrito ───────────────────────────
   private readonly CART_KEY = 'pos_carrito';
   private _cargaCompleta = false;
+  private _lastLocalWrite = 0;      // timestamp de la última acción del usuario
+  private _initialLoad    = true;   // evita sobrescribir restauración inicial
+  private _saveServerTimer: any;    // debounce para guardar en servidor
 
   // ── Drag del botón JhonIA ─────────────────────────────
   jhonPos      = signal<{top:number; left:number} | null>(null);
@@ -226,10 +229,29 @@ export class FacturacionComponent implements OnInit, OnDestroy {
 
   private ventaPendienteInterval: any;
 
+  // Guarda el carrito en el servidor (debounced). Solo llamar desde acciones del usuario.
+  private guardarEnServidor() {
+    this._lastLocalWrite = Date.now();
+    clearTimeout(this._saveServerTimer);
+    this._saveServerTimer = setTimeout(() => {
+      this.svc.guardarCarritoServidor({
+        numeroFactura:   this.numeroFactura(),
+        items:           this.items(),
+        descuento:       this.descuento(),
+        clienteNombre:   this.clienteNombre(),
+        clienteId:       this.clienteId(),
+        clienteTelefono: this.clienteTelefono(),
+        notas:           this.notas()
+      }).subscribe({ error: () => {} });
+    }, 800);
+  }
+
   ngOnInit() {
     const restaurado = this.restaurarCarrito();
     if (!restaurado) this.cargarSiguienteNumero();
     this._cargaCompleta = true;
+    // Gracia de 5s: no sincronizar del servidor durante carga inicial
+    setTimeout(() => { this._initialLoad = false; }, 5000);
     this.cargarFotosPendientes();
     this.cargarProductoDesdeScanner();
     this.iniciarPollingVentasPendientes();
@@ -254,6 +276,8 @@ export class FacturacionComponent implements OnInit, OnDestroy {
 
   private iniciarPollingVentasPendientes() {
     this.ventaPendienteInterval = setInterval(() => {
+
+      // 1) Nuevos productos desde escáner móvil (ventas_pendientes)
       this.svc.obtenerVentasPendientes().subscribe({
         next: (productos) => {
           if (!productos?.length) return;
@@ -275,9 +299,35 @@ export class FacturacionComponent implements OnInit, OnDestroy {
           if (window.innerWidth <= 768) this.vistaMovil.set('factura');
           this.mensajeExito.set(`📱 ${productos.length} producto(s) agregado(s) desde el celular`);
           setTimeout(() => this.mensajeExito.set(''), 4000);
+          this.guardarEnServidor(); // propagar a los otros dispositivos
         },
         error: () => {}
       });
+
+      // 2) Sincronizar carrito completo con el otro dispositivo
+      if (this._initialLoad) return; // esperar los 5s de gracia inicial
+      if (Date.now() - this._lastLocalWrite < 4000) return; // no interferir mientras el usuario edita
+
+      this.svc.obtenerCarritoServidor().subscribe({
+        next: (cart) => {
+          if (!cart?.items?.length) return;
+          // Solo aplicar si el servidor tiene datos más recientes que nuestra última escritura
+          if (cart.actualizadoEn <= this._lastLocalWrite + 1500) return;
+
+          // Aplicar carrito del otro dispositivo (sin llamar guardarEnServidor)
+          this._lastLocalWrite = cart.actualizadoEn; // marca para no re-aplicar en el próximo poll
+          this.numeroFactura.set(cart.numeroFactura);
+          this.items.set(cart.items);
+          this.descuento.set(cart.descuento ?? 0);
+          this.clienteNombre.set(cart.clienteNombre ?? '');
+          this.clienteId.set(cart.clienteId ?? '');
+          this.clienteTelefono.set(cart.clienteTelefono ?? '');
+          this.notas.set(cart.notas ?? '');
+          if (window.innerWidth <= 768) this.vistaMovil.set('factura');
+        },
+        error: () => {}
+      });
+
     }, 3000);
   }
 
@@ -301,8 +351,8 @@ export class FacturacionComponent implements OnInit, OnDestroy {
           fuente:      'stock' as const
         }
       ]);
-      // En móvil, ir directo a la vista de factura para ver el producto agregado
       if (window.innerWidth <= 768) this.vistaMovil.set('factura');
+      this.guardarEnServidor();
     } catch {}
   }
 
@@ -379,8 +429,8 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     } else {
       this.items.set([...actuales, { codigo: p.codigo, descripcion: p.descripcion, cantidad: 1, precio: p.precio, fuente: p.fuente, subtotal: p.precio }]);
     }
-    // En móvil, al agregar un producto ir directo a la factura
     if (window.innerWidth <= 768) this.vistaMovil.set('factura');
+    this.guardarEnServidor();
   }
 
   cambiarCantidad(idx: number, delta: number) {
@@ -389,9 +439,13 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     if (nueva <= 0) { this.quitarItem(idx); return; }
     actuales[idx] = { ...actuales[idx], cantidad: nueva, subtotal: nueva * actuales[idx].precio };
     this.items.set(actuales);
+    this.guardarEnServidor();
   }
 
-  quitarItem(idx: number) { this.items.set(this.items().filter((_, i) => i !== idx)); }
+  quitarItem(idx: number) {
+    this.items.set(this.items().filter((_, i) => i !== idx));
+    this.guardarEnServidor();
+  }
 
   // ── Edición de ítem ────────────────────────────────────
   editIdx      = signal<number | null>(null);
@@ -417,6 +471,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     actuales[i] = { ...actuales[i], descripcion: desc, cantidad: cant, precio, subtotal: cant * precio };
     this.items.set(actuales);
     this.editIdx.set(null);
+    this.guardarEnServidor();
   }
 
   cancelarEdicion() { this.editIdx.set(null); }
@@ -426,6 +481,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     this.clienteId.set(''); this.clienteTelefono.set(''); this.notas.set('');
     this.metodoPagoSeleccionado.set(null); this.mensajeExito.set(''); this.mensajeError.set('');
     this.cargarSiguienteNumero();
+    this.guardarEnServidor(); // borra el carrito en el servidor (items=[])
   }
 
   // ── Cobrar ─────────────────────────────────────────────
@@ -612,7 +668,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
           codigo: r.codigo, descripcion: r.descripcion,
           stock: r.stock, precio: r.precio, costo: this.npCosto(), fuente: 'stock'
         };
-        this.agregarProducto(producto);
+        this.agregarProducto(producto); // ya llama guardarEnServidor()
         this.mensajeExito.set(`✅ ${r.mensaje} Producto agregado a la factura.`);
         setTimeout(() => this.mensajeExito.set(''), 4000);
       },
