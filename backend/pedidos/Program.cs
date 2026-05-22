@@ -3783,17 +3783,50 @@ app.MapPatch("/inventario/{codigo}", async (string codigo, HttpContext ctx) =>
 // ============================================================
 app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguration configuration, IHttpClientFactory factory, ILogger<Program> logger) =>
 {
+    Console.Error.WriteLine("[FOTO-INSTANT] >>> Endpoint llamado");
+
+    // Leer body con límite explícito de 20MB para soportar fotos grandes
+    ctx.Request.EnableBuffering();
+    string rawBody;
+    try
+    {
+        using var sr = new System.IO.StreamReader(ctx.Request.Body, leaveOpen: true);
+        rawBody = await sr.ReadToEndAsync();
+        ctx.Request.Body.Position = 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"[FOTO-INSTANT] Error leyendo body: {ex.Message}");
+        return Results.BadRequest(new { error = "Error leyendo body" });
+    }
+
+    Console.Error.WriteLine($"[FOTO-INSTANT] Body length={rawBody.Length}");
+
     JsonElement body;
-    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); }
-    catch { return Results.BadRequest(new { error = "JSON inválido" }); }
+    try { body = JsonSerializer.Deserialize<JsonElement>(rawBody); }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"[FOTO-INSTANT] JSON parse error: {ex.Message}");
+        return Results.BadRequest(new { error = "JSON inválido" });
+    }
 
     var imagen   = body.TryGetProperty("imagen",   out var iv) ? iv.GetString() ?? "" : "";
     var mimeType = body.TryGetProperty("mimeType", out var mv) ? mv.GetString() ?? "image/jpeg" : "image/jpeg";
 
-    if (string.IsNullOrEmpty(imagen)) return Results.BadRequest(new { error = "imagen requerida" });
+    Console.Error.WriteLine($"[FOTO-INSTANT] imagen.length={imagen.Length} mimeType={mimeType}");
+
+    if (string.IsNullOrEmpty(imagen))
+    {
+        Console.Error.WriteLine("[FOTO-INSTANT] imagen vacía — retornando null");
+        return Results.Ok(new { match = (object?)null, razon = "imagen_vacia" });
+    }
 
     var groqKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? configuration["GROQ_API_KEY"] ?? "";
-    if (string.IsNullOrEmpty(groqKey)) return Results.Ok(new { match = (object?)null, razon = "sin_api_key" });
+    if (string.IsNullOrEmpty(groqKey))
+    {
+        Console.Error.WriteLine("[FOTO-INSTANT] Sin GROQ_API_KEY");
+        return Results.Ok(new { match = (object?)null, razon = "sin_api_key" });
+    }
 
     try
     {
@@ -3829,8 +3862,13 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
         };
 
         var resp = await client.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", payload);
+        Console.Error.WriteLine($"[FOTO-INSTANT] Groq respuesta HTTP={resp.StatusCode}");
         if (!resp.IsSuccessStatusCode)
+        {
+            var errBody = await resp.Content.ReadAsStringAsync();
+            Console.Error.WriteLine($"[FOTO-INSTANT] Groq error body: {errBody[..Math.Min(200,errBody.Length)]}");
             return Results.Ok(new { match = (object?)null, razon = "error_vision" });
+        }
 
         var respText = await resp.Content.ReadAsStringAsync();
         var respJson = JsonSerializer.Deserialize<JsonElement>(respText);
@@ -3848,8 +3886,8 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
         var modeloGroq= info.TryGetProperty("modelo",     out var mdv) ? mdv.GetString()?.Trim() ?? "" : "";
         var confianza = info.TryGetProperty("confianza",  out var cv2) ? cv2.GetString() ?? "media" : "media";
 
-        logger.LogInformation("[FOTO-INSTANT] ref={ref} marca={marca} tipo={tipo} modelo={modelo} confianza={conf}",
-            refGroq, marcaGroq, tipoGroq, modeloGroq, confianza);
+        Console.Error.WriteLine($"[FOTO-INSTANT] Groq raw='{raw[..Math.Min(300,raw.Length)]}'");
+        Console.Error.WriteLine($"[FOTO-INSTANT] ref='{refGroq}' marca='{marcaGroq}' tipo='{tipoGroq}' modelo='{modeloGroq}' conf={confianza}");
 
         // Recopilar todos los términos de búsqueda posibles
         var terminosBusqueda = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -3937,15 +3975,22 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
             }
         }
 
-        // Estrategia 3: buscar en inventario_por_imagen (fotos previas que ya tienen descripcion)
+        // Estrategia 3: buscar en inventario_por_imagen buscando en referencia Y notas
         if (palabrasClave.Count > 0)
         {
-            var condImg   = palabrasClave.Select((w, i) => $"LOWER(referencia) LIKE @iw{i}").ToList();
-            var scoreImg  = palabrasClave.Select((w, i) => $"(CASE WHEN LOWER(referencia) LIKE @iw{i} THEN 1 ELSE 0 END)").ToList();
+            // Busca en AMBAS columnas: referencia y notas (donde está "Marca: Genius | Color: Negro")
+            var condImg  = palabrasClave.Select((w, i) =>
+                $"(LOWER(COALESCE(referencia,'')) LIKE @iw{i} OR LOWER(COALESCE(notas,'')) LIKE @iw{i})").ToList();
+            var scoreImg = palabrasClave.Select((w, i) =>
+                $"(CASE WHEN LOWER(COALESCE(referencia,'')) LIKE @iw{i} OR LOWER(COALESCE(notas,'')) LIKE @iw{i} THEN 1 ELSE 0 END)").ToList();
+
             var sqlImg = $@"
-                SELECT referencia, notas, ({string.Join(" + ", scoreImg)}) AS score
+                SELECT COALESCE(referencia,'') AS ref,
+                       COALESCE(notas,'')      AS notas,
+                       ({string.Join(" + ", scoreImg)}) AS score
                 FROM inventario_por_imagen
                 WHERE {string.Join(" OR ", condImg)}
+                  AND (referencia IS NOT NULL AND referencia <> '' OR notas IS NOT NULL AND notas <> '')
                 ORDER BY score DESC, fecha DESC
                 LIMIT 1";
 
@@ -3957,50 +4002,67 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
             if (await rImg.ReadAsync())
             {
                 var scoreVal = rImg.GetInt32(2);
-                if (scoreVal >= 2)
+                var refImg   = rImg.GetString(0);
+                var notasImg = rImg.GetString(1);
+                Console.Error.WriteLine($"[FOTO-INSTANT] inventario_por_imagen candidato: ref='{refImg}' notas='{notasImg[..Math.Min(80,notasImg.Length)]}' score={scoreVal}");
+
+                if (scoreVal >= 1) // con 1 coincidencia ya intentamos recuperar el producto del stock
                 {
-                    var refImg    = rImg.IsDBNull(0) ? "" : rImg.GetString(0);
-                    // Intentar extraer precio de notas (formato "Precio: 12345")
-                    var notasImg  = rImg.IsDBNull(1) ? "" : rImg.GetString(1);
+                    // Intentar extraer precio de notas (formato "Precio: 600000")
                     var precioImg = 0m;
                     var mPrecio   = System.Text.RegularExpressions.Regex.Match(notasImg, @"Precio:\s*([\d.,]+)");
                     if (mPrecio.Success) decimal.TryParse(mPrecio.Groups[1].Value.Replace(".", "").Replace(",", "."), out precioImg);
-                    logger.LogInformation("[FOTO-INSTANT] Match en inventario_por_imagen: {ref}", refImg);
 
-                    // Intentar encontrar el producto en inventario_stock por esa referencia
-                    var words2 = refImg.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(w => w.Length >= 3).Select(w => w.ToLower()).ToList();
+                    // Buscar en inventario_stock por: el codigo de referencia O por palabras del texto combinado
+                    var textoCombo = (refImg + " " + notasImg).ToLower();
+                    var words2 = textoCombo
+                        .Split(new[] { ' ', '|', ':', '.', '-', '_', '/' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Where(w => w.Length >= 3 && !new[]{"marca","color","tipo","precio","cant","cantidad","iai","bd"}.Contains(w))
+                        .Distinct().Take(8).ToList();
+
+                    Console.Error.WriteLine($"[FOTO-INSTANT] Buscando en stock con palabras de imagen: {string.Join(",", words2)}");
+
                     if (words2.Count > 0)
                     {
-                        var cond2  = words2.Select((w, i) => $"LOWER(descripcion) LIKE @z{i}").ToList();
+                        var cond2  = words2.Select((w, i) => $"LOWER(descripcion) LIKE @z{i} OR LOWER(codigo_producto) = @z{i}").ToList();
                         var score2 = words2.Select((w, i) => $"(CASE WHEN LOWER(descripcion) LIKE @z{i} THEN 1 ELSE 0 END)").ToList();
-                        var sql2 = $@"SELECT codigo_producto, descripcion, stock_actual, precio_venta, ({string.Join(" + ", score2)}) AS sc
-                                      FROM inventario_stock WHERE {string.Join(" OR ", cond2)}
-                                      ORDER BY sc DESC LIMIT 1";
+                        var sql2 = $@"SELECT codigo_producto, descripcion, stock_actual, precio_venta,
+                                             ({string.Join(" + ", score2)}) AS sc
+                                      FROM inventario_stock
+                                      WHERE {string.Join(" OR ", cond2)}
+                                      ORDER BY sc DESC, stock_actual DESC LIMIT 1";
                         await using var cmd3 = new NpgsqlCommand(sql2, conn);
                         for (int i = 0; i < words2.Count; i++) cmd3.Parameters.AddWithValue($"@z{i}", $"%{words2[i]}%");
                         await using var r3 = await cmd3.ExecuteReaderAsync();
-                        if (await r3.ReadAsync() && r3.GetInt32(4) >= 1)
+                        if (await r3.ReadAsync())
                         {
+                            Console.Error.WriteLine($"[FOTO-INSTANT] Match desde imagen→stock: {r3.GetString(0)} | {r3.GetString(1)}");
+                            var pImg = r3.GetDecimal(3) > 0 ? r3.GetDecimal(3) : precioImg;
                             return Results.Ok(new {
-                                match = new { codigo = r3.GetString(0), descripcion = r3.GetString(1), stock = r3.GetInt32(2), precio = r3.GetDecimal(3), fuente = "imagen" },
+                                match = new { codigo = r3.GetString(0), descripcion = r3.GetString(1), stock = r3.GetInt32(2), precio = pImg, fuente = "imagen" },
                                 refDetectada = refGroq, confianza
                             });
                         }
                     }
-                    // Si no hay stock, retornar como producto de imagen
-                    return Results.Ok(new {
-                        match = new { codigo = "IMG", descripcion = refImg, stock = 0, precio = precioImg, fuente = "imagen" },
-                        refDetectada = refGroq, confianza
-                    });
+                    // Si no se encontró en stock, devolver la info de la imagen directamente
+                    if (!string.IsNullOrEmpty(refImg))
+                    {
+                        Console.Error.WriteLine($"[FOTO-INSTANT] Match solo en imagen, ref='{refImg}' precio={precioImg}");
+                        return Results.Ok(new {
+                            match = new { codigo = "IMG", descripcion = refImg, stock = 0, precio = precioImg, fuente = "imagen" },
+                            refDetectada = refGroq, confianza
+                        });
+                    }
                 }
             }
         }
 
-        logger.LogInformation("[FOTO-INSTANT] Sin match. ref={ref} palabras={words}", refGroq, string.Join(",", palabrasClave));
+        Console.Error.WriteLine($"[FOTO-INSTANT] Sin match. ref='{refGroq}' palabras=[{string.Join(",", palabrasClave)}]");
         return Results.Ok(new { match = (object?)null, razon = "no_encontrado_en_bd", refDetectada = refGroq });
     }
     catch (Exception ex)
     {
+        Console.Error.WriteLine($"[FOTO-INSTANT] EXCEPCIÓN: {ex.GetType().Name}: {ex.Message}");
         logger.LogError(ex, "[ANALIZAR-FOTO-INSTANT] Error");
         return Results.Ok(new { match = (object?)null, razon = "error_interno" });
     }
