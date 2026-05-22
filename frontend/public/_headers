@@ -1,0 +1,10 @@
+# Cloudflare Pages headers — evitar caché del index.html para que el celular
+# siempre cargue el JavaScript más reciente.
+
+/index.html
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+  Pragma: no-cache
+
+/
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+  Pragma: no-cache
