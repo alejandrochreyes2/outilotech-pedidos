@@ -7,6 +7,9 @@ using System.Text;
 using System.Text.Json;
 using System.Collections.Concurrent;
 using Npgsql;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.PixelFormats;
 using PedidosAPI.Data;
 using PedidosAPI.Repositories;
 using PedidosAPI.Models;
@@ -397,9 +400,14 @@ using (var scope = app.Services.CreateScope())
               fecha         TIMESTAMPTZ DEFAULT NOW(),
               cajera        VARCHAR(200),
               token_sesion  VARCHAR(100),
-              revisado      BOOLEAN DEFAULT FALSE
+              revisado      BOOLEAN DEFAULT FALSE,
+              phash         BIGINT,
+              descripcion_ia TEXT
             );
             CREATE INDEX IF NOT EXISTS idx_inv_imagen_revisado ON inventario_por_imagen(revisado, fecha DESC);
+            -- Agregar columnas si no existen (migración segura)
+            ALTER TABLE inventario_por_imagen ADD COLUMN IF NOT EXISTS phash BIGINT;
+            ALTER TABLE inventario_por_imagen ADD COLUMN IF NOT EXISTS descripcion_ia TEXT;
             CREATE TABLE IF NOT EXISTS ventas_pendientes (
               id          SERIAL PRIMARY KEY,
               cajera      VARCHAR(200) NOT NULL,
@@ -2846,18 +2854,23 @@ app.MapPost("/scan/session/{token}/foto", async (string token, HttpContext ctx) 
     if (string.IsNullOrEmpty(imagenB64))
         return Results.BadRequest(new { error = "Imagen requerida" });
 
+    // Calcular pHash para comparación visual futura
+    var phashVal = CalcularPHash(imagenB64);
+    Console.Error.WriteLine($"[FOTO-GUARDAR] Guardando foto. pHash={phashVal} ref='{referencia}'");
+
     try {
         await using var conn = new NpgsqlConnection(pgConnectionString);
         await conn.OpenAsync();
         await using var cmd = new NpgsqlCommand(@"
-            INSERT INTO inventario_por_imagen (referencia, notas, imagen_base64, mime_type, token_sesion)
-            VALUES (@ref, @notas, @img, @mime, @tok)
+            INSERT INTO inventario_por_imagen (referencia, notas, imagen_base64, mime_type, token_sesion, phash)
+            VALUES (@ref, @notas, @img, @mime, @tok, @phash)
             RETURNING id", conn);
         cmd.Parameters.AddWithValue("@ref",   referencia);
         cmd.Parameters.AddWithValue("@notas", notas);
         cmd.Parameters.AddWithValue("@img",   imagenB64);
         cmd.Parameters.AddWithValue("@mime",  mimeType);
         cmd.Parameters.AddWithValue("@tok",   tokenSesion);
+        cmd.Parameters.AddWithValue("@phash", phashVal == 0 ? DBNull.Value : (object)phashVal);
         var id = (int)(cmd.ExecuteScalar() ?? 0);
         return Results.Ok(new { ok = true, id, mensaje = "Foto guardada. La cajera la revisará pronto." });
     } catch (Exception ex) {
@@ -3778,26 +3791,24 @@ app.MapPatch("/inventario/{codigo}", async (string codigo, HttpContext ctx) =>
 }).RequireAuthorization();
 
 // ============================================================
-// POST /scan/analizar-foto-instant — reconocer producto por foto (IA + BD)
-// Retorna el producto de inventario si existe, o null si no se encontró
+// POST /scan/analizar-foto-instant — reconocer producto por foto
+// ESTRATEGIA: 1) pHash visual  2) Groq Vision + búsqueda de texto
 // ============================================================
 app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguration configuration, IHttpClientFactory factory, ILogger<Program> logger) =>
 {
     Console.Error.WriteLine("[FOTO-INSTANT] >>> Endpoint llamado");
 
-    // Leer body con límite explícito de 20MB para soportar fotos grandes
-    ctx.Request.EnableBuffering();
     string rawBody;
     try
     {
-        using var sr = new System.IO.StreamReader(ctx.Request.Body, leaveOpen: true);
+        ctx.Request.EnableBuffering();
+        using var sr = new System.IO.StreamReader(ctx.Request.Body, System.Text.Encoding.UTF8, leaveOpen: true);
         rawBody = await sr.ReadToEndAsync();
-        ctx.Request.Body.Position = 0;
     }
     catch (Exception ex)
     {
         Console.Error.WriteLine($"[FOTO-INSTANT] Error leyendo body: {ex.Message}");
-        return Results.BadRequest(new { error = "Error leyendo body" });
+        return Results.Ok(new { match = (object?)null, razon = "error_body" });
     }
 
     Console.Error.WriteLine($"[FOTO-INSTANT] Body length={rawBody.Length}");
@@ -3806,52 +3817,154 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
     try { body = JsonSerializer.Deserialize<JsonElement>(rawBody); }
     catch (Exception ex)
     {
-        Console.Error.WriteLine($"[FOTO-INSTANT] JSON parse error: {ex.Message}");
-        return Results.BadRequest(new { error = "JSON inválido" });
+        Console.Error.WriteLine($"[FOTO-INSTANT] JSON error: {ex.Message}");
+        return Results.Ok(new { match = (object?)null, razon = "json_invalido" });
     }
 
     var imagen   = body.TryGetProperty("imagen",   out var iv) ? iv.GetString() ?? "" : "";
     var mimeType = body.TryGetProperty("mimeType", out var mv) ? mv.GetString() ?? "image/jpeg" : "image/jpeg";
 
-    Console.Error.WriteLine($"[FOTO-INSTANT] imagen.length={imagen.Length} mimeType={mimeType}");
+    Console.Error.WriteLine($"[FOTO-INSTANT] imagen.length={imagen.Length}");
 
     if (string.IsNullOrEmpty(imagen))
-    {
-        Console.Error.WriteLine("[FOTO-INSTANT] imagen vacía — retornando null");
         return Results.Ok(new { match = (object?)null, razon = "imagen_vacia" });
-    }
-
-    var groqKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? configuration["GROQ_API_KEY"] ?? "";
-    if (string.IsNullOrEmpty(groqKey))
-    {
-        Console.Error.WriteLine("[FOTO-INSTANT] Sin GROQ_API_KEY");
-        return Results.Ok(new { match = (object?)null, razon = "sin_api_key" });
-    }
 
     try
     {
-        // ── Vision: identificar referencia/código del producto ────────────
+        await using var conn = new NpgsqlConnection(pgConnectionString);
+        await conn.OpenAsync();
+
+        // ════════════════════════════════════════════════════════════════
+        // ESTRATEGIA 1 — Hash perceptual (pHash) visual
+        // Compara la huella digital visual de la foto nueva con fotos guardadas.
+        // Si la distancia Hamming es < 20 = mismo producto o muy similar.
+        // ════════════════════════════════════════════════════════════════
+        var hashNuevo = CalcularPHash(imagen);
+        Console.Error.WriteLine($"[FOTO-INSTANT] pHash nueva foto = {hashNuevo}");
+
+        if (hashNuevo != 0)
+        {
+            // Traer los últimos 200 registros con imagen_base64 y sus datos
+            var cmdHash = new NpgsqlCommand(@"
+                SELECT id, imagen_base64, phash, COALESCE(referencia,'') AS ref,
+                       COALESCE(notas,'') AS notas, COALESCE(descripcion_ia,'') AS desc_ia
+                FROM inventario_por_imagen
+                WHERE imagen_base64 IS NOT NULL AND imagen_base64 <> ''
+                ORDER BY fecha DESC LIMIT 200", conn);
+
+            await using var rHash = await cmdHash.ExecuteReaderAsync();
+            var mejorDist = int.MaxValue;
+            string mejorRef = "", mejorNotas = "", mejorDescIA = "";
+            long mejorHashAlmacenado = 0;
+            int mejorId = 0;
+
+            while (await rHash.ReadAsync())
+            {
+                long hashGuardado = rHash.IsDBNull(2) ? 0L : rHash.GetInt64(2);
+
+                // Si no tiene hash calculado, calcularlo al vuelo
+                if (hashGuardado == 0)
+                {
+                    var b64 = rHash.IsDBNull(1) ? "" : rHash.GetString(1);
+                    if (!string.IsNullOrEmpty(b64))
+                        hashGuardado = CalcularPHash(b64);
+                }
+
+                if (hashGuardado == 0) continue;
+
+                var dist = DistanciaHamming(hashNuevo, hashGuardado);
+                if (dist < mejorDist)
+                {
+                    mejorDist        = dist;
+                    mejorRef         = rHash.GetString(3);
+                    mejorNotas       = rHash.GetString(4);
+                    mejorDescIA      = rHash.GetString(5);
+                    mejorHashAlmacenado = hashGuardado;
+                    mejorId          = rHash.GetInt32(0);
+                }
+            }
+
+            Console.Error.WriteLine($"[FOTO-INSTANT] pHash — mejor distancia={mejorDist} id={mejorId} ref='{mejorRef}'");
+
+            // Umbral: distancia < 20 = mismo producto (misma caja, mismo ángulo similar)
+            if (mejorDist < 20 && mejorId > 0)
+            {
+                Console.Error.WriteLine($"[FOTO-INSTANT] pHash MATCH! dist={mejorDist} ref='{mejorRef}' notas='{mejorNotas[..Math.Min(60,mejorNotas.Length)]}'");
+
+                // Extraer precio de notas si existe
+                var precioHash = 0m;
+                var mP = System.Text.RegularExpressions.Regex.Match(mejorNotas, @"Precio:\s*([\d.,]+)");
+                if (mP.Success) decimal.TryParse(mP.Groups[1].Value.Replace(".", "").Replace(",", "."), out precioHash);
+
+                // Buscar el producto en inventario_stock por referencia o palabras clave
+                var textoRef = (mejorRef + " " + mejorNotas + " " + mejorDescIA).ToLower();
+                var wordsRef = textoRef
+                    .Split(new[] { ' ', '|', ':', '.', '-', '_', '/' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Where(w => w.Length >= 3 && !new[] { "marca","color","tipo","precio","cant","cantidad","negro","rojo","azul","blanco","sim","con","sin","del","los","las","por","para","que","una","mas" }.Contains(w))
+                    .Distinct().Take(10).ToList();
+
+                Console.Error.WriteLine($"[FOTO-INSTANT] Palabras para buscar en stock: [{string.Join(",",wordsRef)}]");
+
+                if (wordsRef.Count > 0)
+                {
+                    var condS  = wordsRef.Select((w, i) => $"LOWER(descripcion) LIKE @p{i} OR LOWER(codigo_producto) LIKE @p{i}").ToList();
+                    var scoreS = wordsRef.Select((w, i) => $"(CASE WHEN LOWER(descripcion) LIKE @p{i} THEN 1 ELSE 0 END)").ToList();
+                    var sqlS   = $@"SELECT codigo_producto, descripcion, stock_actual, precio_venta,
+                                           ({string.Join("+", scoreS)}) AS sc
+                                    FROM inventario_stock WHERE {string.Join(" OR ", condS)}
+                                    ORDER BY sc DESC, stock_actual DESC LIMIT 1";
+                    await using var cmdS = new NpgsqlCommand(sqlS, conn);
+                    for (int i = 0; i < wordsRef.Count; i++) cmdS.Parameters.AddWithValue($"@p{i}", $"%{wordsRef[i]}%");
+                    await using var rS = await cmdS.ExecuteReaderAsync();
+                    if (await rS.ReadAsync())
+                    {
+                        var precioFinal = rS.GetDecimal(3) > 0 ? rS.GetDecimal(3) : precioHash;
+                        Console.Error.WriteLine($"[FOTO-INSTANT] pHash→stock: {rS.GetString(0)} | {rS.GetString(1)} | ${precioFinal}");
+                        return Results.Ok(new {
+                            match = new { codigo = rS.GetString(0), descripcion = rS.GetString(1), stock = rS.GetInt32(2), precio = precioFinal, fuente = "phash" },
+                            refDetectada = mejorRef, confianza = $"phash_dist{mejorDist}"
+                        });
+                    }
+                }
+
+                // Si no encontró en stock pero tiene referencia de la imagen
+                if (!string.IsNullOrEmpty(mejorRef))
+                {
+                    return Results.Ok(new {
+                        match = new { codigo = "IMG", descripcion = mejorRef, stock = 0, precio = precioHash, fuente = "phash_imagen" },
+                        refDetectada = mejorRef, confianza = $"phash_dist{mejorDist}"
+                    });
+                }
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════
+        // ESTRATEGIA 2 — Groq Vision + búsqueda de texto en BD
+        // ════════════════════════════════════════════════════════════════
+        var groqKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? configuration["GROQ_API_KEY"] ?? "";
+        if (string.IsNullOrEmpty(groqKey))
+        {
+            Console.Error.WriteLine("[FOTO-INSTANT] Sin GROQ_API_KEY — sin match");
+            return Results.Ok(new { match = (object?)null, razon = "sin_api_key" });
+        }
+
         using var client = factory.CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(30);
+        client.Timeout = TimeSpan.FromSeconds(25);
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", groqKey);
 
-        var prompt = @"Eres un sistema de inventario. Analiza la imagen del producto y extrae toda la información posible. Responde SOLO JSON sin texto extra ni markdown:
-{""referencia"":""nombre/referencia principal del producto (ej: Mouse Genius DX-110, Teclado Logitech K120)"",""marca"":""marca del fabricante (ej: Genius, Logitech, Samsung)"",""tipo"":""tipo de producto (ej: mouse, teclado, monitor, cable)"",""modelo"":""numero de modelo si es visible (ej: DX-110, K120, A15)"",""posibles_codigos"":[""variante1"",""variante2""],""confianza"":""alta|media|baja""}";
+        var prompt = @"Analiza esta imagen de un producto y responde SOLO JSON sin texto extra:
+{""referencia"":""nombre completo del producto"",""marca"":""fabricante"",""tipo"":""mouse|teclado|cable|cargador|audifonos|celular|tablet|otro"",""modelo"":""numero modelo si visible"",""confianza"":""alta|media|baja""}";
 
-        var payload = new System.Text.Json.Nodes.JsonObject
+        var groqPayload = new System.Text.Json.Nodes.JsonObject
         {
             ["model"] = "meta-llama/llama-4-scout-17b-16e-instruct",
-            ["max_tokens"] = 200,
-            ["messages"] = new System.Text.Json.Nodes.JsonArray
-            {
-                new System.Text.Json.Nodes.JsonObject
-                {
+            ["max_tokens"] = 150,
+            ["messages"] = new System.Text.Json.Nodes.JsonArray {
+                new System.Text.Json.Nodes.JsonObject {
                     ["role"] = "user",
-                    ["content"] = new System.Text.Json.Nodes.JsonArray
-                    {
-                        new System.Text.Json.Nodes.JsonObject
-                        {
+                    ["content"] = new System.Text.Json.Nodes.JsonArray {
+                        new System.Text.Json.Nodes.JsonObject {
                             ["type"] = "image_url",
                             ["image_url"] = new System.Text.Json.Nodes.JsonObject { ["url"] = $"data:{mimeType};base64,{imagen}" }
                         },
@@ -3861,209 +3974,124 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
             }
         };
 
-        var resp = await client.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", payload);
-        Console.Error.WriteLine($"[FOTO-INSTANT] Groq respuesta HTTP={resp.StatusCode}");
-        if (!resp.IsSuccessStatusCode)
-        {
-            var errBody = await resp.Content.ReadAsStringAsync();
-            Console.Error.WriteLine($"[FOTO-INSTANT] Groq error body: {errBody[..Math.Min(200,errBody.Length)]}");
-            return Results.Ok(new { match = (object?)null, razon = "error_vision" });
-        }
+        var resp = await client.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", groqPayload);
+        Console.Error.WriteLine($"[FOTO-INSTANT] Groq HTTP={resp.StatusCode}");
 
-        var respText = await resp.Content.ReadAsStringAsync();
-        var respJson = JsonSerializer.Deserialize<JsonElement>(respText);
-        var raw = respJson.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "{}";
-        raw = raw.Trim();
+        if (!resp.IsSuccessStatusCode)
+            return Results.Ok(new { match = (object?)null, razon = "error_groq" });
+
+        var rText   = await resp.Content.ReadAsStringAsync();
+        var rJson   = JsonSerializer.Deserialize<JsonElement>(rText);
+        var raw     = rJson.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "{}";
+        raw = raw.Trim().TrimStart('`').TrimStart('j','s','o','n').Trim('`').Trim();
         if (raw.StartsWith("```json")) raw = raw[7..];
         if (raw.StartsWith("```"))     raw = raw[3..];
         if (raw.EndsWith("```"))       raw = raw[..^3];
         raw = raw.Trim();
 
-        var info = JsonSerializer.Deserialize<JsonElement>(raw);
+        Console.Error.WriteLine($"[FOTO-INSTANT] Groq raw={raw[..Math.Min(250,raw.Length)]}");
+
+        var info      = JsonSerializer.Deserialize<JsonElement>(raw);
         var refGroq   = info.TryGetProperty("referencia", out var rv)  ? rv.GetString()?.Trim()  ?? "" : "";
         var marcaGroq = info.TryGetProperty("marca",      out var mv2) ? mv2.GetString()?.Trim() ?? "" : "";
         var tipoGroq  = info.TryGetProperty("tipo",       out var tv)  ? tv.GetString()?.Trim()  ?? "" : "";
         var modeloGroq= info.TryGetProperty("modelo",     out var mdv) ? mdv.GetString()?.Trim() ?? "" : "";
         var confianza = info.TryGetProperty("confianza",  out var cv2) ? cv2.GetString() ?? "media" : "media";
 
-        Console.Error.WriteLine($"[FOTO-INSTANT] Groq raw='{raw[..Math.Min(300,raw.Length)]}'");
-        Console.Error.WriteLine($"[FOTO-INSTANT] ref='{refGroq}' marca='{marcaGroq}' tipo='{tipoGroq}' modelo='{modeloGroq}' conf={confianza}");
+        Console.Error.WriteLine($"[FOTO-INSTANT] Groq→ ref='{refGroq}' marca='{marcaGroq}' tipo='{tipoGroq}' modelo='{modeloGroq}'");
 
-        // Recopilar todos los términos de búsqueda posibles
-        var terminosBusqueda = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (!string.IsNullOrEmpty(refGroq))    terminosBusqueda.Add(refGroq);
-        if (!string.IsNullOrEmpty(marcaGroq))  terminosBusqueda.Add(marcaGroq);
-        if (!string.IsNullOrEmpty(tipoGroq))   terminosBusqueda.Add(tipoGroq);
-        if (!string.IsNullOrEmpty(modeloGroq)) terminosBusqueda.Add(modeloGroq);
-        if (info.TryGetProperty("posibles_codigos", out var pc) && pc.ValueKind == JsonValueKind.Array)
-            foreach (var el in pc.EnumerateArray())
-                if (el.GetString() is string s2 && !string.IsNullOrEmpty(s2)) terminosBusqueda.Add(s2);
+        // Construir lista de palabras clave para búsqueda
+        var terminos  = new[] { refGroq, marcaGroq, tipoGroq, modeloGroq }
+            .Where(t => !string.IsNullOrEmpty(t)).ToList();
+        var palabras  = terminos
+            .SelectMany(t => t.Split(new[] { ' ', '-', '_', '/' }, StringSplitOptions.RemoveEmptyEntries))
+            .Where(w => w.Length >= 3).Select(w => w.ToLower()).Distinct().ToList();
 
-        // Extraer palabras individuales (longitud >= 3) de todos los términos
-        var palabrasClave = terminosBusqueda
-            .SelectMany(t => t.Split(new[] { ' ', '-', '_', '/', '.' }, StringSplitOptions.RemoveEmptyEntries))
-            .Where(w => w.Length >= 3)
-            .Select(w => w.ToLower())
-            .Distinct()
-            .ToList();
+        Console.Error.WriteLine($"[FOTO-INSTANT] Palabras clave Groq: [{string.Join(",",palabras)}]");
 
-        logger.LogInformation("[FOTO-INSTANT] Palabras clave: {words}", string.Join(", ", palabrasClave));
-
-        if (palabrasClave.Count == 0 && terminosBusqueda.Count == 0)
+        if (palabras.Count == 0)
             return Results.Ok(new { match = (object?)null, razon = "sin_referencia" });
 
-        // ── Buscar en inventario_stock ──────────────────────────────────
-        await using var conn = new NpgsqlConnection(pgConnectionString);
-        await conn.OpenAsync();
-
-        // Estrategia 1: coincidencia exacta por codigo_producto
-        foreach (var termino in terminosBusqueda.Where(t => !string.IsNullOrEmpty(t)))
+        // Buscar en inventario_stock con scoring por palabras
+        var condG  = palabras.Select((w, i) => $"LOWER(descripcion) LIKE @g{i}").ToList();
+        var scoreG = palabras.Select((w, i) => $"(CASE WHEN LOWER(descripcion) LIKE @g{i} THEN 1 ELSE 0 END)").ToList();
+        var sqlG   = $@"SELECT codigo_producto, descripcion, stock_actual, precio_venta,
+                               ({string.Join("+", scoreG)}) AS sc
+                        FROM inventario_stock WHERE {string.Join(" OR ", condG)}
+                        ORDER BY sc DESC, stock_actual DESC LIMIT 5";
+        await using var cmdG = new NpgsqlCommand(sqlG, conn);
+        for (int i = 0; i < palabras.Count; i++) cmdG.Parameters.AddWithValue($"@g{i}", $"%{palabras[i]}%");
+        await using var rG = await cmdG.ExecuteReaderAsync();
+        while (await rG.ReadAsync())
         {
-            await using var cmd = new NpgsqlCommand(@"
-                SELECT codigo_producto, descripcion, stock_actual, precio_venta
-                FROM inventario_stock
-                WHERE LOWER(codigo_producto) = LOWER(@cod)
-                LIMIT 1", conn);
-            cmd.Parameters.AddWithValue("@cod", termino);
-            await using var r = await cmd.ExecuteReaderAsync();
-            if (await r.ReadAsync())
+            var sc   = rG.GetInt32(4);
+            var desc = rG.GetString(1).ToLower();
+            var marcaOk = !string.IsNullOrEmpty(marcaGroq) && desc.Contains(marcaGroq.ToLower());
+            Console.Error.WriteLine($"[FOTO-INSTANT] Stock candidato: {rG.GetString(0)} | {rG.GetString(1)} | sc={sc} marcaOk={marcaOk}");
+            if (sc >= 2 || (sc >= 1 && marcaOk))
             {
-                logger.LogInformation("[FOTO-INSTANT] Match exacto por codigo: {cod}", r.GetString(0));
                 return Results.Ok(new {
-                    match = new { codigo = r.GetString(0), descripcion = r.GetString(1), stock = r.GetInt32(2), precio = r.GetDecimal(3), fuente = "stock" },
+                    match = new { codigo = rG.GetString(0), descripcion = rG.GetString(1), stock = rG.GetInt32(2), precio = rG.GetDecimal(3), fuente = "groq_stock" },
                     refDetectada = refGroq, confianza
                 });
             }
         }
 
-        // Estrategia 2: búsqueda por palabras clave independientes con scoring
-        if (palabrasClave.Count > 0)
+        // Buscar en inventario_por_imagen (referencia + notas) con palabras de Groq
+        var condI  = palabras.Select((w, i) =>
+            $"(LOWER(COALESCE(referencia,'')) LIKE @i{i} OR LOWER(COALESCE(notas,'')) LIKE @i{i} OR LOWER(COALESCE(descripcion_ia,'')) LIKE @i{i})").ToList();
+        var scoreI = palabras.Select((w, i) =>
+            $"(CASE WHEN LOWER(COALESCE(referencia,'')) LIKE @i{i} OR LOWER(COALESCE(notas,'')) LIKE @i{i} THEN 1 ELSE 0 END)").ToList();
+        var sqlI   = $@"SELECT COALESCE(referencia,''), COALESCE(notas,''), ({string.Join("+",scoreI)}) AS sc
+                        FROM inventario_por_imagen
+                        WHERE {string.Join(" OR ", condI)}
+                          AND (referencia <> '' OR notas <> '' OR descripcion_ia <> '')
+                        ORDER BY sc DESC, fecha DESC LIMIT 1";
+        await using var cmdI = new NpgsqlCommand(sqlI, conn);
+        for (int i = 0; i < palabras.Count; i++) cmdI.Parameters.AddWithValue($"@i{i}", $"%{palabras[i]}%");
+        await using var rI = await cmdI.ExecuteReaderAsync();
+        if (await rI.ReadAsync() && rI.GetInt32(2) >= 1)
         {
-            // Construir WHERE con OR por cada palabra clave
-            var condiciones = palabrasClave.Select((w, i) => $"LOWER(descripcion) LIKE @w{i}").ToList();
-            // Construir scoring: cuantas palabras clave coinciden
-            var scoreParts  = palabrasClave.Select((w, i) => $"(CASE WHEN LOWER(descripcion) LIKE @w{i} THEN 1 ELSE 0 END)").ToList();
+            var refI   = rI.GetString(0);
+            var notasI = rI.GetString(1);
+            var precI  = 0m;
+            var mPI    = System.Text.RegularExpressions.Regex.Match(notasI, @"Precio:\s*([\d.,]+)");
+            if (mPI.Success) decimal.TryParse(mPI.Groups[1].Value.Replace(".", "").Replace(",", "."), out precI);
+            Console.Error.WriteLine($"[FOTO-INSTANT] Match en inventario_por_imagen: ref='{refI}' precio={precI}");
 
-            var sql = $@"
-                SELECT codigo_producto, descripcion, stock_actual, precio_venta,
-                       ({string.Join(" + ", scoreParts)}) AS score
-                FROM inventario_stock
-                WHERE {string.Join(" OR ", condiciones)}
-                ORDER BY score DESC, stock_actual DESC
-                LIMIT 3";
-
-            await using var cmd2 = new NpgsqlCommand(sql, conn);
-            for (int i = 0; i < palabrasClave.Count; i++)
-                cmd2.Parameters.AddWithValue($"@w{i}", $"%{palabrasClave[i]}%");
-
-            await using var r2 = await cmd2.ExecuteReaderAsync();
-            while (await r2.ReadAsync())
+            // Intentar cruzar con stock
+            var ws2  = (refI + " " + notasI).ToLower().Split(new[]{' ','|',':','.','_','-','/'}, StringSplitOptions.RemoveEmptyEntries)
+                        .Where(w => w.Length >= 3).Distinct().Take(8).ToList();
+            if (ws2.Count > 0)
             {
-                var score = r2.GetInt32(4);
-                var desc  = r2.GetString(1).ToLower();
-                logger.LogInformation("[FOTO-INSTANT] Candidato: {cod} | {desc} | score={score}", r2.GetString(0), r2.GetString(1), score);
-
-                // Aceptar si: score >= 2 palabras coinciden, O coincide la marca principal, O score=1 con marca confirmada
-                bool marcaPresente = !string.IsNullOrEmpty(marcaGroq) && desc.Contains(marcaGroq.ToLower());
-                if (score >= 2 || (score >= 1 && marcaPresente))
+                var cS2  = ws2.Select((w,i) => $"LOWER(descripcion) LIKE @q{i}").ToList();
+                var scS2 = ws2.Select((w,i) => $"(CASE WHEN LOWER(descripcion) LIKE @q{i} THEN 1 ELSE 0 END)").ToList();
+                await using var cS2cmd = new NpgsqlCommand(
+                    $"SELECT codigo_producto,descripcion,stock_actual,precio_venta,({string.Join("+",scS2)}) AS sc FROM inventario_stock WHERE {string.Join(" OR ",cS2)} ORDER BY sc DESC LIMIT 1", conn);
+                for (int i = 0; i < ws2.Count; i++) cS2cmd.Parameters.AddWithValue($"@q{i}", $"%{ws2[i]}%");
+                await using var rS2 = await cS2cmd.ExecuteReaderAsync();
+                if (await rS2.ReadAsync())
                 {
+                    var pF = rS2.GetDecimal(3) > 0 ? rS2.GetDecimal(3) : precI;
                     return Results.Ok(new {
-                        match = new { codigo = r2.GetString(0), descripcion = r2.GetString(1), stock = r2.GetInt32(2), precio = r2.GetDecimal(3), fuente = "stock" },
+                        match = new { codigo = rS2.GetString(0), descripcion = rS2.GetString(1), stock = rS2.GetInt32(2), precio = pF, fuente = "groq_imagen" },
                         refDetectada = refGroq, confianza
                     });
                 }
             }
+            if (!string.IsNullOrEmpty(refI))
+                return Results.Ok(new {
+                    match = new { codigo = "IMG", descripcion = refI, stock = 0, precio = precI, fuente = "groq_imagen" },
+                    refDetectada = refGroq, confianza
+                });
         }
 
-        // Estrategia 3: buscar en inventario_por_imagen buscando en referencia Y notas
-        if (palabrasClave.Count > 0)
-        {
-            // Busca en AMBAS columnas: referencia y notas (donde está "Marca: Genius | Color: Negro")
-            var condImg  = palabrasClave.Select((w, i) =>
-                $"(LOWER(COALESCE(referencia,'')) LIKE @iw{i} OR LOWER(COALESCE(notas,'')) LIKE @iw{i})").ToList();
-            var scoreImg = palabrasClave.Select((w, i) =>
-                $"(CASE WHEN LOWER(COALESCE(referencia,'')) LIKE @iw{i} OR LOWER(COALESCE(notas,'')) LIKE @iw{i} THEN 1 ELSE 0 END)").ToList();
-
-            var sqlImg = $@"
-                SELECT COALESCE(referencia,'') AS ref,
-                       COALESCE(notas,'')      AS notas,
-                       ({string.Join(" + ", scoreImg)}) AS score
-                FROM inventario_por_imagen
-                WHERE {string.Join(" OR ", condImg)}
-                  AND (referencia IS NOT NULL AND referencia <> '' OR notas IS NOT NULL AND notas <> '')
-                ORDER BY score DESC, fecha DESC
-                LIMIT 1";
-
-            await using var cmdImg = new NpgsqlCommand(sqlImg, conn);
-            for (int i = 0; i < palabrasClave.Count; i++)
-                cmdImg.Parameters.AddWithValue($"@iw{i}", $"%{palabrasClave[i]}%");
-
-            await using var rImg = await cmdImg.ExecuteReaderAsync();
-            if (await rImg.ReadAsync())
-            {
-                var scoreVal = rImg.GetInt32(2);
-                var refImg   = rImg.GetString(0);
-                var notasImg = rImg.GetString(1);
-                Console.Error.WriteLine($"[FOTO-INSTANT] inventario_por_imagen candidato: ref='{refImg}' notas='{notasImg[..Math.Min(80,notasImg.Length)]}' score={scoreVal}");
-
-                if (scoreVal >= 1) // con 1 coincidencia ya intentamos recuperar el producto del stock
-                {
-                    // Intentar extraer precio de notas (formato "Precio: 600000")
-                    var precioImg = 0m;
-                    var mPrecio   = System.Text.RegularExpressions.Regex.Match(notasImg, @"Precio:\s*([\d.,]+)");
-                    if (mPrecio.Success) decimal.TryParse(mPrecio.Groups[1].Value.Replace(".", "").Replace(",", "."), out precioImg);
-
-                    // Buscar en inventario_stock por: el codigo de referencia O por palabras del texto combinado
-                    var textoCombo = (refImg + " " + notasImg).ToLower();
-                    var words2 = textoCombo
-                        .Split(new[] { ' ', '|', ':', '.', '-', '_', '/' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Where(w => w.Length >= 3 && !new[]{"marca","color","tipo","precio","cant","cantidad","iai","bd"}.Contains(w))
-                        .Distinct().Take(8).ToList();
-
-                    Console.Error.WriteLine($"[FOTO-INSTANT] Buscando en stock con palabras de imagen: {string.Join(",", words2)}");
-
-                    if (words2.Count > 0)
-                    {
-                        var cond2  = words2.Select((w, i) => $"LOWER(descripcion) LIKE @z{i} OR LOWER(codigo_producto) = @z{i}").ToList();
-                        var score2 = words2.Select((w, i) => $"(CASE WHEN LOWER(descripcion) LIKE @z{i} THEN 1 ELSE 0 END)").ToList();
-                        var sql2 = $@"SELECT codigo_producto, descripcion, stock_actual, precio_venta,
-                                             ({string.Join(" + ", score2)}) AS sc
-                                      FROM inventario_stock
-                                      WHERE {string.Join(" OR ", cond2)}
-                                      ORDER BY sc DESC, stock_actual DESC LIMIT 1";
-                        await using var cmd3 = new NpgsqlCommand(sql2, conn);
-                        for (int i = 0; i < words2.Count; i++) cmd3.Parameters.AddWithValue($"@z{i}", $"%{words2[i]}%");
-                        await using var r3 = await cmd3.ExecuteReaderAsync();
-                        if (await r3.ReadAsync())
-                        {
-                            Console.Error.WriteLine($"[FOTO-INSTANT] Match desde imagen→stock: {r3.GetString(0)} | {r3.GetString(1)}");
-                            var pImg = r3.GetDecimal(3) > 0 ? r3.GetDecimal(3) : precioImg;
-                            return Results.Ok(new {
-                                match = new { codigo = r3.GetString(0), descripcion = r3.GetString(1), stock = r3.GetInt32(2), precio = pImg, fuente = "imagen" },
-                                refDetectada = refGroq, confianza
-                            });
-                        }
-                    }
-                    // Si no se encontró en stock, devolver la info de la imagen directamente
-                    if (!string.IsNullOrEmpty(refImg))
-                    {
-                        Console.Error.WriteLine($"[FOTO-INSTANT] Match solo en imagen, ref='{refImg}' precio={precioImg}");
-                        return Results.Ok(new {
-                            match = new { codigo = "IMG", descripcion = refImg, stock = 0, precio = precioImg, fuente = "imagen" },
-                            refDetectada = refGroq, confianza
-                        });
-                    }
-                }
-            }
-        }
-
-        Console.Error.WriteLine($"[FOTO-INSTANT] Sin match. ref='{refGroq}' palabras=[{string.Join(",", palabrasClave)}]");
-        return Results.Ok(new { match = (object?)null, razon = "no_encontrado_en_bd", refDetectada = refGroq });
+        Console.Error.WriteLine($"[FOTO-INSTANT] Sin match final. ref='{refGroq}'");
+        return Results.Ok(new { match = (object?)null, razon = "no_encontrado", refDetectada = refGroq });
     }
     catch (Exception ex)
     {
         Console.Error.WriteLine($"[FOTO-INSTANT] EXCEPCIÓN: {ex.GetType().Name}: {ex.Message}");
-        logger.LogError(ex, "[ANALIZAR-FOTO-INSTANT] Error");
         return Results.Ok(new { match = (object?)null, razon = "error_interno" });
     }
 }).RequireAuthorization();
@@ -4622,6 +4650,40 @@ app.MapMethods("/facturacion/{id:int}/anular", new[] { "PATCH" }, async (int id)
 app.UseSwagger();
 app.UseSwaggerUI();
 app.Run();
+
+// ── Hash perceptual de imágenes (dHash 8x8 = 64 bits) ─────────────
+// Redimensiona la imagen a 9x8 en escala de grises y compara pixels adyacentes.
+// Dos imágenes del mismo producto tienen distancia Hamming < 15.
+static long CalcularPHash(string base64)
+{
+    try
+    {
+        var bytes = Convert.FromBase64String(base64);
+        using var img = Image.Load<L8>(bytes);
+        img.Mutate(x => x.Resize(9, 8).Grayscale());
+        long hash = 0;
+        int bit = 0;
+        for (int y = 0; y < 8; y++)
+            for (int x = 0; x < 8; x++)
+            {
+                if (img[x, y].PackedValue > img[x + 1, y].PackedValue)
+                    hash |= (1L << bit);
+                bit++;
+            }
+        return hash;
+    }
+    catch { return 0; }
+}
+
+// Distancia Hamming entre dos hashes (cuántos bits son diferentes).
+// < 15 = misma imagen / mismo producto. < 25 = muy parecido.
+static int DistanciaHamming(long a, long b)
+{
+    long xor = a ^ b;
+    int dist = 0;
+    while (xor != 0) { dist += (int)(xor & 1); xor >>= 1; }
+    return dist;
+}
 
 // ── Servicio de email ──────────────────────────────────────────────
 static string BuildEmailHtml(Pedido p, string tipoEvento)
