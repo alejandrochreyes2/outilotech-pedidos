@@ -4085,6 +4085,7 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
                     mejorId             = rHash.GetInt32(0);
                 }
             }
+            await rHash.CloseAsync();
 
             Console.Error.WriteLine($"[FOTO-INSTANT] pHash — mejor distancia={mejorDist} id={mejorId} ref='{mejorRef}'");
 
@@ -4330,6 +4331,7 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
                 });
             }
         }
+        await rG.CloseAsync();
 
         // Buscar en inventario_por_imagen (referencia + notas) con palabras de Groq
         var condI  = palabras.Select((w, i) =>
@@ -4343,11 +4345,16 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
                         ORDER BY sc DESC, fecha DESC LIMIT 1";
         await using var cmdI = new NpgsqlCommand(sqlI, conn);
         for (int i = 0; i < palabras.Count; i++) cmdI.Parameters.AddWithValue($"@i{i}", $"%{palabras[i]}%");
-        await using var rI = await cmdI.ExecuteReaderAsync();
-        if (await rI.ReadAsync() && rI.GetInt32(2) >= 1)
+        string refI_ = "", notasI_ = ""; int scoreI_ = 0;
         {
-            var refI   = rI.GetString(0);
-            var notasI = rI.GetString(1);
+            await using var rI = await cmdI.ExecuteReaderAsync();
+            if (await rI.ReadAsync()) { refI_ = rI.GetString(0); notasI_ = rI.GetString(1); scoreI_ = rI.GetInt32(2); }
+            await rI.CloseAsync();
+        }
+        if (scoreI_ >= 1)
+        {
+            var refI   = refI_;
+            var notasI = notasI_;
             var precI  = 0m;
             var mPI    = System.Text.RegularExpressions.Regex.Match(notasI, @"Precio:\s*([\d.,]+)");
             if (mPI.Success) decimal.TryParse(mPI.Groups[1].Value.Replace(".", "").Replace(",", "."), out precI);
