@@ -288,6 +288,22 @@
         </div>
       </div>
 
+      <!-- Categoría -->
+      <div style="display:flex;flex-direction:column;gap:5px;width:100%">
+        <label style="color:#ccc;font-size:11px;font-weight:700;letter-spacing:0.5px">CATEGORÍA</label>
+        <select [value]="fotoCategoria()"
+                (change)="fotoCategoria.set($any($event.target).value)"
+                style="background:#1a1a1a;border:1px solid #555;color:#fff;padding:11px 12px;border-radius:8px;font-size:13px;outline:none;width:100%;box-sizing:border-box">
+          <option value="">Sin categoría</option>
+          <option value="Periférico">Periférico</option>
+          <option value="Accesorio">Accesorio</option>
+          <option value="Audio">Audio</option>
+          <option value="Celular">Celular</option>
+          <option value="Tablet">Tablet</option>
+          <option value="General">General</option>
+        </select>
+      </div>
+
       <!-- Dos botones de acción -->
       <div style="display:flex;gap:10px;width:100%;margin-top:4px">
         <button (click)="enviarFoto()" [disabled]="fotoEnviando()"

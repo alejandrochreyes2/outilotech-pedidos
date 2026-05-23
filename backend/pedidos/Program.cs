@@ -3587,14 +3587,15 @@ app.MapPost("/jhonia/enriquecer-inventario", async (HttpRequest request, IConfig
 // POS — BÚSQUEDA DE PRODUCTOS
 // GET /pos/buscar?q=texto — busca en inventario_stock e inventario_productos
 // ============================================================
-app.MapGet("/pos/buscar", async (string? q) =>
+app.MapGet("/pos/buscar", async (string? q, IConfiguration configuration, IHttpClientFactory factory) =>
 {
     var query = (q ?? "").Trim().ToLower();
     await using var conn = new NpgsqlConnection(pgConnectionString);
     await conn.OpenAsync();
-    var resultados = new List<object>();
+    var resultados   = new List<object>();
+    var codigosVistos = new HashSet<string>();
 
-    // 1. Inventario físico (stock)
+    // 1. Inventario físico (stock) — búsqueda exacta LIKE
     var cmdStock = new NpgsqlCommand(@"
         SELECT codigo_producto, descripcion, stock_actual, precio_venta, costo_unitario
         FROM inventario_stock
@@ -3603,11 +3604,15 @@ app.MapGet("/pos/buscar", async (string? q) =>
     cmdStock.Parameters.AddWithValue("q", $"%{query}%");
     await using var rStock = await cmdStock.ExecuteReaderAsync();
     while (await rStock.ReadAsync())
+    {
+        var cod = rStock.GetString(0);
+        codigosVistos.Add(cod);
         resultados.Add(new {
-            codigo = rStock.GetString(0), descripcion = rStock.GetString(1),
+            codigo = cod, descripcion = rStock.GetString(1),
             stock = rStock.GetInt32(2), precio = rStock.GetDecimal(3),
             costo = rStock.GetDecimal(4), fuente = "stock"
         });
+    }
     await rStock.CloseAsync();
 
     // 2. Catálogo web
@@ -3628,7 +3633,7 @@ app.MapGet("/pos/buscar", async (string? q) =>
         });
     await rProd.CloseAsync();
 
-    // 3. Inventario por imagen (fotos tomadas con celular, no encontradas por código)
+    // 3. Inventario por imagen
     var cmdImg = new NpgsqlCommand(@"
         SELECT id::text, COALESCE(referencia,'Sin referencia'), 0, 0, 0
         FROM inventario_por_imagen
@@ -3643,6 +3648,44 @@ app.MapGet("/pos/buscar", async (string? q) =>
             descripcion = "📸 " + rImg.GetString(1) + " (foto pendiente)",
             stock = 0, precio = (decimal)0, costo = (decimal)0, fuente = "imagen"
         });
+    await rImg.CloseAsync();
+
+    // 4. BÚSQUEDA SEMÁNTICA (HuggingFace) — si la búsqueda exacta devuelve pocos resultados
+    // Compara la consulta del cajero contra todas las descripciones del stock semánticamente.
+    if (resultados.Count < 4 && query.Length >= 3)
+    {
+        var hfKeySearch = Environment.GetEnvironmentVariable("HF_API_KEY") ?? configuration["HF_API_KEY"] ?? "";
+        if (!string.IsNullOrEmpty(hfKeySearch))
+        {
+            var cmdAllStock = new NpgsqlCommand(
+                "SELECT codigo_producto, descripcion, stock_actual, precio_venta, costo_unitario FROM inventario_stock ORDER BY descripcion LIMIT 300", conn);
+            await using var rAll = await cmdAllStock.ExecuteReaderAsync();
+            var allItems = new List<(string cod, string desc, int stock, decimal precio, decimal costo)>();
+            while (await rAll.ReadAsync())
+                allItems.Add((rAll.GetString(0), rAll.GetString(1), rAll.GetInt32(2), rAll.GetDecimal(3), rAll.GetDecimal(4)));
+            await rAll.CloseAsync();
+
+            if (allItems.Count > 0)
+            {
+                var candidatosSem = allItems.Select(x => x.desc).ToList();
+                var (bestIdx, bestScore) = await SimilitudTextoHF(query, candidatosSem, hfKeySearch, factory);
+                Console.Error.WriteLine($"[POS-BUSCAR] Semántica — score={bestScore:F3} idx={bestIdx}");
+
+                if (bestScore > 0.60f && bestIdx >= 0)
+                {
+                    var best = allItems[bestIdx];
+                    if (!codigosVistos.Contains(best.cod))
+                    {
+                        resultados.Insert(0, new {
+                            codigo = best.cod, descripcion = $"🔍 {best.desc}",
+                            stock = best.stock, precio = best.precio,
+                            costo = best.costo, fuente = "semantico"
+                        });
+                    }
+                }
+            }
+        }
+    }
 
     return Results.Ok(resultados);
 }).RequireAuthorization();
@@ -3845,6 +3888,79 @@ app.MapPost("/scan/recalcular-phash", async (ILogger<Program> logger) =>
     }
     Console.Error.WriteLine($"[PHASH-BATCH] Actualizados {actualizados} de {filas.Count} registros");
     return Results.Ok(new { actualizados, total = filas.Count });
+}).RequireAuthorization();
+
+// ============================================================
+// POST /scan/procesar-comprobante — OCR inteligente de recibos de pago
+// Extrae monto, empresa, fecha y referencia de una foto de comprobante Nequi/Daviplata
+// ============================================================
+app.MapPost("/scan/procesar-comprobante", async (HttpContext ctx, IConfiguration configuration, IHttpClientFactory factory) =>
+{
+    JsonElement body;
+    try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body); }
+    catch { return Results.BadRequest(new { error = "JSON inválido" }); }
+
+    var imagen   = body.TryGetProperty("imagen",   out var ip) ? ip.GetString() ?? "" : "";
+    var mimeType = body.TryGetProperty("mimeType", out var mp) ? mp.GetString() ?? "image/jpeg" : "image/jpeg";
+    if (string.IsNullOrEmpty(imagen)) return Results.BadRequest(new { error = "Imagen requerida" });
+
+    var groqKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? configuration["GROQ_API_KEY"] ?? "";
+    if (string.IsNullOrEmpty(groqKey)) return Results.Ok(new { error = "GROQ_API_KEY no configurada" });
+
+    using var client = factory.CreateClient();
+    client.Timeout = TimeSpan.FromSeconds(20);
+    client.DefaultRequestHeaders.Authorization =
+        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", groqKey);
+
+    var promptOCR = @"Analiza este comprobante de pago y extrae la información. Responde SOLO JSON:
+{""monto"":""valor total pagado solo numero sin puntos ni simbolos"",""empresa"":""Nequi|Daviplata|Bancolombia|efecty|otro"",""fecha"":""fecha del pago formato DD/MM/YYYY"",""referencia"":""numero de referencia o transaccion"",""telefono"":""numero de celular si aparece"",""estado"":""exitoso|pendiente|fallido""}";
+
+    var groqPayload = new System.Text.Json.Nodes.JsonObject {
+        ["model"] = "meta-llama/llama-4-scout-17b-16e-instruct",
+        ["max_tokens"] = 200,
+        ["messages"] = new System.Text.Json.Nodes.JsonArray {
+            new System.Text.Json.Nodes.JsonObject {
+                ["role"] = "user",
+                ["content"] = new System.Text.Json.Nodes.JsonArray {
+                    new System.Text.Json.Nodes.JsonObject {
+                        ["type"] = "image_url",
+                        ["image_url"] = new System.Text.Json.Nodes.JsonObject { ["url"] = $"data:{mimeType};base64,{imagen}" }
+                    },
+                    new System.Text.Json.Nodes.JsonObject { ["type"] = "text", ["text"] = promptOCR }
+                }
+            }
+        }
+    };
+
+    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+    HttpResponseMessage resp;
+    try { resp = await client.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", groqPayload, cts.Token); }
+    catch (OperationCanceledException) { return Results.Ok(new { error = "timeout", monto = "", empresa = "", fecha = "", referencia = "" }); }
+
+    if (!resp.IsSuccessStatusCode) return Results.Ok(new { error = "groq_error", monto = "", empresa = "", fecha = "", referencia = "" });
+
+    var rText = await resp.Content.ReadAsStringAsync();
+    var rJson = JsonSerializer.Deserialize<JsonElement>(rText);
+    var raw   = rJson.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "{}";
+    raw = raw.Trim().TrimStart('`').Trim('`').Trim();
+    if (raw.StartsWith("```json")) raw = raw[7..];
+    if (raw.StartsWith("```"))     raw = raw[3..];
+    if (raw.EndsWith("```"))       raw = raw[..^3];
+    raw = raw.Trim();
+
+    Console.Error.WriteLine($"[OCR-COMPROBANTE] {raw[..Math.Min(200,raw.Length)]}");
+    try {
+        var info = JsonSerializer.Deserialize<JsonElement>(raw);
+        return Results.Ok(new {
+            monto      = info.TryGetProperty("monto",      out var mv) ? mv.GetString() ?? "" : "",
+            empresa    = info.TryGetProperty("empresa",    out var ev) ? ev.GetString() ?? "" : "",
+            fecha      = info.TryGetProperty("fecha",      out var fv) ? fv.GetString() ?? "" : "",
+            referencia = info.TryGetProperty("referencia", out var rv) ? rv.GetString() ?? "" : "",
+            telefono   = info.TryGetProperty("telefono",   out var tv) ? tv.GetString() ?? "" : "",
+            estado     = info.TryGetProperty("estado",     out var sv) ? sv.GetString() ?? "" : "",
+            ok = true
+        });
+    } catch { return Results.Ok(new { error = "parse_error", raw }); }
 }).RequireAuthorization();
 
 // ============================================================
@@ -4123,7 +4239,7 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", groqKey);
 
         var prompt = @"Analiza esta imagen de un producto y responde SOLO JSON sin texto extra:
-{""referencia"":""nombre completo del producto"",""marca"":""fabricante"",""tipo"":""mouse|teclado|cable|cargador|audifonos|celular|tablet|otro"",""modelo"":""numero modelo si visible"",""confianza"":""alta|media|baja""}";
+{""referencia"":""nombre completo del producto"",""marca"":""fabricante"",""tipo"":""mouse|teclado|cable|cargador|audifonos|celular|tablet|soporte|hub|adaptador|otro"",""modelo"":""numero modelo si visible"",""color"":""color principal del producto"",""precio_estimado"":""precio mercado colombiano en pesos sin puntos ni simbolos solo numero"",""confianza"":""alta|media|baja""}";
 
         var groqPayload = new System.Text.Json.Nodes.JsonObject
         {
@@ -4166,14 +4282,17 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
 
         Console.Error.WriteLine($"[FOTO-INSTANT] Groq raw={raw[..Math.Min(250,raw.Length)]}");
 
-        var info      = JsonSerializer.Deserialize<JsonElement>(raw);
-        var refGroq   = info.TryGetProperty("referencia", out var rv)  ? rv.GetString()?.Trim()  ?? "" : "";
-        var marcaGroq = info.TryGetProperty("marca",      out var mv2) ? mv2.GetString()?.Trim() ?? "" : "";
-        var tipoGroq  = info.TryGetProperty("tipo",       out var tv)  ? tv.GetString()?.Trim()  ?? "" : "";
-        var modeloGroq= info.TryGetProperty("modelo",     out var mdv) ? mdv.GetString()?.Trim() ?? "" : "";
-        var confianza = info.TryGetProperty("confianza",  out var cv2) ? cv2.GetString() ?? "media" : "media";
+        var info           = JsonSerializer.Deserialize<JsonElement>(raw);
+        var refGroq        = info.TryGetProperty("referencia",     out var rv)  ? rv.GetString()?.Trim()   ?? "" : "";
+        var marcaGroq      = info.TryGetProperty("marca",          out var mv2) ? mv2.GetString()?.Trim()  ?? "" : "";
+        var tipoGroq       = info.TryGetProperty("tipo",           out var tv)  ? tv.GetString()?.Trim()   ?? "" : "";
+        var modeloGroq     = info.TryGetProperty("modelo",         out var mdv) ? mdv.GetString()?.Trim()  ?? "" : "";
+        var colorGroq      = info.TryGetProperty("color",          out var colv)? colv.GetString()?.Trim() ?? "" : "";
+        var confianza      = info.TryGetProperty("confianza",      out var cv2) ? cv2.GetString() ?? "media" : "media";
+        var precioEstGroq  = info.TryGetProperty("precio_estimado",out var pev) ? pev.GetString()?.Trim()  ?? "" : "";
+        var categoriaGroq  = MapearCategoria(tipoGroq);
 
-        Console.Error.WriteLine($"[FOTO-INSTANT] Groq→ ref='{refGroq}' marca='{marcaGroq}' tipo='{tipoGroq}' modelo='{modeloGroq}'");
+        Console.Error.WriteLine($"[FOTO-INSTANT] Groq→ ref='{refGroq}' marca='{marcaGroq}' tipo='{tipoGroq}' color='{colorGroq}' precio='{precioEstGroq}' cat='{categoriaGroq}'");
 
         // Construir lista de palabras clave para búsqueda
         var terminos  = new[] { refGroq, marcaGroq, tipoGroq, modeloGroq }
@@ -4338,8 +4457,16 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
         }
 
         Console.Error.WriteLine($"[FOTO-INSTANT] Sin match final. ref='{refGroq}' marca='{marcaGroq}'");
-        // Devolver datos de Groq para pre-llenar el formulario aunque no haya match en BD
-        return Results.Ok(new { match = (object?)null, razon = "no_encontrado", refDetectada = refGroq, marcaDetectada = marcaGroq, tipoDetectada = tipoGroq });
+        return Results.Ok(new {
+            match          = (object?)null,
+            razon          = "no_encontrado",
+            refDetectada   = refGroq,
+            marcaDetectada = marcaGroq,
+            tipoDetectada  = tipoGroq,
+            colorDetectado = colorGroq,
+            categoria      = categoriaGroq,
+            precioEstimado = precioEstGroq
+        });
     }
     catch (Exception ex)
     {
@@ -4933,6 +5060,17 @@ static int DistanciaHamming(long a, long b)
 {
     return System.Numerics.BitOperations.PopCount((ulong)(a ^ b));
 }
+
+// ── Mapeo tipo Groq → categoría del inventario ────────────────────
+static string MapearCategoria(string tipo) => (tipo ?? "").ToLower() switch {
+    "mouse" or "teclado"                              => "Periférico",
+    "cable" or "cargador" or "adaptador" or "hub"    => "Accesorio",
+    "audifonos" or "bocina" or "speaker"              => "Audio",
+    "celular" or "smartphone"                         => "Celular",
+    "tablet"                                          => "Tablet",
+    "soporte"                                         => "Accesorio",
+    _                                                 => "General"
+};
 
 // ── CLIP embedding via HuggingFace Inference API ──────────────────
 // Llama openai/clip-vit-base-patch32 y devuelve vector de 512 floats.

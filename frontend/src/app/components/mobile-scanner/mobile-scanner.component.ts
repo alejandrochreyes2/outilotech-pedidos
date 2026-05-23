@@ -39,6 +39,7 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
   fotoColor      = signal('');
   fotoCantidad   = signal('');
   fotoPrecio     = signal('');
+  fotoCategoria  = signal('');
   fotoEnviando   = signal(false);
 
   private jwtToken = '';
@@ -224,7 +225,9 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
   private analizarFotoInstant() {
     this.http.post<{
       match: { codigo: string; descripcion: string; stock: number; precio: number; fuente: string } | null;
-      refDetectada?: string; marcaDetectada?: string; tipoDetectada?: string; confianza?: string; razon?: string;
+      refDetectada?: string; marcaDetectada?: string; tipoDetectada?: string;
+      colorDetectado?: string; categoria?: string; precioEstimado?: string;
+      confianza?: string; razon?: string;
     }>(
       `${environment.apiUrl}/api/scan/analizar-foto-instant`,
       { imagen: this._fotoBase64, mimeType: this.fotoMimeType() },
@@ -241,9 +244,12 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
           this.estado.set('foto-match');
         } else {
           this.iaBuscada.set(true);
-          // Groq identificó el producto aunque no esté en BD → pre-llenar formulario
-          if (res.refDetectada)   this.fotoReferencia.set(res.refDetectada);
-          if (res.marcaDetectada) this.fotoMarca.set(res.marcaDetectada);
+          // Groq identificó el producto → pre-llenar todos los campos del formulario
+          if (res.refDetectada)    this.fotoReferencia.set(res.refDetectada);
+          if (res.marcaDetectada)  this.fotoMarca.set(res.marcaDetectada);
+          if (res.colorDetectado)  this.fotoColor.set(res.colorDetectado);
+          if (res.categoria)       this.fotoCategoria.set(res.categoria);
+          if (res.precioEstimado && !this.fotoPrecio()) this.fotoPrecio.set(res.precioEstimado);
           this.estado.set('foto');
         }
       },
@@ -401,6 +407,7 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
     this.fotoColor.set('');
     this.fotoCantidad.set('');
     this.fotoPrecio.set('');
+    this.fotoCategoria.set('');
     this.estado.set('iniciando');
     setTimeout(() => this.iniciarCamara(), 200);
   }
