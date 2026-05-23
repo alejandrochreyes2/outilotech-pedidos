@@ -3844,13 +3844,13 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
 
         if (hashNuevo != 0)
         {
-            // Traer los últimos 200 registros con imagen_base64 y sus datos
+            // Comparar solo phash almacenados — sin descargar imagen_base64 (evita timeout)
             var cmdHash = new NpgsqlCommand(@"
-                SELECT id, imagen_base64, phash, COALESCE(referencia,'') AS ref,
+                SELECT id, phash, COALESCE(referencia,'') AS ref,
                        COALESCE(notas,'') AS notas, COALESCE(descripcion_ia,'') AS desc_ia
                 FROM inventario_por_imagen
-                WHERE imagen_base64 IS NOT NULL AND imagen_base64 <> ''
-                ORDER BY fecha DESC LIMIT 200", conn);
+                WHERE phash IS NOT NULL AND phash <> 0
+                ORDER BY fecha DESC LIMIT 500", conn);
 
             await using var rHash = await cmdHash.ExecuteReaderAsync();
             var mejorDist = int.MaxValue;
@@ -3860,27 +3860,18 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
 
             while (await rHash.ReadAsync())
             {
-                long hashGuardado = rHash.IsDBNull(2) ? 0L : rHash.GetInt64(2);
-
-                // Si no tiene hash calculado, calcularlo al vuelo
-                if (hashGuardado == 0)
-                {
-                    var b64 = rHash.IsDBNull(1) ? "" : rHash.GetString(1);
-                    if (!string.IsNullOrEmpty(b64))
-                        hashGuardado = CalcularPHash(b64);
-                }
-
+                long hashGuardado = rHash.IsDBNull(1) ? 0L : rHash.GetInt64(1);
                 if (hashGuardado == 0) continue;
 
                 var dist = DistanciaHamming(hashNuevo, hashGuardado);
                 if (dist < mejorDist)
                 {
-                    mejorDist        = dist;
-                    mejorRef         = rHash.GetString(3);
-                    mejorNotas       = rHash.GetString(4);
-                    mejorDescIA      = rHash.GetString(5);
+                    mejorDist           = dist;
+                    mejorRef            = rHash.GetString(2);
+                    mejorNotas          = rHash.GetString(3);
+                    mejorDescIA         = rHash.GetString(4);
                     mejorHashAlmacenado = hashGuardado;
-                    mejorId          = rHash.GetInt32(0);
+                    mejorId             = rHash.GetInt32(0);
                 }
             }
 
