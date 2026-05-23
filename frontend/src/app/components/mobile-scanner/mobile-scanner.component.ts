@@ -224,7 +224,7 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
   private analizarFotoInstant() {
     this.http.post<{
       match: { codigo: string; descripcion: string; stock: number; precio: number; fuente: string } | null;
-      refDetectada?: string; confianza?: string; razon?: string;
+      refDetectada?: string; marcaDetectada?: string; tipoDetectada?: string; confianza?: string; razon?: string;
     }>(
       `${environment.apiUrl}/api/scan/analizar-foto-instant`,
       { imagen: this._fotoBase64, mimeType: this.fotoMimeType() },
@@ -232,7 +232,6 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
     ).pipe(timeout(22000)).subscribe({
       next: (res) => {
         if (res.match) {
-          // Producto encontrado — prellenar datos y mostrar confirmación
           this.matchProducto.set(res.match);
           this.matchConfianza.set(res.confianza ?? 'media');
           this.matchRefDetectada.set(res.refDetectada ?? '');
@@ -242,6 +241,9 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
           this.estado.set('foto-match');
         } else {
           this.iaBuscada.set(true);
+          // Groq identificó el producto aunque no esté en BD → pre-llenar formulario
+          if (res.refDetectada)   this.fotoReferencia.set(res.refDetectada);
+          if (res.marcaDetectada) this.fotoMarca.set(res.marcaDetectada);
           this.estado.set('foto');
         }
       },

@@ -408,6 +408,7 @@ using (var scope = app.Services.CreateScope())
             -- Agregar columnas si no existen (migración segura)
             ALTER TABLE inventario_por_imagen ADD COLUMN IF NOT EXISTS phash BIGINT;
             ALTER TABLE inventario_por_imagen ADD COLUMN IF NOT EXISTS descripcion_ia TEXT;
+            ALTER TABLE inventario_por_imagen ADD COLUMN IF NOT EXISTS embedding REAL[];
             CREATE TABLE IF NOT EXISTS ventas_pendientes (
               id          SERIAL PRIMARY KEY,
               cajera      VARCHAR(200) NOT NULL,
@@ -2854,10 +2855,11 @@ app.MapPost("/scan/session/{token}/foto", async (string token, HttpContext ctx) 
     if (string.IsNullOrEmpty(imagenB64))
         return Results.BadRequest(new { error = "Imagen requerida" });
 
-    // Calcular pHash para comparación visual futura
+    // Calcular pHash para comparación visual futura (estrategia existente, se mantiene)
     var phashVal = CalcularPHash(imagenB64);
     Console.Error.WriteLine($"[FOTO-GUARDAR] Guardando foto. pHash={phashVal} ref='{referencia}'");
 
+    int nuevoId = 0;
     try {
         await using var conn = new NpgsqlConnection(pgConnectionString);
         await conn.OpenAsync();
@@ -2871,12 +2873,39 @@ app.MapPost("/scan/session/{token}/foto", async (string token, HttpContext ctx) 
         cmd.Parameters.AddWithValue("@mime",  mimeType);
         cmd.Parameters.AddWithValue("@tok",   tokenSesion);
         cmd.Parameters.AddWithValue("@phash", phashVal == 0 ? DBNull.Value : (object)phashVal);
-        var id = (int)(cmd.ExecuteScalar() ?? 0);
-        return Results.Ok(new { ok = true, id, mensaje = "Foto guardada. La cajera la revisará pronto." });
+        nuevoId = (int)(cmd.ExecuteScalar() ?? 0);
     } catch (Exception ex) {
         Console.WriteLine($"[SCAN FOTO] Error: {ex.Message}");
         return Results.StatusCode(500);
     }
+
+    // Calcular embedding CLIP en background (no bloquea la respuesta al celular)
+    var hfKeyGuardar = Environment.GetEnvironmentVariable("HF_API_KEY") ?? configuration["HF_API_KEY"] ?? "";
+    if (!string.IsNullOrEmpty(hfKeyGuardar) && nuevoId > 0)
+    {
+        var b64Copy    = imagenB64;
+        var pgConn     = pgConnectionString;
+        var idCopy     = nuevoId;
+        _ = Task.Run(async () => {
+            try {
+                var emb = await ObtenerEmbeddingCLIP(b64Copy, hfKeyGuardar, factory);
+                if (emb.Length > 0) {
+                    await using var uc = new NpgsqlConnection(pgConn);
+                    await uc.OpenAsync();
+                    await using var up = new NpgsqlCommand(
+                        "UPDATE inventario_por_imagen SET embedding = @e WHERE id = @id", uc);
+                    up.Parameters.Add(new NpgsqlParameter("@e", NpgsqlTypes.NpgsqlDbType.Array | NpgsqlTypes.NpgsqlDbType.Real) { Value = emb });
+                    up.Parameters.AddWithValue("@id", idCopy);
+                    await up.ExecuteNonQueryAsync();
+                    Console.Error.WriteLine($"[FOTO-GUARDAR] CLIP embedding guardado. id={idCopy} dims={emb.Length}");
+                }
+            } catch (Exception ex2) {
+                Console.Error.WriteLine($"[FOTO-GUARDAR] CLIP embedding error: {ex2.Message}");
+            }
+        });
+    }
+
+    return Results.Ok(new { ok = true, id = nuevoId, mensaje = "Foto guardada. La cajera la revisará pronto." });
 });
 
 // GET /scan/inventario-por-imagen — cajera lista fotos pendientes (requiere auth)
@@ -3819,8 +3848,46 @@ app.MapPost("/scan/recalcular-phash", async (ILogger<Program> logger) =>
 }).RequireAuthorization();
 
 // ============================================================
+// POST /scan/recalcular-embeddings — calcular CLIP embeddings a fotos sin embedding
+// ============================================================
+app.MapPost("/scan/recalcular-embeddings", async (HttpContext ctx, IConfiguration configuration, IHttpClientFactory factory) =>
+{
+    var hfKeyBatch = Environment.GetEnvironmentVariable("HF_API_KEY") ?? configuration["HF_API_KEY"] ?? "";
+    if (string.IsNullOrEmpty(hfKeyBatch))
+        return Results.BadRequest(new { error = "HF_API_KEY no configurada" });
+
+    await using var conn = new NpgsqlConnection(pgConnectionString);
+    await conn.OpenAsync();
+    var cmdSel = new NpgsqlCommand(
+        "SELECT id, imagen_base64 FROM inventario_por_imagen WHERE embedding IS NULL AND imagen_base64 IS NOT NULL AND imagen_base64 <> '' ORDER BY fecha DESC LIMIT 50", conn);
+    await using var r = await cmdSel.ExecuteReaderAsync();
+    var filas = new List<(int id, string b64)>();
+    while (await r.ReadAsync()) filas.Add((r.GetInt32(0), r.GetString(1)));
+    await r.CloseAsync();
+
+    int actualizados = 0;
+    foreach (var (id, b64) in filas)
+    {
+        try {
+            var emb = await ObtenerEmbeddingCLIP(b64, hfKeyBatch, factory);
+            if (emb.Length == 0) continue;
+            var upd = new NpgsqlCommand("UPDATE inventario_por_imagen SET embedding = @e WHERE id = @id", conn);
+            upd.Parameters.Add(new NpgsqlParameter("@e", NpgsqlTypes.NpgsqlDbType.Array | NpgsqlTypes.NpgsqlDbType.Real) { Value = emb });
+            upd.Parameters.AddWithValue("@id", id);
+            await upd.ExecuteNonQueryAsync();
+            actualizados++;
+            Console.Error.WriteLine($"[EMBED-BATCH] id={id} dims={emb.Length}");
+            await Task.Delay(300); // respetar rate limit de HuggingFace
+        } catch (Exception ex) {
+            Console.Error.WriteLine($"[EMBED-BATCH] Error id={id}: {ex.Message}");
+        }
+    }
+    return Results.Ok(new { actualizados, total = filas.Count });
+}).RequireAuthorization();
+
+// ============================================================
 // POST /scan/analizar-foto-instant — reconocer producto por foto
-// ESTRATEGIA: 1) pHash visual  2) Groq Vision + búsqueda de texto
+// ESTRATEGIA: 1) pHash visual  2) CLIP neural  3) Groq Vision + búsqueda de texto
 // ============================================================
 app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguration configuration, IHttpClientFactory factory, ILogger<Program> logger) =>
 {
@@ -3952,6 +4019,89 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
                     return Results.Ok(new {
                         match = new { codigo = "IMG", descripcion = mejorRef, stock = 0, precio = precioHash, fuente = "phash_imagen" },
                         refDetectada = mejorRef, confianza = $"phash_dist{mejorDist}"
+                    });
+                }
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════
+        // ESTRATEGIA 1.5 — CLIP neural embedding (invariante multi-ángulo)
+        // Usa red neuronal (openai/clip-vit-base-patch32) para comparar fotos
+        // del mismo producto aunque estén tomadas desde diferentes ángulos.
+        // Similitud coseno > 0.75 = mismo producto.
+        // ════════════════════════════════════════════════════════════════
+        var hfKey = Environment.GetEnvironmentVariable("HF_API_KEY") ?? configuration["HF_API_KEY"] ?? "";
+        if (!string.IsNullOrEmpty(hfKey))
+        {
+            Console.Error.WriteLine("[FOTO-INSTANT] CLIP — solicitando embedding...");
+            var embNuevo = await ObtenerEmbeddingCLIP(imagen, hfKey, factory);
+            Console.Error.WriteLine($"[FOTO-INSTANT] CLIP — embedding dims={embNuevo.Length}");
+
+            if (embNuevo.Length == 512)
+            {
+                var cmdEmb = new NpgsqlCommand(@"
+                    SELECT id, embedding, COALESCE(referencia,'') AS ref, COALESCE(notas,'') AS notas
+                    FROM inventario_por_imagen
+                    WHERE embedding IS NOT NULL
+                    ORDER BY fecha DESC LIMIT 500", conn);
+                await using var rEmb = await cmdEmb.ExecuteReaderAsync();
+
+                float mejorSim    = 0f;
+                string mejorRefClip = "", mejorNotasClip = "";
+                int    mejorIdClip  = 0;
+
+                while (await rEmb.ReadAsync())
+                {
+                    if (rEmb.IsDBNull(1)) continue;
+                    float[] embGuardado;
+                    try { embGuardado = rEmb.GetFieldValue<float[]>(1); } catch { continue; }
+                    if (embGuardado.Length != 512) continue;
+                    var sim = CosineSimilaridad(embNuevo, embGuardado);
+                    if (sim > mejorSim) {
+                        mejorSim      = sim;
+                        mejorRefClip  = rEmb.GetString(2);
+                        mejorNotasClip= rEmb.GetString(3);
+                        mejorIdClip   = rEmb.GetInt32(0);
+                    }
+                }
+                await rEmb.CloseAsync();
+
+                Console.Error.WriteLine($"[FOTO-INSTANT] CLIP — mejor similitud={mejorSim:F3} id={mejorIdClip} ref='{mejorRefClip}'");
+
+                if (mejorSim > 0.75f && mejorIdClip > 0)
+                {
+                    var precioClip = 0m;
+                    var mPC = System.Text.RegularExpressions.Regex.Match(mejorNotasClip, @"Precio:\s*([\d.,]+)");
+                    if (mPC.Success) decimal.TryParse(mPC.Groups[1].Value.Replace(".", "").Replace(",", "."), out precioClip);
+
+                    Console.Error.WriteLine($"[FOTO-INSTANT] CLIP MATCH! sim={mejorSim:F3} ref='{mejorRefClip}'");
+
+                    // Intentar cruzar con inventario_stock
+                    var wsClip = (mejorRefClip + " " + mejorNotasClip).ToLower()
+                        .Split(new[]{' ','|',':','.','_','-','/'}, StringSplitOptions.RemoveEmptyEntries)
+                        .Where(w => w.Length >= 3).Distinct().Take(6).ToList();
+                    if (wsClip.Count > 0)
+                    {
+                        var cClip  = wsClip.Select((w,i) => $"LOWER(descripcion) LIKE @c{i}").ToList();
+                        var scClip = wsClip.Select((w,i) => $"(CASE WHEN LOWER(descripcion) LIKE @c{i} THEN 1 ELSE 0 END)").ToList();
+                        await using var cmdClipS = new NpgsqlCommand(
+                            $"SELECT codigo_producto,descripcion,stock_actual,precio_venta,({string.Join("+",scClip)}) AS sc FROM inventario_stock WHERE {string.Join(" OR ",cClip)} ORDER BY sc DESC LIMIT 1", conn);
+                        for (int i = 0; i < wsClip.Count; i++) cmdClipS.Parameters.AddWithValue($"@c{i}", $"%{wsClip[i]}%");
+                        await using var rClipS = await cmdClipS.ExecuteReaderAsync();
+                        if (await rClipS.ReadAsync())
+                        {
+                            var pF = rClipS.GetDecimal(3) > 0 ? rClipS.GetDecimal(3) : precioClip;
+                            return Results.Ok(new {
+                                match = new { codigo = rClipS.GetString(0), descripcion = rClipS.GetString(1), stock = rClipS.GetInt32(2), precio = pF, fuente = "clip_stock" },
+                                refDetectada = mejorRefClip, confianza = $"clip_{mejorSim:F2}"
+                            });
+                        }
+                        await rClipS.CloseAsync();
+                    }
+
+                    return Results.Ok(new {
+                        match = new { codigo = "IMG", descripcion = mejorRefClip, stock = 0, precio = precioClip, fuente = "clip_imagen" },
+                        refDetectada = mejorRefClip, confianza = $"clip_{mejorSim:F2}"
                     });
                 }
             }
@@ -4111,8 +4261,9 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
                 });
         }
 
-        Console.Error.WriteLine($"[FOTO-INSTANT] Sin match final. ref='{refGroq}'");
-        return Results.Ok(new { match = (object?)null, razon = "no_encontrado", refDetectada = refGroq });
+        Console.Error.WriteLine($"[FOTO-INSTANT] Sin match final. ref='{refGroq}' marca='{marcaGroq}'");
+        // Devolver datos de Groq para pre-llenar el formulario aunque no haya match en BD
+        return Results.Ok(new { match = (object?)null, razon = "no_encontrado", refDetectada = refGroq, marcaDetectada = marcaGroq, tipoDetectada = tipoGroq });
     }
     catch (Exception ex)
     {
@@ -4705,6 +4856,67 @@ static long CalcularPHash(string base64)
 static int DistanciaHamming(long a, long b)
 {
     return System.Numerics.BitOperations.PopCount((ulong)(a ^ b));
+}
+
+// ── CLIP embedding via HuggingFace Inference API ──────────────────
+// Llama openai/clip-vit-base-patch32 y devuelve vector de 512 floats.
+// Invariante a ángulo, iluminación y distancia — diseñado para imágenes del mismo producto.
+static async Task<float[]> ObtenerEmbeddingCLIP(string base64, string hfApiKey, IHttpClientFactory factory)
+{
+    try
+    {
+        var imageBytes = Convert.FromBase64String(base64);
+        using var client = factory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(15);
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", hfApiKey);
+
+        var content = new ByteArrayContent(imageBytes);
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+
+        var resp = await client.PostAsync(
+            "https://api-inference.huggingface.co/pipeline/feature-extraction/openai/clip-vit-base-patch32",
+            content);
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            Console.Error.WriteLine($"[CLIP] HF HTTP {(int)resp.StatusCode}");
+            return Array.Empty<float>();
+        }
+
+        var json = await resp.Content.ReadAsStringAsync();
+        // La respuesta puede ser [[f1,f2,...]] o [f1,f2,...] según el modelo
+        try {
+            var nested = JsonSerializer.Deserialize<float[][]>(json);
+            if (nested?.Length > 0 && nested[0].Length > 0) return nested[0];
+        } catch { }
+        try {
+            var flat = JsonSerializer.Deserialize<float[]>(json);
+            if (flat?.Length > 0) return flat;
+        } catch { }
+
+        Console.Error.WriteLine($"[CLIP] No se pudo parsear respuesta: {json[..Math.Min(100,json.Length)]}");
+        return Array.Empty<float>();
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"[CLIP] Error: {ex.GetType().Name}: {ex.Message}");
+        return Array.Empty<float>();
+    }
+}
+
+// ── Similitud coseno entre dos embeddings CLIP ────────────────────
+static float CosineSimilaridad(float[] a, float[] b)
+{
+    if (a.Length != b.Length || a.Length == 0) return 0f;
+    float dot = 0f, normA = 0f, normB = 0f;
+    for (int i = 0; i < a.Length; i++) {
+        dot  += a[i] * b[i];
+        normA += a[i] * a[i];
+        normB += b[i] * b[i];
+    }
+    float denom = MathF.Sqrt(normA) * MathF.Sqrt(normB);
+    return denom < 1e-9f ? 0f : dot / denom;
 }
 
 // ── Servicio de email ──────────────────────────────────────────────
