@@ -4261,6 +4261,82 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
                 });
         }
 
+        // ════════════════════════════════════════════════════════════════
+        // ESTRATEGIA 2.5 — Similitud semántica de texto (HuggingFace)
+        // Compara la descripción extraída por Groq contra TODAS las
+        // referencias almacenadas en inventario_por_imagen usando un
+        // modelo de lenguaje multilingüe (1 sola llamada HTTP).
+        // Umbral > 0.72 = mismo producto.
+        // ════════════════════════════════════════════════════════════════
+        if (!string.IsNullOrEmpty(refGroq) && !string.IsNullOrEmpty(hfKey))
+        {
+            var sourceText = $"{refGroq} {marcaGroq} {tipoGroq} {modeloGroq}".Trim();
+            Console.Error.WriteLine($"[FOTO-INSTANT] TextSim — buscando: '{sourceText}'");
+
+            var cmdTxt = new NpgsqlCommand(@"
+                SELECT id, COALESCE(referencia,''), COALESCE(notas,''), COALESCE(descripcion_ia,'')
+                FROM inventario_por_imagen
+                WHERE (referencia IS NOT NULL AND referencia <> '')
+                   OR (notas IS NOT NULL AND notas <> '')
+                ORDER BY fecha DESC LIMIT 120", conn);
+            await using var rTxt = await cmdTxt.ExecuteReaderAsync();
+            var txtItems = new List<(int id, string ref_, string notas, string descIa)>();
+            while (await rTxt.ReadAsync())
+                txtItems.Add((rTxt.GetInt32(0), rTxt.GetString(1), rTxt.GetString(2), rTxt.GetString(3)));
+            await rTxt.CloseAsync();
+
+            if (txtItems.Count > 0)
+            {
+                var candidatos = txtItems.Select(x => {
+                    var txt = $"{x.ref_} {x.notas} {x.descIa}"
+                        .Replace("[BD:", "").Replace("[IA:", "")
+                        .Replace("|", " ").Replace(":", " ");
+                    return txt.Length > 180 ? txt[..180] : txt;
+                }).ToList();
+
+                var (bestIdx, bestScore) = await SimilitudTextoHF(sourceText, candidatos, hfKey, factory);
+                Console.Error.WriteLine($"[FOTO-INSTANT] TextSim — mejor score={bestScore:F3} idx={bestIdx}");
+
+                if (bestScore > 0.72f && bestIdx >= 0)
+                {
+                    var best = txtItems[bestIdx];
+                    Console.Error.WriteLine($"[FOTO-INSTANT] TextSim MATCH! ref='{best.ref_}' score={bestScore:F3}");
+
+                    var precioTxt = 0m;
+                    var mPT = System.Text.RegularExpressions.Regex.Match(best.notas, @"Precio:\s*([\d.,]+)");
+                    if (mPT.Success) decimal.TryParse(mPT.Groups[1].Value.Replace(".", "").Replace(",", "."), out precioTxt);
+
+                    // Intentar cruzar con inventario_stock
+                    var wsTxt = (best.ref_ + " " + best.notas).ToLower()
+                        .Split(new[]{' ','|',':','.','_','-','/'}, StringSplitOptions.RemoveEmptyEntries)
+                        .Where(w => w.Length >= 3).Distinct().Take(6).ToList();
+                    if (wsTxt.Count > 0)
+                    {
+                        var cTxt  = wsTxt.Select((w,i) => $"LOWER(descripcion) LIKE @t{i}").ToList();
+                        var scTxt = wsTxt.Select((w,i) => $"(CASE WHEN LOWER(descripcion) LIKE @t{i} THEN 1 ELSE 0 END)").ToList();
+                        await using var cmdTS = new NpgsqlCommand(
+                            $"SELECT codigo_producto,descripcion,stock_actual,precio_venta,({string.Join("+",scTxt)}) AS sc FROM inventario_stock WHERE {string.Join(" OR ",cTxt)} ORDER BY sc DESC LIMIT 1", conn);
+                        for (int i = 0; i < wsTxt.Count; i++) cmdTS.Parameters.AddWithValue($"@t{i}", $"%{wsTxt[i]}%");
+                        await using var rTS = await cmdTS.ExecuteReaderAsync();
+                        if (await rTS.ReadAsync())
+                        {
+                            var pF = rTS.GetDecimal(3) > 0 ? rTS.GetDecimal(3) : precioTxt;
+                            return Results.Ok(new {
+                                match = new { codigo = rTS.GetString(0), descripcion = rTS.GetString(1), stock = rTS.GetInt32(2), precio = pF, fuente = "textsim_stock" },
+                                refDetectada = best.ref_, confianza = $"textsim_{bestScore:F2}"
+                            });
+                        }
+                        await rTS.CloseAsync();
+                    }
+
+                    return Results.Ok(new {
+                        match = new { codigo = "IMG", descripcion = string.IsNullOrEmpty(best.ref_) ? refGroq : best.ref_, stock = 0, precio = precioTxt, fuente = "textsim_imagen" },
+                        refDetectada = best.ref_, confianza = $"textsim_{bestScore:F2}"
+                    });
+                }
+            }
+        }
+
         Console.Error.WriteLine($"[FOTO-INSTANT] Sin match final. ref='{refGroq}' marca='{marcaGroq}'");
         // Devolver datos de Groq para pre-llenar el formulario aunque no haya match en BD
         return Results.Ok(new { match = (object?)null, razon = "no_encontrado", refDetectada = refGroq, marcaDetectada = marcaGroq, tipoDetectada = tipoGroq });
@@ -4875,7 +4951,7 @@ static async Task<float[]> ObtenerEmbeddingCLIP(string base64, string hfApiKey, 
         content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
 
         var resp = await client.PostAsync(
-            "https://api-inference.huggingface.co/pipeline/feature-extraction/openai/clip-vit-base-patch32",
+            "https://router.huggingface.co/hf-inference/pipeline/feature-extraction/openai/clip-vit-base-patch32",
             content);
 
         if (!resp.IsSuccessStatusCode)
@@ -4917,6 +4993,53 @@ static float CosineSimilaridad(float[] a, float[] b)
     }
     float denom = MathF.Sqrt(normA) * MathF.Sqrt(normB);
     return denom < 1e-9f ? 0f : dot / denom;
+}
+
+// ── Similitud semántica de texto via HuggingFace (gratuito) ───────
+// Modelo: paraphrase-multilingual-MiniLM-L12-v2 (español + inglés).
+// Una sola llamada HTTP compara sourceText contra todos los candidatos.
+// Retorna (índice del mejor candidato, puntuación 0-1).
+static async Task<(int bestIdx, float bestScore)> SimilitudTextoHF(
+    string sourceText, List<string> candidatos, string hfKey, IHttpClientFactory factory)
+{
+    if (candidatos.Count == 0 || string.IsNullOrEmpty(hfKey)) return (-1, 0f);
+    try
+    {
+        using var client = factory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(12);
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", hfKey);
+
+        var payload = new {
+            inputs = new {
+                source_sentence = sourceText,
+                sentences       = candidatos
+            }
+        };
+        var resp = await client.PostAsJsonAsync(
+            "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+            payload);
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            Console.Error.WriteLine($"[TEXTSIM] HF HTTP {(int)resp.StatusCode}: {await resp.Content.ReadAsStringAsync()}");
+            return (-1, 0f);
+        }
+
+        var scores = JsonSerializer.Deserialize<float[]>(await resp.Content.ReadAsStringAsync());
+        if (scores == null || scores.Length == 0) return (-1, 0f);
+
+        int bestIdx = 0; float bestScore = 0f;
+        for (int i = 0; i < scores.Length; i++)
+            if (scores[i] > bestScore) { bestScore = scores[i]; bestIdx = i; }
+
+        return (bestIdx, bestScore);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"[TEXTSIM] Error: {ex.GetType().Name}: {ex.Message}");
+        return (-1, 0f);
+    }
 }
 
 // ── Servicio de email ──────────────────────────────────────────────
