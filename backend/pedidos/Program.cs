@@ -3791,6 +3791,34 @@ app.MapPatch("/inventario/{codigo}", async (string codigo, HttpContext ctx) =>
 }).RequireAuthorization();
 
 // ============================================================
+// POST /scan/recalcular-phash — calcular pHash a fotos sin hash
+// ============================================================
+app.MapPost("/scan/recalcular-phash", async (ILogger<Program> logger) =>
+{
+    await using var conn = new NpgsqlConnection(connectionString);
+    await conn.OpenAsync();
+    var cmdSel = new NpgsqlCommand(
+        "SELECT id, imagen_base64 FROM inventario_por_imagen WHERE (phash IS NULL OR phash = 0) AND imagen_base64 IS NOT NULL AND imagen_base64 <> '' LIMIT 200", conn);
+    await using var r = await cmdSel.ExecuteReaderAsync();
+    var filas = new List<(int id, string b64)>();
+    while (await r.ReadAsync()) filas.Add((r.GetInt32(0), r.GetString(1)));
+    await r.CloseAsync();
+    int actualizados = 0;
+    foreach (var (id, b64) in filas)
+    {
+        var h = CalcularPHash(b64);
+        if (h == 0) continue;
+        var upd = new NpgsqlCommand("UPDATE inventario_por_imagen SET phash = @h WHERE id = @id", conn);
+        upd.Parameters.AddWithValue("@h", h);
+        upd.Parameters.AddWithValue("@id", id);
+        await upd.ExecuteNonQueryAsync();
+        actualizados++;
+    }
+    Console.Error.WriteLine($"[PHASH-BATCH] Actualizados {actualizados} de {filas.Count} registros");
+    return Results.Ok(new { actualizados, total = filas.Count });
+}).RequireAuthorization();
+
+// ============================================================
 // POST /scan/analizar-foto-instant — reconocer producto por foto
 // ESTRATEGIA: 1) pHash visual  2) Groq Vision + búsqueda de texto
 // ============================================================
@@ -3965,7 +3993,13 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
             }
         };
 
-        var resp = await client.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", groqPayload);
+        using var grqCts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        HttpResponseMessage resp;
+        try { resp = await client.PostAsJsonAsync("https://api.groq.com/openai/v1/chat/completions", groqPayload, grqCts.Token); }
+        catch (OperationCanceledException) {
+            Console.Error.WriteLine("[FOTO-INSTANT] Groq timeout (8s) — sin match");
+            return Results.Ok(new { match = (object?)null, razon = "timeout_groq" });
+        }
         Console.Error.WriteLine($"[FOTO-INSTANT] Groq HTTP={resp.StatusCode}");
 
         if (!resp.IsSuccessStatusCode)

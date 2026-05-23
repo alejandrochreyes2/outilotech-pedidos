@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { timeout } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 // v2 — análisis automático con IA al tomar foto
@@ -228,7 +229,7 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
       `${environment.apiUrl}/api/scan/analizar-foto-instant`,
       { imagen: this._fotoBase64, mimeType: this.fotoMimeType() },
       { headers: { Authorization: `Bearer ${this.jwtToken}` } }
-    ).subscribe({
+    ).pipe(timeout(10000)).subscribe({
       next: (res) => {
         if (res.match) {
           // Producto encontrado — prellenar datos y mostrar confirmación
