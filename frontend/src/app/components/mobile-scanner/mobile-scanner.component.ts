@@ -216,7 +216,7 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
     this.fotoDataUrl.set(dataUrl);
     this.fotoMimeType.set('image/jpeg');
     this.detener();
-    // Analizar automáticamente con IA antes de mostrar el formulario
+    this.iaBuscada.set(false);
     this.estado.set('analizando');
     this.analizarFotoInstant();
   }
@@ -241,12 +241,12 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
           this.fotoCantidad.set('1');
           this.estado.set('foto-match');
         } else {
-          // No encontrado — ir al formulario manual
+          this.iaBuscada.set(true);
           this.estado.set('foto');
         }
       },
       error: () => {
-        // En caso de error de red, continuar con el flujo normal
+        this.iaBuscada.set(true);
         this.estado.set('foto');
       }
     });
@@ -295,6 +295,7 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
   matchProducto = signal<{ codigo: string; descripcion: string; stock: number; precio: number } | null>(null);
   matchConfianza = signal('');
   matchRefDetectada = signal('');
+  iaBuscada = signal(false);
 
   enviarFoto() {
     if (!this._fotoBase64 || this.fotoEnviando()) return;

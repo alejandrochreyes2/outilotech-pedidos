@@ -223,6 +223,15 @@
   @if (estado() === 'foto') {
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;width:100%;max-width:480px;padding:16px;box-sizing:border-box;gap:12px">
       <h2 style="color:#cc0000;margin:0;font-size:16px;text-align:center">📸 Foto capturada</h2>
+      @if (iaBuscada()) {
+        <div style="width:100%;background:#1a0a00;border:1px solid #f59e0b;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;box-sizing:border-box">
+          <span style="font-size:20px">⚠️</span>
+          <div>
+            <p style="color:#f59e0b;font-size:12px;font-weight:700;margin:0">No se encontró en el inventario</p>
+            <p style="color:#d97706;font-size:11px;margin:0">Complete los datos para registrar el producto</p>
+          </div>
+        </div>
+      }
       <img [src]="fotoDataUrl()" alt="Foto del producto"
            style="width:100%;border-radius:10px;border:2px solid #cc0000;max-height:220px;object-fit:cover"/>
       <p style="color:#aaa;font-size:12px;margin:0;text-align:center">
