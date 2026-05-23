@@ -25,6 +25,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   private jhonSvc = inject(JhonIaService);
   private router  = inject(Router);
   auth            = inject(AuthService);
+  Math            = Math;
 
   @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
   @ViewChild('qrCanvas') qrCanvas!: ElementRef<HTMLCanvasElement>;
