@@ -3795,7 +3795,7 @@ app.MapPatch("/inventario/{codigo}", async (string codigo, HttpContext ctx) =>
 // ============================================================
 app.MapPost("/scan/recalcular-phash", async (ILogger<Program> logger) =>
 {
-    await using var conn = new NpgsqlConnection(connectionString);
+    await using var conn = new NpgsqlConnection(pgConnectionString);
     await conn.OpenAsync();
     var cmdSel = new NpgsqlCommand(
         "SELECT id, imagen_base64 FROM inventario_por_imagen WHERE (phash IS NULL OR phash = 0) AND imagen_base64 IS NOT NULL AND imagen_base64 <> '' LIMIT 200", conn);
