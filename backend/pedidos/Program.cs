@@ -2841,7 +2841,7 @@ app.MapDelete("/scan/session/{token}", (string token) => {
 }).RequireAuthorization();
 
 // POST /scan/session/{token}/foto — móvil sube foto de producto no encontrado (SIN auth)
-app.MapPost("/scan/session/{token}/foto", async (string token, HttpContext ctx) => {
+app.MapPost("/scan/session/{token}/foto", async (string token, HttpContext ctx, IConfiguration configuration, IHttpClientFactory factory) => {
     JsonElement body;
     try { body = await JsonSerializer.DeserializeAsync<JsonElement>(ctx.Request.Body, new JsonSerializerOptions(), ctx.RequestAborted); }
     catch { return Results.BadRequest(new { error = "JSON inválido" }); }
