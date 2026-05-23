@@ -3865,7 +3865,7 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
         // ════════════════════════════════════════════════════════════════
         // ESTRATEGIA 1 — Hash perceptual (pHash) visual
         // Compara la huella digital visual de la foto nueva con fotos guardadas.
-        // Si la distancia Hamming es < 20 = mismo producto o muy similar.
+        // Si la distancia Hamming es < 35 = mismo producto o muy similar.
         // ════════════════════════════════════════════════════════════════
         var hashNuevo = CalcularPHash(imagen);
         Console.Error.WriteLine($"[FOTO-INSTANT] pHash nueva foto = {hashNuevo}");
@@ -3905,8 +3905,8 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
 
             Console.Error.WriteLine($"[FOTO-INSTANT] pHash — mejor distancia={mejorDist} id={mejorId} ref='{mejorRef}'");
 
-            // Umbral: distancia < 20 = mismo producto (misma caja, mismo ángulo similar)
-            if (mejorDist < 20 && mejorId > 0)
+            // Umbral: distancia < 35 = mismo producto (fotos desde ángulos distintos)
+            if (mejorDist < 35 && mejorId > 0)
             {
                 Console.Error.WriteLine($"[FOTO-INSTANT] pHash MATCH! dist={mejorDist} ref='{mejorRef}' notas='{mejorNotas[..Math.Min(60,mejorNotas.Length)]}'");
 
@@ -4701,13 +4701,10 @@ static long CalcularPHash(string base64)
 }
 
 // Distancia Hamming entre dos hashes (cuántos bits son diferentes).
-// < 15 = misma imagen / mismo producto. < 25 = muy parecido.
+// Usa ulong para evitar shift aritmético con valores negativos.
 static int DistanciaHamming(long a, long b)
 {
-    long xor = a ^ b;
-    int dist = 0;
-    while (xor != 0) { dist += (int)(xor & 1); xor >>= 1; }
-    return dist;
+    return System.Numerics.BitOperations.PopCount((ulong)(a ^ b));
 }
 
 // ── Servicio de email ──────────────────────────────────────────────

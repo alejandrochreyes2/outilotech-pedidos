@@ -229,7 +229,7 @@ export class MobileScannerComponent implements OnInit, OnDestroy {
       `${environment.apiUrl}/api/scan/analizar-foto-instant`,
       { imagen: this._fotoBase64, mimeType: this.fotoMimeType() },
       { headers: { Authorization: `Bearer ${this.jwtToken}` } }
-    ).pipe(timeout(10000)).subscribe({
+    ).pipe(timeout(22000)).subscribe({
       next: (res) => {
         if (res.match) {
           // Producto encontrado — prellenar datos y mostrar confirmación
