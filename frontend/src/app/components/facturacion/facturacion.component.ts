@@ -48,7 +48,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
   productosEnVenta = computed<ProductoPOS[]>(() =>
     this.items().map(i => ({
       codigo: i.codigo, descripcion: i.descripcion,
-      stock: i.cantidad, precio: i.precio, fuente: 'stock' as const
+      stock: i.cantidad, precio: i.precio, costo: 0, fuente: 'stock' as const
     }))
   );
 
