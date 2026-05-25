@@ -102,8 +102,15 @@
           </button>
         </div>
 
-        <!-- Tabs stock / catálogo / todo -->
+        <!-- Tabs stock / catálogo / todo / venta -->
         <div class="cat-tabs">
+          @if (items().length > 0) {
+            <button class="cat-tab" [class.active]="tabCatalogo() === 'venta'"
+                    (click)="tabCatalogo.set('venta')"
+                    style="background:#cc0000;color:#fff;border-color:#cc0000;font-weight:800">
+              🛒 En Venta ({{ items().length }})
+            </button>
+          }
           <button class="cat-tab" [class.active]="tabCatalogo() === 'stock'" (click)="cambiarTab('stock')">
             📦 Inventario Stock (403)
           </button>
@@ -117,7 +124,39 @@
 
         <!-- Grid de productos -->
         <div class="productos-grid">
-          @if (tabCatalogo() === 'todo') {
+          @if (tabCatalogo() === 'venta') {
+            @if (productosEnVenta().length === 0) {
+              <div class="empty-state">No hay productos en la venta actual.</div>
+            } @else {
+              <table class="tabla-productos">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    <th>Cant.</th>
+                    <th>Precio</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of productosEnVenta(); track p.codigo) {
+                    <tr style="background:#1a0a0a;border-left:3px solid #cc0000">
+                      <td class="col-codigo">{{ p.codigo }}</td>
+                      <td class="col-desc" style="color:#fff;font-weight:600">{{ p.descripcion }}</td>
+                      <td class="col-stock">{{ p.stock }}</td>
+                      <td class="col-precio">${{ formatPeso(p.precio) }}</td>
+                      <td class="acciones-td-cat">
+                        <button class="btn-edit-prod" title="Editar precio"
+                                (click)="abrirEditarProducto(p); $event.stopPropagation()">✏️</button>
+                        <button class="btn-add"
+                                (click)="agregarProducto(p); $event.stopPropagation()">+</button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          } @else if (tabCatalogo() === 'todo') {
             @if (cargandoTodo()) {
               <div class="empty-state">Cargando todos los productos...</div>
             } @else if (buscando()) {

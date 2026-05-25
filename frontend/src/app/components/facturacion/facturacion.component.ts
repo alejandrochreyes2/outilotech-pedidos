@@ -37,12 +37,20 @@ export class FacturacionComponent implements OnInit, OnDestroy {
 
   // ── Búsqueda ───────────────────────────────────────────
   searchQuery = signal('');
-  tabCatalogo = signal<'stock' | 'catalogo' | 'todo'>('todo');
+  tabCatalogo = signal<'stock' | 'catalogo' | 'todo' | 'venta'>('todo');
   productosBusqueda = signal<ProductoPOS[]>([]);
   productosTodo = signal<ProductoPOS[]>([]);
   cargandoTodo = signal(false);
   buscando = signal(false);
   private searchTimer: any;
+
+  // Productos del carrito actual como lista para el panel izquierdo
+  productosEnVenta = computed<ProductoPOS[]>(() =>
+    this.items().map(i => ({
+      codigo: i.codigo, descripcion: i.descripcion,
+      stock: i.cantidad, precio: i.precio, fuente: 'stock' as const
+    }))
+  );
 
   // ── Factura actual ─────────────────────────────────────
   numeroFactura = signal('FE-2026-....');
@@ -346,6 +354,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
             ]);
           });
           if (window.innerWidth <= 768) this.vistaMovil.set('factura');
+          this.tabCatalogo.set('venta'); // mostrar automáticamente los productos de la venta
           this.mensajeExito.set(`📱 ${productos.length} producto(s) agregado(s) desde el celular`);
           setTimeout(() => this.mensajeExito.set(''), 4000);
           this.guardarEnServidor(); // propagar a los otros dispositivos
