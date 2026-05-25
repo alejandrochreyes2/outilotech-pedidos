@@ -3700,11 +3700,11 @@ app.MapGet("/pos/todos", async () =>
     await conn.OpenAsync();
     var resultados = new List<object>();
 
-    // 1. Inventario físico (stock)
+    // 1. Inventario físico (stock) — más recientes primero
     var cmdStock = new NpgsqlCommand(@"
         SELECT codigo_producto, descripcion, stock_actual, precio_venta, costo_unitario
         FROM inventario_stock
-        ORDER BY descripcion", conn);
+        ORDER BY updated_at DESC, created_at DESC", conn);
     await using var rStock = await cmdStock.ExecuteReaderAsync();
     while (await rStock.ReadAsync())
         resultados.Add(new {
