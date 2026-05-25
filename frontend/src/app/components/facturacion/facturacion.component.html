@@ -365,8 +365,9 @@
               </div>
               <div class="edit-field">
                 <label class="edit-label">Precio ($)</label>
-                <input class="edit-inp" type="number" min="0" [value]="editPrecio()"
-                       (input)="editPrecio.set(+$any($event.target).value)" />
+                <input class="edit-inp" type="text" inputmode="numeric" placeholder="Ej: 80.000"
+                       [value]="editPrecio()"
+                       (input)="editPrecio.set(parsePrecio($any($event.target).value))" />
               </div>
             </div>
             <div class="edit-btns">
@@ -689,14 +690,16 @@
           <div class="np-row">
             <div class="np-field">
               <label>Precio de venta ($)</label>
-              <input type="number" min="0" [value]="npPrecio()"
-                     (input)="npPrecio.set(+$any($event.target).value)"
+              <input type="text" inputmode="numeric" placeholder="Ej: 80000 o 80.000"
+                     [value]="npPrecio()"
+                     (input)="npPrecio.set(parsePrecio($any($event.target).value))"
                      class="np-input" />
             </div>
             <div class="np-field">
               <label>Costo unitario ($)</label>
-              <input type="number" min="0" [value]="npCosto()"
-                     (input)="npCosto.set(+$any($event.target).value)"
+              <input type="text" inputmode="numeric" placeholder="Ej: 50000 o 50.000"
+                     [value]="npCosto()"
+                     (input)="npCosto.set(parsePrecio($any($event.target).value))"
                      class="np-input" />
             </div>
           </div>
@@ -919,13 +922,15 @@
           <div class="np-row">
             <div class="np-field">
               <label>Precio de venta ($)</label>
-              <input type="number" min="0" [value]="editProdPrecio()"
-                     (input)="editProdPrecio.set(+$any($event.target).value)" class="np-input" />
+              <input type="text" inputmode="numeric" placeholder="Ej: 80000 o 80.000"
+                     [value]="editProdPrecio()"
+                     (input)="editProdPrecio.set(parsePrecio($any($event.target).value))" class="np-input" />
             </div>
             <div class="np-field">
               <label>Costo unitario ($)</label>
-              <input type="number" min="0" [value]="editProdCosto()"
-                     (input)="editProdCosto.set(+$any($event.target).value)" class="np-input" />
+              <input type="text" inputmode="numeric" placeholder="Ej: 50000 o 50.000"
+                     [value]="editProdCosto()"
+                     (input)="editProdCosto.set(parsePrecio($any($event.target).value))" class="np-input" />
             </div>
           </div>
           <div class="np-row">

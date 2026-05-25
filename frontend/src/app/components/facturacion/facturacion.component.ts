@@ -1041,6 +1041,11 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     return new Intl.NumberFormat('es-CO', { style: 'decimal', maximumFractionDigits: 0 }).format(n);
   }
 
+  // Parsea precios en formato colombiano: "80.000" → 80000, "80000" → 80000
+  parsePrecio(v: string): number {
+    return parseInt((v + '').replace(/\./g, '').replace(/,/g, ''), 10) || 0;
+  }
+
   estadoClass(e: string) {
     return { pagada: 'badge-verde', anulada: 'badge-rojo', emitida: 'badge-azul', borrador: 'badge-gris' }[e] ?? '';
   }
