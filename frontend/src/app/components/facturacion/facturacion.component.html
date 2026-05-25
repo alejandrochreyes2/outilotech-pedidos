@@ -367,6 +367,8 @@
                 <label class="edit-label">Precio ($)</label>
                 <input class="edit-inp" type="text" inputmode="numeric" placeholder="Ej: 80.000"
                        [value]="editPrecio()"
+                       (focus)="$any($event.target).select()"
+                       (click)="$any($event.target).select()"
                        (input)="editPrecio.set(parsePrecio($any($event.target).value))" />
               </div>
             </div>
@@ -692,6 +694,8 @@
               <label>Precio de venta ($)</label>
               <input type="text" inputmode="numeric" placeholder="Ej: 80000 o 80.000"
                      [value]="npPrecio()"
+                     (focus)="$any($event.target).select()"
+                     (click)="$any($event.target).select()"
                      (input)="npPrecio.set(parsePrecio($any($event.target).value))"
                      class="np-input" />
             </div>
@@ -699,6 +703,8 @@
               <label>Costo unitario ($)</label>
               <input type="text" inputmode="numeric" placeholder="Ej: 50000 o 50.000"
                      [value]="npCosto()"
+                     (focus)="$any($event.target).select()"
+                     (click)="$any($event.target).select()"
                      (input)="npCosto.set(parsePrecio($any($event.target).value))"
                      class="np-input" />
             </div>
@@ -924,12 +930,16 @@
               <label>Precio de venta ($)</label>
               <input type="text" inputmode="numeric" placeholder="Ej: 80000 o 80.000"
                      [value]="editProdPrecio()"
+                     (focus)="$any($event.target).select()"
+                     (click)="$any($event.target).select()"
                      (input)="editProdPrecio.set(parsePrecio($any($event.target).value))" class="np-input" />
             </div>
             <div class="np-field">
               <label>Costo unitario ($)</label>
               <input type="text" inputmode="numeric" placeholder="Ej: 50000 o 50.000"
                      [value]="editProdCosto()"
+                     (focus)="$any($event.target).select()"
+                     (click)="$any($event.target).select()"
                      (input)="editProdCosto.set(parsePrecio($any($event.target).value))" class="np-input" />
             </div>
           </div>
@@ -939,6 +949,8 @@
               <div class="np-cant-ctrl">
                 <button type="button" (click)="editProdStock.update(v => Math.max(0, v - 1))">−</button>
                 <input type="number" min="0" [value]="editProdStock()"
+                       (focus)="$any($event.target).select()"
+                       (click)="$any($event.target).select()"
                        (input)="editProdStock.set(+$any($event.target).value < 0 ? 0 : +$any($event.target).value)"
                        class="np-input np-cant-inp" />
                 <button type="button" (click)="editProdStock.update(v => v + 1)">+</button>
