@@ -4089,8 +4089,8 @@ app.MapPost("/scan/analizar-foto-instant", async (HttpContext ctx, IConfiguratio
 
             Console.Error.WriteLine($"[FOTO-INSTANT] pHash — mejor distancia={mejorDist} id={mejorId} ref='{mejorRef}'");
 
-            // Umbral: distancia < 35 = mismo producto (fotos desde ángulos distintos)
-            if (mejorDist < 35 && mejorId > 0)
+            // Umbral: distancia < 10 = foto casi idéntica (mismo ángulo). Más alto = falsos positivos.
+            if (mejorDist < 10 && mejorId > 0)
             {
                 Console.Error.WriteLine($"[FOTO-INSTANT] pHash MATCH! dist={mejorDist} ref='{mejorRef}' notas='{mejorNotas[..Math.Min(60,mejorNotas.Length)]}'");
 
