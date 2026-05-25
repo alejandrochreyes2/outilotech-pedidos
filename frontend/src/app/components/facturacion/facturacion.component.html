@@ -104,13 +104,11 @@
 
         <!-- Tabs stock / catálogo / todo / venta -->
         <div class="cat-tabs">
-          @if (items().length > 0) {
-            <button class="cat-tab" [class.active]="tabCatalogo() === 'venta'"
-                    (click)="tabCatalogo.set('venta')"
-                    style="background:#cc0000;color:#fff;border-color:#cc0000;font-weight:800">
-              🛒 En Venta ({{ items().length }})
-            </button>
-          }
+          <button class="cat-tab" [class.active]="tabCatalogo() === 'venta'"
+                  (click)="tabCatalogo.set('venta')"
+                  style="background:#cc0000;color:#fff;border-color:#cc0000;font-weight:800">
+            🛒 En Venta{{ items().length > 0 ? ' (' + items().length + ')' : '' }}
+          </button>
           <button class="cat-tab" [class.active]="tabCatalogo() === 'stock'" (click)="cambiarTab('stock')">
             📦 Inventario Stock (403)
           </button>

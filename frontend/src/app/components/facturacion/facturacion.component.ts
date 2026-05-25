@@ -37,7 +37,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
 
   // ── Búsqueda ───────────────────────────────────────────
   searchQuery = signal('');
-  tabCatalogo = signal<'stock' | 'catalogo' | 'todo' | 'venta'>('todo');
+  tabCatalogo = signal<'stock' | 'catalogo' | 'todo' | 'venta'>('venta');
   productosBusqueda = signal<ProductoPOS[]>([]);
   productosTodo = signal<ProductoPOS[]>([]);
   cargandoTodo = signal(false);
