@@ -193,9 +193,9 @@ export class FacturacionComponent implements OnInit, OnDestroy {
       next: (r) => {
         this.editProdGuardando.set(false);
         this.editandoProductoCat.set(false);
+        this._actualizarItemCarrito(r.codigo, r.descripcion, Number(r.precio));
         this.mensajeExito.set(`✅ ${r.descripcion} actualizado — Stock: ${r.stock} · Precio: $${this.formatPeso(r.precio)}`);
         setTimeout(() => this.mensajeExito.set(''), 4000);
-        // Refrescar búsqueda actual
         if (this.searchQuery().length >= 2) {
           const q = this.searchQuery();
           this.searchQuery.set('');
@@ -203,8 +203,58 @@ export class FacturacionComponent implements OnInit, OnDestroy {
         }
         if (this.tabCatalogo() === 'todo') this.cargarTodos();
       },
-      error: () => { this.editProdGuardando.set(false); this.mostrarError('Error al actualizar el producto'); }
+      error: (err) => {
+        // Producto no existe en BD (IMG- o similar) → crear con upsert
+        if (err.status === 404) {
+          this.svc.agregarProductoNuevo({
+            codigoBarras: this.editProdCodigo(),
+            descripcion:  this.editProdDesc().trim() || 'Producto sin referencia',
+            precio:       this.editProdPrecio(),
+            costo:        this.editProdCosto(),
+            categoria:    this.editProdCat(),
+            cantidad:     this.editProdStock() > 0 ? this.editProdStock() : 1,
+            cajera:       this.auth.currentUser()?.name ?? ''
+          }).subscribe({
+            next: (r) => {
+              this.editProdGuardando.set(false);
+              this.editandoProductoCat.set(false);
+              this._actualizarItemCarrito(this.editProdCodigo(), r.descripcion, Number(r.precio));
+              this.mensajeExito.set(`✅ ${r.descripcion} guardado en inventario — Precio: $${this.formatPeso(Number(r.precio))}`);
+              setTimeout(() => this.mensajeExito.set(''), 4000);
+              if (this.tabCatalogo() === 'todo') this.cargarTodos();
+            },
+            error: () => { this.editProdGuardando.set(false); this.mostrarError('Error al guardar el producto'); }
+          });
+        } else {
+          this.editProdGuardando.set(false);
+          this.mostrarError('Error al actualizar el producto');
+        }
+      }
     });
+  }
+
+  private _actualizarItemCarrito(codigo: string, descripcion: string, precio: number) {
+    const items = this.items();
+    const idx = items.findIndex(i => i.codigo === codigo);
+    if (idx >= 0) {
+      const updated = [...items];
+      updated[idx] = { ...updated[idx], descripcion, precio, subtotal: updated[idx].cantidad * precio };
+      this.items.set(updated);
+      this.guardarEnServidor();
+    }
+  }
+
+  // ── Nuevo producto manual desde pestaña "En Venta" ───
+  abrirNuevoProductoVenta() {
+    this.npCodigo.set('');
+    this.npDescripcion.set('');
+    this.npPrecio.set(0);
+    this.npCosto.set(0);
+    this.npCategoria.set('Accesorio');
+    this.npCantidad.set(1);
+    this.npFotoId.set(null);
+    this.fotoPin.set(null);
+    this.mostrarNuevoProducto.set(true);
   }
 
   // ── Nuevo producto desde barcode desconocido ──────────
