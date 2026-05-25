@@ -182,52 +182,54 @@ export class FacturacionComponent implements OnInit, OnDestroy {
 
   guardarEditProducto() {
     if (this.editProdGuardando()) return;
+    const codigo = this.editProdCodigo();
+    const desc   = this.editProdDesc().trim() || 'Producto sin referencia';
+    const precio = this.editProdPrecio();
+    const costo  = this.editProdCosto();
+    const stock  = this.editProdStock();
+    const cat    = this.editProdCat();
+
+    // Actualizar carrito localmente de inmediato (optimistic)
+    this._actualizarItemCarrito(codigo, desc, precio);
+    this.editandoProductoCat.set(false);
+    this.mensajeExito.set(`✅ ${desc} — $${this.formatPeso(precio)} (guardando en BD...)`);
+    setTimeout(() => this.mensajeExito.set(''), 5000);
+
     this.editProdGuardando.set(true);
-    this.svc.editarProducto(this.editProdCodigo(), {
-      descripcion: this.editProdDesc().trim() || undefined,
-      precio:      this.editProdPrecio() >= 0 ? this.editProdPrecio() : undefined,
-      costo:       this.editProdCosto()  >= 0 ? this.editProdCosto()  : undefined,
-      stock:       this.editProdStock()  >= 0 ? this.editProdStock()  : undefined,
-      categoria:   this.editProdCat()    || undefined
+    this.svc.editarProducto(codigo, {
+      descripcion: desc,
+      precio:      precio >= 0 ? precio : undefined,
+      costo:       costo  >= 0 ? costo  : undefined,
+      stock:       stock  >= 0 ? stock  : undefined,
+      categoria:   cat    || undefined
     }).subscribe({
       next: (r) => {
         this.editProdGuardando.set(false);
-        this.editandoProductoCat.set(false);
-        this._actualizarItemCarrito(r.codigo, r.descripcion, Number(r.precio));
-        this.mensajeExito.set(`✅ ${r.descripcion} actualizado — Stock: ${r.stock} · Precio: $${this.formatPeso(r.precio)}`);
+        this.mensajeExito.set(`✅ ${r.descripcion} guardado — Precio: $${this.formatPeso(Number(r.precio))}`);
         setTimeout(() => this.mensajeExito.set(''), 4000);
-        if (this.searchQuery().length >= 2) {
-          const q = this.searchQuery();
-          this.searchQuery.set('');
-          setTimeout(() => { this.searchQuery.set(q); const el = document.getElementById('searchInput') as HTMLInputElement; if (el) { el.value = q; el.dispatchEvent(new Event('input')); } }, 50);
-        }
         if (this.tabCatalogo() === 'todo') this.cargarTodos();
       },
       error: (err) => {
-        // Producto no existe en BD (IMG- o similar) → crear con upsert
         if (err.status === 404) {
+          // Producto no existe en BD → crear con upsert
           this.svc.agregarProductoNuevo({
-            codigoBarras: this.editProdCodigo(),
-            descripcion:  this.editProdDesc().trim() || 'Producto sin referencia',
-            precio:       this.editProdPrecio(),
-            costo:        this.editProdCosto(),
-            categoria:    this.editProdCat(),
-            cantidad:     this.editProdStock() > 0 ? this.editProdStock() : 1,
-            cajera:       this.auth.currentUser()?.name ?? ''
+            codigoBarras: codigo, descripcion: desc,
+            precio, costo, categoria: cat,
+            cantidad: stock > 0 ? stock : 1,
+            cajera: this.auth.currentUser()?.name ?? ''
           }).subscribe({
             next: (r) => {
               this.editProdGuardando.set(false);
-              this.editandoProductoCat.set(false);
-              this._actualizarItemCarrito(this.editProdCodigo(), r.descripcion, Number(r.precio));
-              this.mensajeExito.set(`✅ ${r.descripcion} guardado en inventario — Precio: $${this.formatPeso(Number(r.precio))}`);
+              this.mensajeExito.set(`✅ ${r.descripcion} creado en inventario — $${this.formatPeso(Number(r.precio))}`);
               setTimeout(() => this.mensajeExito.set(''), 4000);
               if (this.tabCatalogo() === 'todo') this.cargarTodos();
             },
-            error: () => { this.editProdGuardando.set(false); this.mostrarError('Error al guardar el producto'); }
+            error: () => { this.editProdGuardando.set(false); this.mostrarError('Error al guardar en base de datos'); }
           });
         } else {
           this.editProdGuardando.set(false);
-          this.mostrarError('Error al actualizar el producto');
+          this.mensajeExito.set('⚠️ Cambio local guardado — error al sincronizar con BD');
+          setTimeout(() => this.mensajeExito.set(''), 4000);
         }
       }
     });
