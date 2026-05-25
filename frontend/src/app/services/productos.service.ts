@@ -146,10 +146,13 @@ export class ProductosService {
   }
 
   constructor() {
-    // Post-procesa imágenes con proxy
+    // Post-procesa imágenes con proxy; preserva galería multi-imagen si ya fue definida
     this.productos = this.productos.map(prod => {
       const img = this.proxifyImageUrl(prod.imagen);
-      return { ...prod, imagen: img, imagenes: [img] };
+      const imagenes = prod.imagenes.length > 1
+        ? prod.imagenes.map(u => this.proxifyImageUrl(u))
+        : [img];
+      return { ...prod, imagen: img, imagenes };
     });
     // 1. Carga inicial desde Supabase
     // 2. Suscripción en tiempo real: cualquier cambio en AppSheet actualiza el frontend al instante
@@ -202,7 +205,37 @@ export class ProductosService {
 
   private productos: Producto[] = [
     // ═══════════════════════ SAMSUNG ═══════════════════════
-    p('sam-s26u-512',    'Samsung S26 Ultra 512GB',        'Samsung','Samsung','Galaxy S Ultra',    5300000, I['samS26'],    '1 año Samsung',  'NUEVO',    true,  true,  false, 'samsung-s26-ultra-512gb'),
+    {
+      id: 'sam-s26u-512', nombre: 'Samsung S26 Ultra 512GB', marca: 'Samsung',
+      categoria: 'Samsung', subcategoria: 'Galaxy S Ultra', precio: 5300000,
+      imagen: C + 'S26ULTRAPNG.png?v=1772545758',
+      imagenes: [
+        C  + 'S26ULTRAPNG.png?v=1772545758',
+        C  + 's25ultra.webp?v=1751993291',
+        UN + '1610945415295-d9bbf067e59c?w=600&q=80',
+        UN + '1511707171634-5f897ff02aa9?w=600&q=80',
+        UN + '1510557880182-3d4d3cba35a5?w=600&q=80',
+      ],
+      descripcion: 'El Samsung Galaxy S26 Ultra es el smartphone más poderoso de Samsung, diseñado para quienes exigen lo mejor. Su impresionante pantalla Dynamic AMOLED 2X de 6.9" con resolución QHD+ y frecuencia de actualización de 120Hz ofrece colores vibrantes y una fluidez visual incomparable. Con 12 GB de RAM y 512 GB de almacenamiento, gestiona sin esfuerzo las aplicaciones más exigentes, multitareas y archivos de alta resolución. El sistema de cámara cuádruple con sensor principal de 200 MP y zoom óptico de 10x te permite capturar cada momento con detalle profesional, incluso de noche. El S Pen integrado potencia tu productividad y creatividad, mientras que la batería de 5000 mAh con carga rápida de 45W te mantiene conectado todo el día. Resistente al agua y polvo con certificación IP68.',
+      specs: [
+        { label: 'Marca',             value: 'Samsung' },
+        { label: 'Modelo',            value: 'Galaxy S26 Ultra' },
+        { label: 'Memoria RAM',       value: '12 GB' },
+        { label: 'Memoria interna',   value: '512 GB' },
+        { label: 'Sistema operativo', value: 'Android 16 – One UI 8' },
+        { label: 'Procesador',        value: 'Snapdragon 8 Elite 2 – 3.0 GHz' },
+        { label: 'Pantalla',          value: '6.9" Dynamic AMOLED 2X – QHD+ 120Hz' },
+        { label: 'Cámara principal',  value: '200 MP + 50 MP + 10 MP + 10 MP' },
+        { label: 'Cámara frontal',    value: '12 MP' },
+        { label: 'Batería',           value: '5000 mAh – Carga rápida 45W' },
+        { label: 'Conectividad',      value: '5G, Wi-Fi 7, Bluetooth 5.4, NFC, UWB' },
+        { label: 'S Pen',             value: 'Incluido' },
+        { label: 'Resistencia',       value: 'IP68 – agua y polvo' },
+        { label: 'Garantía',          value: '1 año Samsung Colombia' },
+      ],
+      garantia: '1 año Samsung', badge: 'NUEVO', nuevo: true, destacado: true,
+      oferta: false, agotado: false, slug: 'samsung-s26-ultra-512gb',
+    },
     // ═══════════════════════ ACCESORIOS APPLE ═══════════════════════
     p('pencil-2gen',     'Apple Pencil 2da Gen',           'Apple',  'Accesorios','Apple Pencil',   450000,  I['pencil2'],   '1 año Apple',    'NUEVO',    true,  false, false, 'apple-pencil-2da-gen'),
     p('pencil-pro',      'Apple Pencil Pro',               'Apple',  'Accesorios','Apple Pencil',   680000,  I['pencilPro'], '1 año Apple',    'NUEVO',    true,  true,  false, 'apple-pencil-pro'),
@@ -394,6 +427,8 @@ export class ProductosService {
   getProductoBySlug(slug: string): Producto | undefined {
     const prod = this.productos.find(p => p.slug === slug);
     if (!prod) return undefined;
+    // Si el producto ya tiene galería propia (>1 imagen), no añadir extras de categoría
+    if (prod.imagenes.length > 1) return { ...prod };
     const extras = (this.imgExtras[prod.categoria] ?? [])
       .map(url => this.proxifyImageUrl(url))
       .filter(url => url !== prod.imagen);

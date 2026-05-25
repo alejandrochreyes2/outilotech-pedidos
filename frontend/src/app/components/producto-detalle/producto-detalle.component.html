@@ -7,15 +7,9 @@
   </nav>
 
   <div class="pd-container">
-    <!-- Galería izquierda -->
+    <!-- Galería izquierda: thumbnails verticales + imagen principal (estilo QuieroMac) -->
     <div class="pd-gallery">
-      <!-- Imagen principal grande -->
-      <div class="pd-main-img">
-        <span class="pd-badge" *ngIf="producto.badge">{{producto.badge}}</span>
-        <img [src]="imagenActual()" [alt]="producto.nombre" class="pd-img-principal"
-             (error)="$any($event.target).src='https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80'"/>
-      </div>
-      <!-- Thumbnails horizontales debajo (estilo tiendasishop) -->
+      <!-- Thumbnails verticales a la izquierda -->
       <div class="pd-thumbnails">
         <img *ngFor="let img of producto.imagenes"
              [src]="img"
@@ -24,9 +18,34 @@
              class="pd-thumb"
              (error)="$any($event.target).src='https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&q=80'"/>
       </div>
+      <!-- Imagen principal grande -->
+      <div class="pd-main-img">
+        <span class="pd-badge" *ngIf="producto.badge && producto.badge !== 'REACONDICIONADO'">{{producto.badge}}</span>
+        <img [src]="imagenActual()" [alt]="producto.nombre" class="pd-img-principal"
+             (error)="$any($event.target).src='https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80'"/>
+        <!-- Badge circular REACONDICIONADO – GARANTÍA: 12 MESES -->
+        <div class="pd-reacond-badge" *ngIf="producto.badge === 'REACONDICIONADO'">
+          <svg viewBox="0 0 120 120" width="120" height="120" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="60" cy="60" r="58" fill="#e65c00"/>
+            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+            <circle cx="60" cy="60" r="44" fill="rgba(0,0,0,0.12)"/>
+            <defs>
+              <path id="topArc" d="M 14,60 A 46,46 0 0,1 106,60"/>
+              <path id="botArc" d="M 18,60 A 42,42 0 0,0 102,60"/>
+            </defs>
+            <text font-size="9" font-weight="800" fill="white" font-family="Arial,sans-serif" letter-spacing="1.5">
+              <textPath href="#topArc" startOffset="50%" text-anchor="middle">REACONDICIONADO</textPath>
+            </text>
+            <text font-size="7.5" font-weight="600" fill="rgba(255,255,255,0.92)" font-family="Arial,sans-serif" letter-spacing="0.6">
+              <textPath href="#botArc" startOffset="50%" text-anchor="middle">GARANTÍA: 12 MESES</textPath>
+            </text>
+            <text x="60" y="66" font-size="22" fill="white" font-family="Arial,sans-serif" text-anchor="middle" dominant-baseline="middle">✓</text>
+          </svg>
+        </div>
+      </div>
     </div>
 
-    <!-- Info derecha -->
+    <!-- Info derecha (precio, variantes, botones) -->
     <div class="pd-info">
       <p class="pd-marca">{{producto.marca}}</p>
       <h1 class="pd-nombre">{{producto.nombre}}</h1>
@@ -82,21 +101,6 @@
         </div>
       </div>
 
-      <!-- Specs -->
-      <div class="pd-specs">
-        <h3>Especificaciones</h3>
-        <div class="pd-spec-row" *ngFor="let spec of producto.specs">
-          <span class="spec-label">{{spec.label}}</span>
-          <span class="spec-value">{{spec.value}}</span>
-        </div>
-      </div>
-
-      <!-- Descripción -->
-      <div class="pd-desc">
-        <h3>Descripción</h3>
-        <p>{{producto.descripcion}}</p>
-      </div>
-
       <!-- Info adicional -->
       <div class="pd-extras">
         <div class="pd-extra"><span>🚚</span><span>Envío a domicilio disponible</span></div>
@@ -104,5 +108,27 @@
         <div class="pd-extra"><span>📞</span><span>304 592 8793 / 305 780 4236</span></div>
       </div>
     </div>
+  </div>
+
+  <!-- ── Características y Descripción — sección de ancho completo (estilo MercadoLibre) ── -->
+  <div class="pd-detalles-section">
+
+    <!-- Características del producto -->
+    <div class="pd-caracteristicas" *ngIf="producto.specs && producto.specs.length > 0">
+      <h2 class="pd-section-title">Características del producto</h2>
+      <div class="pd-specs-table">
+        <div class="pd-spec-row" *ngFor="let spec of producto.specs; let i = index" [class.alt]="i % 2 === 0">
+          <span class="spec-label">{{spec.label}}</span>
+          <span class="spec-value">{{spec.value}}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Descripción del producto -->
+    <div class="pd-descripcion-section" *ngIf="producto.descripcion && producto.descripcion !== producto.nombre">
+      <h2 class="pd-section-title">Descripción</h2>
+      <p class="pd-desc-text">{{producto.descripcion}}</p>
+    </div>
+
   </div>
 </div>
