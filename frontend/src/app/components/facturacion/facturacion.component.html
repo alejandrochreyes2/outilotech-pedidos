@@ -120,6 +120,10 @@
           @if (tabCatalogo() === 'todo') {
             @if (cargandoTodo()) {
               <div class="empty-state">Cargando todos los productos...</div>
+            } @else if (buscando()) {
+              <div class="empty-state">Buscando...</div>
+            } @else if (searchQuery().length >= 2 && productosBusqueda().length === 0) {
+              <div class="empty-state">Sin resultados para "{{ searchQuery() }}"</div>
             } @else if (productosTodo().length === 0) {
               <div class="empty-state">Sin productos</div>
             } @else {
@@ -134,7 +138,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (p of productosTodo(); track p.codigo) {
+                  @for (p of (searchQuery().length >= 2 ? productosBusqueda() : productosTodo()); track p.codigo) {
                     <tr [class.sin-stock]="p.stock === 0 && p.fuente === 'stock'"
                         (click)="agregarProducto(p)">
                       <td class="col-codigo">{{ p.codigo }}</td>

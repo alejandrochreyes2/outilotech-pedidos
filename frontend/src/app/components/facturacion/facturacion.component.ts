@@ -37,7 +37,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
 
   // ── Búsqueda ───────────────────────────────────────────
   searchQuery = signal('');
-  tabCatalogo = signal<'stock' | 'catalogo' | 'todo'>('stock');
+  tabCatalogo = signal<'stock' | 'catalogo' | 'todo'>('todo');
   productosBusqueda = signal<ProductoPOS[]>([]);
   productosTodo = signal<ProductoPOS[]>([]);
   cargandoTodo = signal(false);
@@ -303,6 +303,7 @@ export class FacturacionComponent implements OnInit, OnDestroy {
     this.cargarFotosPendientes();
     this.cargarProductoDesdeScanner();
     this.iniciarPollingVentasPendientes();
+    this.cargarTodos();
   }
 
   private restaurarCarrito(): boolean {
@@ -428,8 +429,10 @@ export class FacturacionComponent implements OnInit, OnDestroy {
           let filtrado: ProductoPOS[];
           if (this.tabCatalogo() === 'stock') {
             filtrado = r.filter(p => p.fuente === 'stock' || p.fuente === 'imagen');
-          } else {
+          } else if (this.tabCatalogo() === 'catalogo') {
             filtrado = r.filter(p => p.fuente === 'catalogo' || p.fuente === 'imagen');
+          } else {
+            filtrado = r; // 'todo': mostrar todos los resultados sin filtrar
           }
           this.productosBusqueda.set(filtrado);
           this.buscando.set(false);
