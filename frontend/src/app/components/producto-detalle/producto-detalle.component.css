@@ -58,6 +58,19 @@
 .pd-img-principal:hover { transform: scale(1.04); }
 .pd-badge { position: absolute; top: 12px; left: 12px; background: #ff3b30; color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; z-index: 5; }
 
+/* Logo Outiltech watermark sobre imagen principal */
+.pd-watermark {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  width: 96px;
+  height: auto;
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 6;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
+}
+
 /* Badge circular REACONDICIONADO */
 .pd-reacond-badge {
   position: absolute;

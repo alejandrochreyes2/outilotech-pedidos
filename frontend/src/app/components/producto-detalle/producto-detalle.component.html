@@ -23,6 +23,8 @@
         <span class="pd-badge" *ngIf="producto.badge && producto.badge !== 'REACONDICIONADO'">{{producto.badge}}</span>
         <img [src]="imagenActual()" [alt]="producto.nombre" class="pd-img-principal"
              (error)="$any($event.target).src='https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80'"/>
+        <!-- Logo Outiltech watermark -->
+        <img src="assets/logo-outiltech.svg" alt="Outiltech" class="pd-watermark"/>
         <!-- Badge circular REACONDICIONADO CERTIFICADO – GARANTÍA: 12 MESES (estilo QuieroMac) -->
         <div class="pd-reacond-badge" *ngIf="producto.badge === 'REACONDICIONADO'">
           <svg viewBox="0 0 120 120" width="128" height="128" xmlns="http://www.w3.org/2000/svg">
