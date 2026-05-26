@@ -58,17 +58,20 @@
 .pd-img-principal:hover { transform: scale(1.04); }
 .pd-badge { position: absolute; top: 12px; left: 12px; background: #ff3b30; color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; z-index: 5; }
 
-/* Logo Outiltech watermark sobre imagen principal */
+/* Logo Outiltech watermark sobre imagen principal — cubre esquina QuieroMac */
 .pd-watermark {
   position: absolute;
-  bottom: 12px;
-  left: 14px;
-  width: 96px;
+  bottom: 10px;
+  left: 10px;
+  width: 88px;
   height: auto;
-  opacity: 0.55;
+  opacity: 0.7;
   pointer-events: none;
   z-index: 6;
-  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4));
+  background: rgba(255,255,255,0.6);
+  border-radius: 6px;
+  padding: 3px 5px;
 }
 
 /* Badge circular REACONDICIONADO */
