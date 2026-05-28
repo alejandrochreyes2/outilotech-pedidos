@@ -139,7 +139,7 @@ export class ProductosService {
   private proxifyImageUrl(url: string): string {
     if (!url) return url;
     if (url.includes('images.weserv.nl')) return url;
-    const safe = ['celudmovil.com.co', 'images.unsplash.com', 'upload.wikimedia.org', 'placehold.co', 'media.falabella.com.co'];
+    const safe = ['celudmovil.com.co', 'images.unsplash.com', 'upload.wikimedia.org', 'placehold.co', 'media.falabella.com.co', 'media.falabella.com'];
     if (safe.some(d => url.includes(d))) return url;
     const clean = url.replace(/^https?:\/\//, '');
     return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}`;
@@ -347,6 +347,25 @@ export class ProductosService {
       garantia: '12 meses Outiltech', badge: 'REACONDICIONADO',
       nuevo: false, destacado: true, oferta: true, agotado: false,
       slug: 'iphone-11-pro-256gb-reacondicionado',
+    },
+    // ═══════════════════════ COMPUTADORES ═══════════════════════
+    {
+      id: 'dell-15-3511-512', nombre: 'Dell Inspiron 15 3511 Core i5 512GB', marca: 'Dell',
+      categoria: 'Computadores', subcategoria: 'Portátiles', precio: 900000,
+      imagen: 'https://media.falabella.com/falabellaCO/123348938_01/w=1200,h=1200,fit=cover',
+      imagenes: [
+        'https://media.falabella.com/falabellaCO/123348938_01/w=1200,h=1200,fit=cover',
+        'https://media.falabella.com/falabellaCO/123348938_02/w=1200,h=1200,fit=cover',
+        'https://media.falabella.com/falabellaCO/123348938_03/w=1200,h=1200,fit=cover',
+        'https://media.falabella.com/falabellaCO/123348938_04/w=1200,h=1200,fit=cover',
+        'https://media.falabella.com/falabellaCO/123348938_05/w=1200,h=1200,fit=cover',
+        'https://media.falabella.com/falabellaCO/123348938_06/w=1200,h=1200,fit=cover',
+        'https://media.falabella.com/falabellaCO/123348938_07/w=1200,h=1200,fit=cover',
+      ],
+      descripcion: '', specs: [],
+      garantia: '3 meses Outiltech', badge: 'REACONDICIONADO',
+      nuevo: false, destacado: true, oferta: true, agotado: false,
+      slug: 'dell-inspiron-15-3511',
     },
     // ═══════════════════════ PATINETAS SEGWAY ═══════════════════════
     p('seg-es2', 'Patineta Segway ES2', 'Segway', 'Patinetas', 'Segway', 1580000, I['segES2'], '6 meses', 'PROMO', false, false, true, 'segway-es2'),
@@ -2366,6 +2385,26 @@ export class ProductosService {
         { label: 'Garantía', value: '12 meses Outiltech' },
       ],
       descripcion: 'iPhone 11 Pro 256GB Reacondicionado Certificado por Outiltech. Triple cámara Pro con Tele 2x en los tres lentes con modo noche, pantalla OLED 5.8" 458ppi y 256 GB de almacenamiento para toda tu biblioteca. Carcasa de acero inoxidable, IP68 4m y A13 Bionic. Revisado y certificado con 12 meses de garantía. La opción Pro con almacenamiento generoso al precio de un reacondicionado certificado.',
+    },
+
+    // ══ COMPUTADORES ══
+    'dell-inspiron-15-3511': {
+      specs: [
+        { label: 'Modelo',          value: 'Dell Inspiron 15 3511' },
+        { label: 'Procesador',      value: 'Intel Core i5-1135G7 – 4 núcleos / 8 hilos – hasta 4.2 GHz' },
+        { label: 'Memoria RAM',     value: '8 GB DDR4 3200 MHz' },
+        { label: 'Disco duro',      value: '512 GB SSD M.2 NVMe PCIe' },
+        { label: 'Pantalla',        value: '15.6" FHD 1920×1080 IPS Anti-Glare' },
+        { label: 'Gráficos',        value: 'Intel Iris Xe Graphics (integrado)' },
+        { label: 'Sistema operativo', value: 'Windows 11 Home' },
+        { label: 'Batería',         value: '3 celdas 41 Wh – hasta 7 horas' },
+        { label: 'Puertos',         value: 'USB-A 3.2 × 2, USB-A 2.0, HDMI 1.4, SD Card, 3.5 mm, RJ-45' },
+        { label: 'Conectividad',    value: 'Wi-Fi 5 (802.11ac) + Bluetooth 5.0' },
+        { label: 'Peso',            value: '1.85 kg' },
+        { label: 'Estado',          value: 'Reacondicionado – revisado, certificado y garantizado' },
+        { label: 'Garantía',        value: '3 meses Outiltech' },
+      ],
+      descripcion: 'Portátil Dell Inspiron 15 3511 Reacondicionado Certificado por Outiltech. Procesador Intel Core i5 de 11ª generación con gráficos Intel Iris Xe, 8 GB de RAM DDR4 y almacenamiento rápido en SSD de 512 GB. Pantalla FHD de 15.6" ideal para trabajo, estudio y entretenimiento. Revisado, certificado y con 3 meses de garantía Outiltech. La mejor relación calidad-precio en portátiles de alto rendimiento.',
     },
 
   };

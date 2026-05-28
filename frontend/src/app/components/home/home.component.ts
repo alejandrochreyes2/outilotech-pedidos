@@ -88,7 +88,8 @@ export class HomeComponent implements OnInit, OnDestroy, AfterViewInit {
     { key: 'Huawei',     label: 'Huawei',      icon: '📱' },
     { key: 'Exhibición', label: 'Exhibición',  icon: '🏪' },
     { key: 'Accesorios', label: 'Accesorios',  icon: '🔌' },
-    { key: 'Patinetas',  label: 'Patinetas',   icon: '🛴' },
+    { key: 'Patinetas',    label: 'Patinetas',    icon: '🛴' },
+    { key: 'Computadores', label: 'Computadores', icon: '🖥️' },
   ];
 
   // Fila 1 (índices 0-7): Apple, Samsung, iPhone, Mac, iPad, Watch, AirPods, Redmi
@@ -119,7 +120,8 @@ export class HomeComponent implements OnInit, OnDestroy, AfterViewInit {
     /* ── Fila 3 ── */
     { label: 'Accesorios', img: 'https://images.unsplash.com/photo-1605773527852-c546a8584ea3?w=300&q=80',                                                  filtro: 'Accesorios' },
     { label: 'Exhibición', img: 'https://www.celudmovil.com.co/cdn/shop/files/iphone2_990a877b-3624-4d5a-8634-63e3d2d929fd.webp?v=1696443353',             filtro: 'Exhibición' },
-    { label: 'Patinetas',  img: 'https://images.weserv.nl/?url=tienda.segway.center/wp-content/uploads/2025/11/C2PRO-SEGWAY-CENTER.jpg',                    filtro: 'Patinetas' },
+    { label: 'Patinetas',    img: 'https://images.weserv.nl/?url=tienda.segway.center/wp-content/uploads/2025/11/C2PRO-SEGWAY-CENTER.jpg',                   filtro: 'Patinetas' },
+    { label: 'Computadores', img: 'https://media.falabella.com/falabellaCO/123348938_01/w=600,h=600,fit=cover',                                              filtro: 'Computadores' },
   ];
 
   goToCategory(filtro: string) {
