@@ -2375,12 +2375,20 @@ export class ProductosService {
   getProductoBySlug(slug: string): Producto | undefined {
     const prod = this.productos.find(p => p.slug === slug);
     if (!prod) return undefined;
-    // Si el producto ya tiene galería propia (>1 imagen), no añadir extras de categoría
-    if (prod.imagenes.length > 1) return { ...prod };
-    const extras = (this.imgExtras[prod.categoria] ?? [])
-      .map(url => this.proxifyImageUrl(url))
-      .filter(url => url !== prod.imagen);
-    return { ...prod, imagenes: [prod.imagen, ...extras] };
+    let imagenes: string[];
+    if (prod.imagenes.length > 1) {
+      imagenes = [...prod.imagenes];
+    } else {
+      const extras = (this.imgExtras[prod.categoria] ?? [])
+        .map(url => this.proxifyImageUrl(url))
+        .filter(url => url !== prod.imagen);
+      imagenes = [prod.imagen, ...extras];
+    }
+    // Agrega slide de certificado REACONDICIONADO al final de la galería
+    if (prod.badge === 'REACONDICIONADO') {
+      imagenes = [...imagenes, '__reacond__'];
+    }
+    return { ...prod, imagenes };
   }
 
   getDestacados(): Producto[] {

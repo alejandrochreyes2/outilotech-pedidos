@@ -74,13 +74,32 @@
   padding: 3px 5px;
 }
 
-/* Badge circular REACONDICIONADO */
-.pd-reacond-badge {
-  position: absolute;
-  bottom: 14px;
-  right: 14px;
-  z-index: 10;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));
+/* Thumbnail especial del badge REACONDICIONADO */
+.pd-reacond-thumb {
+  flex-shrink: 0;
+  width: 70px;
+  height: 70px;
+  background: #1a1a1a;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .2s, transform .2s;
+}
+.pd-reacond-thumb:hover { border-color: rgba(255,107,0,0.4); transform: scale(1.05); }
+.pd-reacond-thumb.active { border-color: #FF6B00; }
+
+/* Slide de fondo negro con badge REACONDICIONADO grande centrado */
+.pd-badge-fullslide {
+  width: 100%;
+  height: 100%;
+  background: #111111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
 }
 
 /* ── Info lateral derecha ── */
