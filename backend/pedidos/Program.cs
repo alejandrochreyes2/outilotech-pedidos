@@ -2795,6 +2795,65 @@ app.MapPost("/webhook/whatsapp/twilio", async (HttpRequest request, ILogger<Prog
     return Results.Content("<?xml version='1.0' encoding='UTF-8'?><Response></Response>", "text/xml");
 });
 
+// ── POST /webhook/whatsapp/greenapi — Mensajes entrantes (Green API) ──
+// Green API envía JSON con typeWebhook, senderData y messageData
+app.MapPost("/webhook/whatsapp/greenapi", async (HttpRequest request, ILogger<Program> logger) =>
+{
+    try
+    {
+        var instanceId = Environment.GetEnvironmentVariable("GREEN_API_INSTANCE") ?? "";
+        var apiToken   = Environment.GetEnvironmentVariable("GREEN_API_TOKEN")    ?? "";
+
+        if (string.IsNullOrEmpty(instanceId) || string.IsNullOrEmpty(apiToken))
+        {
+            logger.LogWarning("[WA-GREENAPI] Variables GREEN_API_INSTANCE / GREEN_API_TOKEN no configuradas");
+            return Results.Ok();
+        }
+
+        var body = await request.ReadFromJsonAsync<JsonElement>();
+
+        // Green API envía distintos tipos de webhook; solo procesar mensajes entrantes
+        if (!body.TryGetProperty("typeWebhook", out var twProp) ||
+            twProp.GetString() != "incomingMessageReceived")
+            return Results.Ok();
+
+        if (!body.TryGetProperty("senderData",  out var senderData)  ||
+            !body.TryGetProperty("messageData", out var messageData))
+            return Results.Ok();
+
+        // Solo mensajes de texto (ignorar imágenes, audios, stickers, etc.)
+        if (!messageData.TryGetProperty("typeMessage", out var tmProp) ||
+            tmProp.GetString() != "textMessage")
+            return Results.Ok();
+
+        var chatId = senderData.TryGetProperty("chatId",     out var ci) ? ci.GetString()  ?? "" : "";
+        var nombre = senderData.TryGetProperty("senderName", out var sn) ? sn.GetString()       : null;
+        var texto  = messageData.TryGetProperty("textMessageData", out var tmd) &&
+                     tmd.TryGetProperty("textMessage", out var tm) ? tm.GetString() ?? "" : "";
+
+        if (string.IsNullOrWhiteSpace(chatId) || string.IsNullOrWhiteSpace(texto))
+            return Results.Ok();
+
+        logger.LogInformation("[WA-GREENAPI] Mensaje de {ChatId} ({Nombre}): {Txt}",
+            chatId, nombre, texto[..Math.Min(texto.Length, 60)]);
+
+        var respuesta = await ProcesarMensajeJhonWA(chatId, nombre, texto, logger);
+
+        logger.LogInformation("[WA-GREENAPI] Enviando respuesta ({Len} chars): {Preview}",
+            respuesta.Length, respuesta[..Math.Min(respuesta.Length, 80)]);
+
+        // Enviar respuesta de vuelta al usuario por Green API
+        using var gaClient = new HttpClient();
+        var sendUrl = $"https://api.green-api.com/waInstance{instanceId}/sendMessage/{apiToken}";
+        var gaResp  = await gaClient.PostAsJsonAsync(sendUrl, new { chatId, message = respuesta });
+        logger.LogInformation("[WA-GREENAPI] Respuesta enviada a {ChatId} — HTTP {Status}",
+            chatId, (int)gaResp.StatusCode);
+    }
+    catch (Exception ex) { logger.LogError(ex, "[WA-GREENAPI] Error procesando mensaje"); }
+
+    return Results.Ok();
+});
+
 // ============================================================
 // SCANNER MÓVIL — SESIONES DE ESCANEO REMOTO
 // Las sesiones son de corta vida (15 min) y sin autenticación JWT
