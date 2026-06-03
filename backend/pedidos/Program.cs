@@ -2803,6 +2803,8 @@ app.MapPost("/webhook/whatsapp/greenapi", async (HttpRequest request, ILogger<Pr
     {
         var instanceId = Environment.GetEnvironmentVariable("GREEN_API_INSTANCE") ?? "";
         var apiToken   = Environment.GetEnvironmentVariable("GREEN_API_TOKEN")    ?? "";
+        // apiUrl específica del servidor de la instancia (ej: https://7107.api.greenapi.com)
+        var apiUrl     = Environment.GetEnvironmentVariable("GREEN_API_URL") ?? "https://api.green-api.com";
 
         if (string.IsNullOrEmpty(instanceId) || string.IsNullOrEmpty(apiToken))
         {
@@ -2843,8 +2845,9 @@ app.MapPost("/webhook/whatsapp/greenapi", async (HttpRequest request, ILogger<Pr
             respuesta.Length, respuesta[..Math.Min(respuesta.Length, 80)]);
 
         // Enviar respuesta de vuelta al usuario por Green API
+        // Usa la apiUrl específica de la instancia (cada instancia tiene su propio servidor)
         using var gaClient = new HttpClient();
-        var sendUrl = $"https://api.green-api.com/waInstance{instanceId}/sendMessage/{apiToken}";
+        var sendUrl = $"{apiUrl}/waInstance{instanceId}/sendMessage/{apiToken}";
         var gaResp  = await gaClient.PostAsJsonAsync(sendUrl, new { chatId, message = respuesta });
         logger.LogInformation("[WA-GREENAPI] Respuesta enviada a {ChatId} — HTTP {Status}",
             chatId, (int)gaResp.StatusCode);
