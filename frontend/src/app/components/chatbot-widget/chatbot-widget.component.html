@@ -140,6 +140,7 @@
           title="Arrastrar para mover · Click para chatear"
           (mousedown)="startDragFab($event)"
           (touchstart)="startDragFab($event)"
+          (touchend)="onFabTouchEnd($event)"
           (click)="onFabClick()">
     @if (!avatarError) {
     <img src="assets/images/jhon-avatar.png" class="fab-avatar" alt="Jhon IA" (error)="onAvatarError()">

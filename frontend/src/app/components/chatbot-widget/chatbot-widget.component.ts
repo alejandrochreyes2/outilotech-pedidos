@@ -126,6 +126,15 @@ export class ChatbotWidgetComponent implements OnInit, OnDestroy {
     if (!this._fabMoved) this.toggleChat();
     this._fabMoved = false;
   }
+
+  onFabTouchEnd(e: TouchEvent) {
+    this.fabDragging = false;
+    if (!this._fabMoved) {
+      e.preventDefault();
+      this.toggleChat();
+    }
+    this._fabMoved = false;
+  }
   // ─────────────────────────────────────────────────────────────
 
   @HostListener('document:click', ['$event'])
@@ -253,7 +262,7 @@ export class ChatbotWidgetComponent implements OnInit, OnDestroy {
 
   openWhatsApp(tipo: 'ventas' | 'posventa') {
     const configs: Record<string, { numero: string; texto: string }> = {
-      ventas:   { numero: '14155238886', texto: 'Hola, quiero ver los productos y servicios de Outiltech' },
+      ventas:   { numero: '573223160026', texto: 'Hola, quiero ver los productos y servicios de Outiltech' },
       posventa: { numero: '573133082905', texto: 'Hola, estoy interesado en servicio posventa de Outiltech' },
     };
     const { numero, texto } = configs[tipo];

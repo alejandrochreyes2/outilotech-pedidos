@@ -2812,21 +2812,57 @@ app.MapPost("/webhook/whatsapp/greenapi", async (HttpRequest request, ILogger<Pr
             return Results.Ok();
         }
 
-        var body = await request.ReadFromJsonAsync<JsonElement>();
+        // Leer body como string primero para evitar fallo silencioso por Content-Type incorrecto
+        string rawBody;
+        try
+        {
+            using var reader = new StreamReader(request.Body, System.Text.Encoding.UTF8, leaveOpen: true);
+            rawBody = await reader.ReadToEndAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[WA-GREENAPI] No se pudo leer el body");
+            return Results.Ok();
+        }
+
+        logger.LogInformation("[WA-GREENAPI] Webhook recibido ({Len} bytes): {Preview}",
+            rawBody.Length, rawBody[..Math.Min(rawBody.Length, 120)]);
+
+        if (string.IsNullOrWhiteSpace(rawBody)) return Results.Ok();
+
+        JsonElement body;
+        try
+        {
+            body = JsonSerializer.Deserialize<JsonElement>(rawBody);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[WA-GREENAPI] Body no es JSON válido");
+            return Results.Ok();
+        }
 
         // Green API envía distintos tipos de webhook; solo procesar mensajes entrantes
         if (!body.TryGetProperty("typeWebhook", out var twProp) ||
             twProp.GetString() != "incomingMessageReceived")
+        {
+            logger.LogInformation("[WA-GREENAPI] Tipo ignorado: {Type}", body.TryGetProperty("typeWebhook", out var tw2) ? tw2.GetString() : "desconocido");
             return Results.Ok();
+        }
 
         if (!body.TryGetProperty("senderData",  out var senderData)  ||
             !body.TryGetProperty("messageData", out var messageData))
+        {
+            logger.LogWarning("[WA-GREENAPI] Faltan campos senderData/messageData");
             return Results.Ok();
+        }
 
         // Solo mensajes de texto (ignorar imágenes, audios, stickers, etc.)
         if (!messageData.TryGetProperty("typeMessage", out var tmProp) ||
             tmProp.GetString() != "textMessage")
+        {
+            logger.LogInformation("[WA-GREENAPI] Tipo de mensaje ignorado: {Type}", messageData.TryGetProperty("typeMessage", out var tm2) ? tm2.GetString() : "desconocido");
             return Results.Ok();
+        }
 
         var chatId = senderData.TryGetProperty("chatId",     out var ci) ? ci.GetString()  ?? "" : "";
         var nombre = senderData.TryGetProperty("senderName", out var sn) ? sn.GetString()       : null;
@@ -2834,7 +2870,10 @@ app.MapPost("/webhook/whatsapp/greenapi", async (HttpRequest request, ILogger<Pr
                      tmd.TryGetProperty("textMessage", out var tm) ? tm.GetString() ?? "" : "";
 
         if (string.IsNullOrWhiteSpace(chatId) || string.IsNullOrWhiteSpace(texto))
+        {
+            logger.LogWarning("[WA-GREENAPI] chatId o texto vacío — chatId='{ChatId}' texto='{Texto}'", chatId, texto);
             return Results.Ok();
+        }
 
         logger.LogInformation("[WA-GREENAPI] Mensaje de {ChatId} ({Nombre}): {Txt}",
             chatId, nombre, texto[..Math.Min(texto.Length, 60)]);
