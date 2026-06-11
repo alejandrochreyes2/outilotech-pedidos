@@ -2856,18 +2856,28 @@ app.MapPost("/webhook/whatsapp/greenapi", async (HttpRequest request, ILogger<Pr
             return Results.Ok();
         }
 
-        // Solo mensajes de texto (ignorar imágenes, audios, stickers, etc.)
-        if (!messageData.TryGetProperty("typeMessage", out var tmProp) ||
-            tmProp.GetString() != "textMessage")
+        // Aceptar textMessage y extendedTextMessage (links, respuestas, reenvíos)
+        var tipoMsg = messageData.TryGetProperty("typeMessage", out var tmProp) ? tmProp.GetString() : "";
+        if (tipoMsg != "textMessage" && tipoMsg != "extendedTextMessage")
         {
-            logger.LogInformation("[WA-GREENAPI] Tipo de mensaje ignorado: {Type}", messageData.TryGetProperty("typeMessage", out var tm2) ? tm2.GetString() : "desconocido");
+            logger.LogInformation("[WA-GREENAPI] Tipo de mensaje ignorado: {Type}", tipoMsg);
             return Results.Ok();
         }
 
         var chatId = senderData.TryGetProperty("chatId",     out var ci) ? ci.GetString()  ?? "" : "";
         var nombre = senderData.TryGetProperty("senderName", out var sn) ? sn.GetString()       : null;
-        var texto  = messageData.TryGetProperty("textMessageData", out var tmd) &&
-                     tmd.TryGetProperty("textMessage", out var tm) ? tm.GetString() ?? "" : "";
+
+        // textMessage → textMessageData.textMessage
+        // extendedTextMessage → extendedTextMessageData.text
+        string texto = "";
+        if (tipoMsg == "textMessage" &&
+            messageData.TryGetProperty("textMessageData", out var tmd) &&
+            tmd.TryGetProperty("textMessage", out var tm))
+            texto = tm.GetString() ?? "";
+        else if (tipoMsg == "extendedTextMessage" &&
+            messageData.TryGetProperty("extendedTextMessageData", out var etmd) &&
+            etmd.TryGetProperty("text", out var etm))
+            texto = etm.GetString() ?? "";
 
         if (string.IsNullOrWhiteSpace(chatId) || string.IsNullOrWhiteSpace(texto))
         {
